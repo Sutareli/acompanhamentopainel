@@ -107,6 +107,8 @@ supabase secrets set ALLOWED_ORIGINS=https://SEU-APP.pages.dev,https://seu-domin
 2. Entre na plataforma; em **Gestão da equipe → Usuários** convide os demais escolhendo o perfil (Diretor, Gerente, Analista Sr, Analista, Guardião).
 3. Cada convidado define a senha pelo link do e-mail. Recuperação de senha: "Esqueci minha senha" na tela de login.
 
+> **Primeiro acesso de cada pessoa:** a jornada nasce com os 5 blocos e **nenhuma atividade** — cada um cria a própria lista. Nos dias seguintes, a lista é copiada do último dia que teve tarefas.
+
 ### 9. Migrar dados do painel antigo
 Cada pessoa, em **Configurações**, importa o JSON de backup do painel antigo. A importação **nunca sobrescreve** dados existentes.
 

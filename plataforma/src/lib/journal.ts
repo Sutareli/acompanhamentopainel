@@ -5,7 +5,8 @@ import { loadSettings } from './settings'
 /**
  * Garante que existe o registro do dia (daily_records + 5 blocos + tarefas).
  * Se houver um dia anterior, copia nomes, durações e tarefas dele (sem marcações);
- * caso contrário usa a estrutura padrão. Nunca sobrescreve um dia existente.
+ * caso contrário (primeiro acesso de um usuário novo) cria os 5 blocos SEM atividades: cada pessoa monta a própria lista.
+ * Nunca sobrescreve um dia existente.
  */
 export async function ensureDay(uid: string, date: string) {
   const sel = () => supabase.from('daily_records').select('*').eq('user_id', uid).eq('data', date).maybeSingle()
@@ -14,7 +15,7 @@ export async function ensureDay(uid: string, date: string) {
   if (cur.data) return cur.data
 
   let tpl: { numero: number; nome: string; min: number; tasks: { descricao: string; grupo?: string | null }[] }[] =
-    DEFAULT_BLOCKS.map((b, i) => ({ numero: i + 1, nome: b.nome, min: b.min, tasks: b.tasks }))
+    DEFAULT_BLOCKS.map((b, i) => ({ numero: i + 1, nome: b.nome, min: b.min, tasks: [] }))
 
   // Copia a estrutura do dia anterior MAIS RECENTE QUE TENHA TAREFAS (se o usuário apagou a lista de um dia, o próximo não nasce vazio).
   const prevs = await supabase.from('daily_records').select('id').eq('user_id', uid).lt('data', date).order('data', { ascending: false }).limit(10)
@@ -47,7 +48,9 @@ export async function ensureDay(uid: string, date: string) {
     const id = rb.data.find((x: any) => x.numero === b.numero)!.id
     return b.tasks.map((t, i) => ({ user_id: uid, block_id: id, descricao: t.descricao, grupo: t.grupo || null, ordem: i }))
   })
-  const rt = await supabase.from('daily_tasks').insert(rows)
-  if (rt.error) throw new Error(rt.error.message)
+  if (rows.length) {
+    const rt = await supabase.from('daily_tasks').insert(rows)
+    if (rt.error) throw new Error(rt.error.message)
+  }
   return ins.data
 }
