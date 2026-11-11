@@ -42,7 +42,7 @@ export default function DiaDetalhe({ userId, date }: { userId: string; date: str
           <div key={b.id} className="rounded-xl border border-slate-200 p-3">
             <div className="mb-1 flex flex-wrap items-center gap-2">
               <b>{b.numero}. {b.nome}</b>
-              <Chip color="#0ea5b7">{t.filter((x: any) => x.concluida).length}/{t.length} tarefas</Chip>
+              <Chip color="#8b3fff">{t.filter((x: any) => x.concluida).length}/{t.length} tarefas</Chip>
               <span className="text-slate-500">{el > 0 ? `${fmtSec(el)} registrados · ` : ''}{fmtMin(b.duracao_planejada_min)} planejados</span>
             </div>
             <ul className="ml-1 space-y-0.5">

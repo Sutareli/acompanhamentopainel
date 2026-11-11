@@ -71,7 +71,7 @@ export default function Jornadas() {
       {who ? (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-xl font-bold text-navy">{who.nome}</h2><Chip color="#64748b">{PERFIL_LABEL[who.perfil as Perfil]}</Chip><Chip color="#0ea5b7">somente consulta</Chip>
+            <h2 className="text-xl font-bold text-navy">{who.nome}</h2><Chip color="#64748b">{PERFIL_LABEL[who.perfil as Perfil]}</Chip><Chip color="#8b3fff">somente consulta</Chip>
             <input type="date" className={inp + ' !w-auto'} value={date} max={hoje} onChange={(e) => e.target.value && setDate(e.target.value)} />
             <span className="text-sm text-slate-500">{fmtDate(date)}</span>
           </div>

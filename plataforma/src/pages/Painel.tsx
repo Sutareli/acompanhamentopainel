@@ -75,9 +75,9 @@ export default function Painel() {
   const saud = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
   const T = cfg.atuacao_min + cfg.pausa_min + cfg.reunioes_min + cfg.margem_min || 1
   const seg = [
-    { n: 'Atuação prática', v: cfg.atuacao_min, c: '#12295a', s: '' },
+    { n: 'Atuação prática', v: cfg.atuacao_min, c: '#2e1a6e', s: '' },
     { n: 'Pausa', v: cfg.pausa_min, c: '#64748b', s: '' },
-    { n: 'Reuniões', v: cfg.reunioes_min, c: '#0ea5b7', s: fmtMin(meetMin) + ' registrados' },
+    { n: 'Reuniões', v: cfg.reunioes_min, c: '#8b3fff', s: fmtMin(meetMin) + ' registrados' },
     { n: 'Margem flexível', v: cfg.margem_min, c: '#f59e0b', s: fmtMin(impMin) + ' em imprevistos' },
   ]
   let acc = 0
@@ -105,12 +105,12 @@ export default function Painel() {
       }} />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
-        <Kpi icon="📈" label="Execução das tarefas" value={pct + '%'} pct={pct} color="#0ea5b7" />
+        <Kpi icon="📈" label="Execução das tarefas" value={pct + '%'} pct={pct} color="#8b3fff" />
         <Kpi icon="✅" label="Tarefas concluídas" value={done} pct={pct} color="#16a34a" />
         <Kpi icon="⏳" label="Tarefas pendentes" value={all.length - done} pct={all.length ? 100 - pct : 0} color="#f59e0b" />
-        <Kpi icon="🧱" label="Blocos concluídos" value={`${blocksDone}/${blocks.length || 5}`} pct={blocks.length ? (blocksDone / blocks.length) * 100 : 0} color="#12295a" sub="todas as tarefas do bloco marcadas" />
-        <Kpi icon="👥" label="Tempo em reuniões" value={fmtMin(meetMin)} pct={cfg.reunioes_min ? (meetMin / cfg.reunioes_min) * 100 : 0} color="#0ea5b7" sub={`de ${fmtMin(cfg.reunioes_min)} reservados`} />
-        <Kpi icon="🧭" label="Margem flexível restante" value={fmtMin(margem)} pct={cfg.margem_min ? (Math.max(0, margem) / cfg.margem_min) * 100 : 0} color={margem < 0 ? '#dc2626' : '#12295a'} sub={`de ${fmtMin(cfg.margem_min)}, menos imprevistos`} />
+        <Kpi icon="🧱" label="Blocos concluídos" value={`${blocksDone}/${blocks.length || 5}`} pct={blocks.length ? (blocksDone / blocks.length) * 100 : 0} color="#2e1a6e" sub="todas as tarefas do bloco marcadas" />
+        <Kpi icon="👥" label="Tempo em reuniões" value={fmtMin(meetMin)} pct={cfg.reunioes_min ? (meetMin / cfg.reunioes_min) * 100 : 0} color="#8b3fff" sub={`de ${fmtMin(cfg.reunioes_min)} reservados`} />
+        <Kpi icon="🧭" label="Margem flexível restante" value={fmtMin(margem)} pct={cfg.margem_min ? (Math.max(0, margem) / cfg.margem_min) * 100 : 0} color={margem < 0 ? '#dc2626' : '#2e1a6e'} sub={`de ${fmtMin(cfg.margem_min)}, menos imprevistos`} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 min-[1700px]:grid-cols-5">

@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react'
 import { useAuth } from './AuthContext'
-import { btnP, Card, Field, inp, Msg } from '../components/ui'
+import { btnP, Field, inp, Msg } from '../components/ui'
+import AuthShell from '../components/AuthShell'
 
 export function Login() {
   const { signIn, resetPassword, authError } = useAuth()
@@ -25,23 +26,21 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-navy p-4">
-      <Card className="w-full max-w-sm">
-        <h1 className="mb-1 text-2xl font-bold text-navy">Gestão de atividades</h1>
-        <p className="mb-4 text-sm text-slate-500">{mode === 'login' ? 'Entre com sua conta da equipe.' : 'Recuperação de senha.'}</p>
-        {(err || authError) && <Msg kind="erro">{err || authError}</Msg>}
-        {ok && <Msg kind="ok">{ok}</Msg>}
-        <form onSubmit={submit} className="space-y-3">
-          <Field label="E-mail"><input className={inp} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
-          {mode === 'login' && <Field label="Senha"><input className={inp} type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} /></Field>}
-          <button className={btnP + ' w-full'} disabled={busy}>{busy ? 'Aguarde…' : mode === 'login' ? 'Entrar' : 'Enviar link de recuperação'}</button>
-        </form>
-        <button className="mt-3 text-sm text-turq underline" onClick={() => { setMode(mode === 'login' ? 'reset' : 'login'); setErr(''); setOk('') }}>
+    <AuthShell title={mode === 'login' ? 'Acesse sua conta' : 'Recuperar senha'}>
+      {(err || authError) && <Msg kind="erro">{err || authError}</Msg>}
+      {ok && <Msg kind="ok">{ok}</Msg>}
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="E-mail"><input className={inp} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+        {mode === 'login' && <Field label="Senha"><input className={inp} type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} /></Field>}
+        <button className={btnP + ' w-full !py-3 text-base'} disabled={busy}>{busy ? 'Aguarde…' : mode === 'login' ? 'Entrar' : 'Enviar link de recuperação'}</button>
+      </form>
+      <div className="mt-4 text-center">
+        <button className="text-sm text-turq underline" onClick={() => { setMode(mode === 'login' ? 'reset' : 'login'); setErr(''); setOk('') }}>
           {mode === 'login' ? 'Esqueci minha senha' : 'Voltar ao login'}
         </button>
-        <p className="mt-4 text-xs text-slate-400">O acesso é feito por convite.</p>
-      </Card>
-    </div>
+        <p className="mt-3 text-xs text-slate-400">O acesso é feito por convite.</p>
+      </div>
+    </AuthShell>
   )
 }
 
@@ -62,17 +61,14 @@ export function SetPassword() {
     setBusy(false)
   }
   return (
-    <div className="flex min-h-screen items-center justify-center bg-navy p-4">
-      <Card className="w-full max-w-sm">
-        <h1 className="mb-1 text-xl font-bold text-navy">Definir senha</h1>
-        <p className="mb-4 text-sm text-slate-500">Crie a senha de acesso à plataforma.</p>
-        {err && <Msg kind="erro">{err}</Msg>}
-        <form onSubmit={submit} className="space-y-3">
-          <Field label="Nova senha"><input className={inp} type="password" autoComplete="new-password" value={a} onChange={(e) => setA(e.target.value)} /></Field>
-          <Field label="Repita a senha"><input className={inp} type="password" autoComplete="new-password" value={b} onChange={(e) => setB(e.target.value)} /></Field>
-          <button className={btnP + ' w-full'} disabled={busy}>{busy ? 'Salvando…' : 'Salvar senha'}</button>
-        </form>
-      </Card>
-    </div>
+    <AuthShell title="Definir senha">
+      <p className="mb-4 text-center text-sm text-slate-500">Crie a senha de acesso à plataforma.</p>
+      {err && <Msg kind="erro">{err}</Msg>}
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="Nova senha"><input className={inp} type="password" autoComplete="new-password" value={a} onChange={(e) => setA(e.target.value)} /></Field>
+        <Field label="Repita a senha"><input className={inp} type="password" autoComplete="new-password" value={b} onChange={(e) => setB(e.target.value)} /></Field>
+        <button className={btnP + ' w-full !py-3 text-base'} disabled={busy}>{busy ? 'Salvando…' : 'Salvar senha'}</button>
+      </form>
+    </AuthShell>
   )
 }

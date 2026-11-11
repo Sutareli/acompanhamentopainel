@@ -109,6 +109,8 @@ supabase secrets set ALLOWED_ORIGINS=https://SEU-APP.pages.dev,https://seu-domin
 
 > **Primeiro acesso de cada pessoa:** a jornada nasce com os 5 blocos e **nenhuma atividade** — cada um cria a própria lista. Nos dias seguintes, a lista é copiada do último dia que teve tarefas.
 
+> **Logo na tela de login (opcional):** coloque um arquivo `logo.png` (fundo transparente, ~400 px de altura) na pasta `public/` e faça o deploy; ele aparece no topo do login no lugar do emblema padrão. Use apenas imagens que você tenha direito de usar.
+
 ### 9. Migrar dados do painel antigo
 Cada pessoa, em **Configurações**, importa o JSON de backup do painel antigo. A importação **nunca sobrescreve** dados existentes.
 

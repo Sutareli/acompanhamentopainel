@@ -95,7 +95,7 @@ export function distribuicao(m: Pick<Micro, 'a_iniciar' | 'em_andamento' | 'conc
   return p.join(' · ')
 }
 
-export const BLOCK_COLORS = ['#12295a', '#0e7490', '#7c3aed', '#ea580c', '#0f766e']
+export const BLOCK_COLORS = ['#2e1a6e', '#0e7490', '#7c3aed', '#ea580c', '#0f766e']
 export const BLOCK_ICONS = ['🌅', '✉️', '🔎', '💡', '✅']
 
 const G1 = '3.1 Validação da ferramenta — 30 min'

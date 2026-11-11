@@ -56,15 +56,15 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <aside className="fixed inset-y-0 left-0 hidden w-56 flex-col bg-navy p-3 text-white md:flex">
-        <div className="px-2 py-4 font-bold leading-tight">Gestão de<br /><span className="text-cyan-300">atividades</span></div>
+        <div className="px-2 py-4 font-bold leading-tight">Gestão de<br /><span className="text-violet-300">atividades</span></div>
         <nav className="flex-1 space-y-1">
           {items.map(([k, i, l]) => (
-            <button key={k} onClick={() => setPage(k)} className={'flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ' + (view === k ? 'bg-blue-800' : 'text-blue-100 hover:bg-blue-900')}>
+            <button key={k} onClick={() => setPage(k)} className={'flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ' + (view === k ? 'bg-violet-700' : 'text-violet-100 hover:bg-violet-900')}>
               <span>{i}</span>{l}
             </button>
           ))}
         </nav>
-        <div className="border-t border-blue-900 px-2 pt-3 text-xs text-blue-200">
+        <div className="border-t border-violet-900 px-2 pt-3 text-xs text-violet-200">
           <div className="truncate font-semibold text-white">{profile.nome}</div>
           <div className="mb-2">{PERFIL_LABEL[profile.perfil]}</div>
           <button onClick={signOut} className="underline">Sair</button>

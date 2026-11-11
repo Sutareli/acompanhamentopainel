@@ -91,7 +91,7 @@ export default function Equipe() {
         <Kpi icon="⚪" label="A iniciar" value={cnt('a_iniciar')} color="#64748b" />
         <Kpi icon="🚫" label="Canceladas" value={cnt('cancelado')} color="#f87171" />
         <Kpi icon="⚠️" label="Atrasadas" value={rows.filter((r) => r.atrasada).length} color="#dc2626" />
-        <Kpi icon="📈" label="% geral de conclusão" value={pctGeral + '%'} pct={pctGeral} color="#0ea5b7" sub="unidades concluídas ÷ (total − canceladas)" />
+        <Kpi icon="📈" label="% geral de conclusão" value={pctGeral + '%'} pct={pctGeral} color="#8b3fff" sub="unidades concluídas ÷ (total − canceladas)" />
       </div>
 
       {rows.length === 0 ? <Empty>Ainda não há microentregas cadastradas. Os gráficos aparecem assim que houver registros.</Empty> : (
