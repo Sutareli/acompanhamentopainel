@@ -8,7 +8,7 @@ import DiaDetalhe from '../components/DiaDetalhe'
 
 /**
  * Jornadas da equipe — SOMENTE CONSULTA.
- * Disponível a chefe do chefe, chefe e gestor. O banco (RLS) só permite SELECT nas jornadas de terceiros;
+ * Disponível a Diretor, Gerente e Analista Sr. O banco (RLS) só permite SELECT nas jornadas de terceiros;
  * esta tela não contém nenhum botão de gravação.
  */
 export default function Jornadas() {

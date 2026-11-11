@@ -32,11 +32,13 @@ export function chk(r: { data: any; error: any }): any {
 
 export type Crit = 'alta' | 'media' | 'baixa'
 export type StatusGeral = 'a_iniciar' | 'em_andamento' | 'concluido' | 'concluido_parcial' | 'cancelado'
-export type Perfil = 'chefe_do_chefe' | 'chefe' | 'gestor' | 'analista' | 'guardiao'
-export const PERFIL_LABEL: Record<Perfil, string> = { chefe_do_chefe: 'Chefe do chefe', chefe: 'Chefe', gestor: 'Gestor', analista: 'Analista', guardiao: 'Guardião' }
+export type Perfil = 'diretor' | 'gerente' | 'analista_sr' | 'analista' | 'guardiao'
+export const PERFIL_LABEL: Record<Perfil, string> = { diretor: 'Diretor', gerente: 'Gerente', analista_sr: 'Analista Sr', analista: 'Analista', guardiao: 'Guardião' }
 export const PERFIS = Object.keys(PERFIL_LABEL) as Perfil[]
 /** Quem pode CONSULTAR as jornadas de todos (somente leitura). Espelha is_viewer_all() no banco. */
-export const canViewAll = (p?: Perfil) => p === 'chefe_do_chefe' || p === 'chefe' || p === 'gestor'
+export const canViewAll = (p?: Perfil) => p === 'diretor' || p === 'gerente' || p === 'analista_sr'
+/** Administração (usuários, perfis, configuração global, auditoria): só Analista Sr. Espelha is_manager() no banco. */
+export const canAdmin = (p?: Perfil) => p === 'analista_sr'
 export const CRIT_LABEL: Record<Crit, string> = { alta: 'Alta', media: 'Média', baixa: 'Baixa' }
 export const CRIT_COLOR: Record<Crit, string> = { alta: '#dc2626', media: '#f59e0b', baixa: '#3b82f6' }
 export const STATUS_LABEL: Record<StatusGeral, string> = { a_iniciar: 'A iniciar', em_andamento: 'Em andamento', concluido: 'Concluído', concluido_parcial: 'Concluído c/ cancelamentos', cancelado: 'Cancelado' }

@@ -11,7 +11,7 @@ import Historico from './pages/Historico'
 import Configuracoes from './pages/Configuracoes'
 import Equipe from './pages/Equipe'
 import Jornadas from './pages/Jornadas'
-import { canViewAll, PERFIL_LABEL } from './lib/rules'
+import { canAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
 const ITEMS: [string, string, string][] = [
   ['painel', '🏠', 'Painel'], ['agenda', '📅', 'Agenda'], ['ideias', '💡', 'Ideias'],
@@ -27,7 +27,7 @@ export default function App() {
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="max-w-md">
           <Msg kind="aviso">Configuração pendente</Msg>
-          <p className="text-sm">Defina <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code> (arquivo <code>.env.local</code> ou variáveis da Vercel) e publique novamente.</p>
+          <p className="text-sm">Defina <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code> (arquivo <code>.env.local</code> ou variáveis de ambiente do Cloudflare Pages) e publique novamente.</p>
         </Card>
       </div>
     )
@@ -49,14 +49,14 @@ export default function App() {
   // Perfis com visão de equipe (somente consulta das jornadas + consolidado). A trava real está nas políticas RLS do banco.
   const viewer = canViewAll(profile.perfil)
   const items: [string, string, string][] = viewer
-    ? [...ITEMS, ['jornadas', '👀', 'Jornadas da equipe'], ['equipe', '👥', profile.perfil === 'gestor' ? 'Gestão da equipe' : 'Visão consolidada']]
+    ? [...ITEMS, ['jornadas', '👀', 'Jornadas da equipe'], ['equipe', '👥', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada']]
     : ITEMS
   const view = (page === 'equipe' || page === 'jornadas') && !viewer ? 'painel' : page
 
   return (
     <div className="min-h-screen">
       <aside className="fixed inset-y-0 left-0 hidden w-56 flex-col bg-navy p-3 text-white md:flex">
-        <div className="px-2 py-4 font-bold leading-tight">Minha Jornada<br /><span className="text-cyan-300">de Trabalho</span></div>
+        <div className="px-2 py-4 font-bold leading-tight">Gestão de<br /><span className="text-cyan-300">atividades</span></div>
         <nav className="flex-1 space-y-1">
           {items.map(([k, i, l]) => (
             <button key={k} onClick={() => setPage(k)} className={'flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ' + (view === k ? 'bg-blue-800' : 'text-blue-100 hover:bg-blue-900')}>
@@ -72,7 +72,7 @@ export default function App() {
       </aside>
 
       <header className="flex items-center justify-between bg-navy px-4 py-2 text-white md:hidden">
-        <span className="text-sm font-bold">Minha Jornada</span>
+        <span className="text-sm font-bold">Gestão de atividades</span>
         <button onClick={signOut} className="text-xs underline">Sair ({profile.nome.split(' ')[0]})</button>
       </header>
 

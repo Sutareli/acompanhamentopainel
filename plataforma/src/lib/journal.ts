@@ -16,17 +16,19 @@ export async function ensureDay(uid: string, date: string) {
   let tpl: { numero: number; nome: string; min: number; tasks: { descricao: string; grupo?: string | null }[] }[] =
     DEFAULT_BLOCKS.map((b, i) => ({ numero: i + 1, nome: b.nome, min: b.min, tasks: b.tasks }))
 
-  const prev = await supabase.from('daily_records').select('id').eq('user_id', uid).lt('data', date).order('data', { ascending: false }).limit(1).maybeSingle()
-  if (prev.data) {
+  // Copia a estrutura do dia anterior MAIS RECENTE QUE TENHA TAREFAS (se o usuário apagou a lista de um dia, o próximo não nasce vazio).
+  const prevs = await supabase.from('daily_records').select('id').eq('user_id', uid).lt('data', date).order('data', { ascending: false }).limit(10)
+  for (const prev of prevs.data || []) {
     const pb = await supabase.from('daily_blocks')
       .select('numero,nome,duracao_planejada_min,daily_tasks(descricao,grupo,ordem,idea_id)')
-      .eq('daily_record_id', prev.data.id).order('numero')
+      .eq('daily_record_id', prev.id).order('numero')
     if (pb.data && pb.data.length === 5) {
-      tpl = pb.data.map((b: any) => ({
+      const cand = pb.data.map((b: any) => ({
         numero: b.numero, nome: b.nome, min: b.duracao_planejada_min,
         tasks: [...b.daily_tasks].sort((x: any, y: any) => x.ordem - y.ordem).filter((t: any) => !t.idea_id)
           .map((t: any) => ({ descricao: t.descricao, grupo: t.grupo })),
       }))
+      if (cand.some((b) => b.tasks.length > 0)) { tpl = cand; break }
     }
   }
 

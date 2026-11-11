@@ -1,4 +1,4 @@
-// Edge Function (Supabase): convida um novo usuário por e-mail. Somente GESTORES ativos podem chamar.
+// Edge Function (Supabase): convida um novo usuário por e-mail. Somente ANALISTAS SR ativos podem chamar.
 // A chave service_role existe APENAS aqui (servidor do Supabase) — nunca no navegador nem no Cloudflare.
 // Funciona igual com o app hospedado no Cloudflare Pages: o navegador chama a função pelo domínio do Supabase.
 //
@@ -7,7 +7,7 @@
 //           supabase secrets set ALLOWED_ORIGINS=https://SEU-APP.pages.dev,https://seu-dominio.com.br
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const PERFIS = ['chefe_do_chefe', 'chefe', 'gestor', 'analista', 'guardiao']
+const PERFIS = ['diretor', 'gerente', 'analista_sr', 'analista', 'guardiao']
 
 function corsFor(req: Request) {
   // Se ALLOWED_ORIGINS estiver definido, só essas origens são aceitas (recomendado em produção).
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
 
     const admin = createClient(url, service)
     const { data: me } = await admin.from('profiles').select('perfil,ativo').eq('id', user.id).single()
-    if (!me || !me.ativo || me.perfil !== 'gestor') return json(403, { error: 'Apenas gestores podem convidar usuários.' })
+    if (!me || !me.ativo || me.perfil !== 'analista_sr') return json(403, { error: 'Apenas Analistas Sr podem convidar usuários.' })
 
     const { email, nome, perfil } = await req.json()
     if (typeof email !== 'string' || !/^\S+@\S+\.\S+$/.test(email)) return json(400, { error: 'E-mail inválido.' })

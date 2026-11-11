@@ -27,7 +27,7 @@ export function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-navy p-4">
       <Card className="w-full max-w-sm">
-        <h1 className="mb-1 text-2xl font-bold text-navy">Minha Jornada de Trabalho</h1>
+        <h1 className="mb-1 text-2xl font-bold text-navy">Gestão de atividades</h1>
         <p className="mb-4 text-sm text-slate-500">{mode === 'login' ? 'Entre com sua conta da equipe.' : 'Recuperação de senha.'}</p>
         {(err || authError) && <Msg kind="erro">{err || authError}</Msg>}
         {ok && <Msg kind="ok">{ok}</Msg>}
@@ -39,7 +39,7 @@ export function Login() {
         <button className="mt-3 text-sm text-turq underline" onClick={() => { setMode(mode === 'login' ? 'reset' : 'login'); setErr(''); setOk('') }}>
           {mode === 'login' ? 'Esqueci minha senha' : 'Voltar ao login'}
         </button>
-        <p className="mt-4 text-xs text-slate-400">O acesso é feito por convite do gestor.</p>
+        <p className="mt-4 text-xs text-slate-400">O acesso é feito por convite.</p>
       </Card>
     </div>
   )

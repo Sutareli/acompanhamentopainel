@@ -1,4 +1,4 @@
-# Minha Jornada de Trabalho — Plataforma da equipe
+# Gestão de atividades — Plataforma da equipe
 
 Aplicação web multiusuário (React + TypeScript + Tailwind) com **Supabase** (banco Postgres, autenticação, Realtime, RLS) e hospedagem no **Cloudflare Pages** (plano gratuito). Fuso padrão: America/Fortaleza · datas DD/MM/AAAA · 24 h.
 
@@ -6,9 +6,9 @@ Aplicação web multiusuário (React + TypeScript + Tailwind) com **Supabase** (
 
 | Perfil | Própria jornada | Ver jornadas de outros (somente leitura) | Visão consolidada | Gestão (equipe, convites, configurações globais, auditoria) | Microentregas |
 |---|---|---|---|---|---|
-| Chefe do chefe | editar | sim | sim | não | ver / criar / editar |
-| Meu chefe | editar | sim | sim | não | ver / criar / editar |
-| Gestor | editar | sim | sim | **sim** | ver / criar / editar |
+| Diretor | editar | sim | sim | não | ver / criar / editar |
+| Gerente | editar | sim | sim | não | ver / criar / editar |
+| Analista Sr | editar | sim | sim | **sim** | ver / criar / editar |
 | Analista | editar | não | não | não | ver / criar / editar |
 | Guardião | editar | não | não | não | ver / criar / editar |
 
@@ -26,6 +26,22 @@ Calculado a partir da distribuição numérica (a iniciar `a`, em andamento `e`,
 
 ---
 
+## Atualizando um banco que JÁ está no ar (versão anterior → esta)
+
+Esta versão renomeia os perfis, remove o cronômetro, adiciona o Histórico de atividades e o botão "Limpar lista do dia". Faça nesta ordem:
+
+1. **Backup** (veja "Backup e recuperação" abaixo) — recomendado antes de mexer no banco.
+2. **Supabase → SQL Editor**: cole e execute **`supabase/002_migracao_perfis_e_historico.sql`** (uma única vez). Ele converte `chefe_do_chefe → diretor`, `chefe → gerente`, `gestor → analista_sr`, atualiza as funções do RLS e cria o arquivo de atividades. **Não** reexecute o `001`.
+3. **Publique a função de convite de novo** (ela passou a validar os novos perfis; sem isso, convidar usuários falha):
+   `supabase functions deploy invite-user`
+4. **GitHub**: faça commit/push desta versão. O Cloudflare Pages faz o deploy sozinho.
+5. Entre na plataforma e confira: o seu usuário deve aparecer como **Analista Sr** e a tela "Gestão da equipe" continua disponível.
+
+⚠️ Entre os passos 2 e 4, a versão antiga do site (que ainda procura "gestor") fica sem as telas de equipe por alguns minutos. Execute-os em sequência.
+Instalação nova: ignore esta seção e use só o `001`.
+
+---
+
 ## Implantação — passo a passo (nesta ordem)
 
 ### 1. Criar o projeto no Supabase
@@ -33,7 +49,7 @@ Calculado a partir da distribuição numérica (a iniciar `a`, em andamento `e`,
 2. **Authentication → Providers → Email**: mantenha e-mail/senha; **desative "Allow new users to sign up"** (acesso somente por convite).
 
 ### 2. Executar o SQL
-**SQL Editor** → cole e execute `supabase/001_schema.sql` inteiro (tabelas, triggers, funções, RLS, views, Realtime).
+**SQL Editor** → cole e execute `supabase/001_schema.sql` inteiro (instalação nova; já inclui tudo da migração 002) (tabelas, triggers, funções, RLS, views, Realtime).
 
 ### 3. Variáveis de ambiente (local)
 Copie `.env.example` para `.env` e preencha com **Project Settings → API**:
@@ -81,14 +97,14 @@ supabase functions deploy invite-user
 supabase secrets set SITE_URL=https://SEU-APP.pages.dev
 supabase secrets set ALLOWED_ORIGINS=https://SEU-APP.pages.dev,https://seu-dominio.com.br
 ```
-(`SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` já são fornecidos pelo Supabase à função.) Só gestores ativos conseguem convidar.
+(`SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` já são fornecidos pelo Supabase à função.) Só Analistas Sr ativos conseguem convidar.
 
 ### 8. Criar usuários e definir perfis
-1. **Primeiro gestor** (você): em Authentication → Users → **Add user** (ou Invite) com seu e-mail; depois, no SQL Editor:
+1. **Primeiro Analista Sr** (você): em Authentication → Users → **Add user** (ou Invite) com seu e-mail; depois, no SQL Editor:
    ```sql
-   update public.profiles set perfil = 'gestor' where email = 'seu@email.com';
+   update public.profiles set perfil = 'analista_sr' where email = 'seu@email.com';
    ```
-2. Entre na plataforma; em **Gestão da equipe → Usuários** convide os demais escolhendo o perfil (Chefe do chefe, Meu chefe, Gestor, Analista, Guardião).
+2. Entre na plataforma; em **Gestão da equipe → Usuários** convide os demais escolhendo o perfil (Diretor, Gerente, Analista Sr, Analista, Guardião).
 3. Cada convidado define a senha pelo link do e-mail. Recuperação de senha: "Esqueci minha senha" na tela de login.
 
 ### 9. Migrar dados do painel antigo
@@ -113,10 +129,13 @@ Cada pessoa, em **Configurações**, importa o JSON de backup do painel antigo. 
 ## O que foi e o que NÃO foi testado
 
 **Executado de fato (ambiente de desenvolvimento):**
-- SQL completo carregado em um Postgres temporário; testes de RLS com os 5 perfis (visão de todas as jornadas × só a própria; escrita em dados de terceiros bloqueada; só gestor altera perfis e lê auditoria; microentregas sem DELETE; triggers de histórico/auditoria; soma inválida bloqueada).
+- SQL completo carregado em um Postgres temporário; testes de RLS com os 5 perfis (visão de todas as jornadas × só a própria; escrita em dados de terceiros bloqueada; só Analista Sr altera perfis e lê auditoria; microentregas sem DELETE; triggers de histórico/auditoria; soma inválida bloqueada).
 - Regra de status testada em 125 combinações, SQL × TypeScript idênticos.
 - Checagem de tipos (`tsc`) do código-fonte contra *stubs* das bibliotecas; bundle com esbuild e renderização do menu por perfil (no servidor, com Supabase simulado).
 - Varredura: nenhuma `service_role` em `src/`; somente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`; `.env` ignorado pelo Git.
+
+- (Versão atual) Migração 002 aplicada sobre uma cópia do esquema anterior com usuários nos perfis antigos: perfis convertidos corretamente; e o `001` novo carregado do zero. Nos dois bancos: visão de todas as jornadas só para Diretor/Gerente/Analista Sr (Analista e Guardião veem apenas a própria), escrita em dado alheio bloqueada, só Analista Sr altera perfis, `dia_limpar` (desmarcar/apagar) arquiva as concluídas e não funciona no dia de outra pessoa, `v_atividades` respeita o RLS.
+- (Versão atual) `tsc` contra stubs, bundle esbuild e prévia no Chromium com banco simulado: sem cronômetro, diálogo de confirmação, aba Histórico de atividades e menus por perfil.
 
 **NÃO executado (precisa de internet/credenciais — faça você):**
 - `npm install`, `npm run typecheck` e `npm run build` reais (o ambiente de validação não tinha acesso ao npm). Rode-os antes do primeiro deploy; se `tsc` apontar algo, é ajuste pontual.
@@ -125,4 +144,4 @@ Cada pessoa, em **Configurações**, importa o JSON de backup do painel antigo. 
 - Teste no navegador, incluindo se a CSP em `_headers` bloqueia algo.
 
 ## Passos manuais que ficam com você
-Criar projetos Supabase/GitHub/Cloudflare; executar o SQL; definir variáveis; configurar Site URL e Redirect URLs; publicar a função e seus secrets; promover o primeiro gestor; convidar a equipe; agendar backups; rodar `npm install/typecheck/build` e fazer o primeiro teste ponta a ponta.
+Criar projetos Supabase/GitHub/Cloudflare; executar o SQL; definir variáveis; configurar Site URL e Redirect URLs; publicar a função e seus secrets; promover o primeiro Analista Sr; convidar a equipe; agendar backups; rodar `npm install/typecheck/build` e fazer o primeiro teste ponta a ponta.

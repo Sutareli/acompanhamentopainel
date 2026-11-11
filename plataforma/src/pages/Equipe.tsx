@@ -2,14 +2,14 @@ import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { useMicros } from '../lib/useMicros'
-import { CRIT_COLOR, CRIT_LABEL, download, fmtDate, Perfil, PERFIL_LABEL, PERFIS, STATUS_COLOR, STATUS_LABEL, StatusGeral, toCSV, todayStr, TZ } from '../lib/rules'
+import { canAdmin, CRIT_COLOR, CRIT_LABEL, download, fmtDate, Perfil, PERFIL_LABEL, PERFIS, STATUS_COLOR, STATUS_LABEL, StatusGeral, toCSV, todayStr, TZ } from '../lib/rules'
 import { btnG, btnP, Card, Chip, Empty, Field, HBars, inp, Kpi, Msg, VBars } from '../components/ui'
 import Microentregas from './Microentregas'
 
 export default function Equipe() {
   const { profile } = useAuth()
   const { rows, profiles, loading, error, reload } = useMicros()
-  const isGestor = profile!.perfil === 'gestor' // administração de usuários: só gestor (e o banco também exige)
+  const isGestor = canAdmin(profile!.perfil) // administração de usuários: só Analista Sr (e o banco também exige)
   const [sel, setSel] = useState<string | null>(null)
   const [hist, setHist] = useState<any[]>([])
   const [inv, setInv] = useState({ nome: '', email: '', perfil: 'analista' })

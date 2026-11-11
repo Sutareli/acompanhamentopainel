@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function loadProfile(uid: string) {
     const { data, error } = await supabase.from('profiles').select('id,nome,email,perfil,ativo').eq('id', uid).maybeSingle()
     if (error || !data) { setAuthError('Não foi possível carregar seu perfil. Verifique a conexão e tente novamente.'); return }
-    if (!data.ativo) { setAuthError('Sua conta está desativada. Procure o gestor da equipe.'); await supabase.auth.signOut(); return }
+    if (!data.ativo) { setAuthError('Sua conta está desativada. Procure um Analista Sr da equipe.'); await supabase.auth.signOut(); return }
     setAuthError('')
     setProfile(data as Prof)
   }

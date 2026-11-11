@@ -1,6 +1,7 @@
 -- Minha Jornada / Microentregas — Fase 1: banco de dados (Supabase / PostgreSQL)
 -- Execute no SQL Editor do Supabase. Antes: Authentication > Providers > Email > desativar "Allow new users to sign up" (acesso só por convite).
--- Bootstrap do 1º gestor (após criar o usuário): update public.profiles set perfil='gestor' where email='SEU@EMAIL';
+-- Bootstrap do 1º administrador (após criar o usuário): update public.profiles set perfil='analista_sr' where email='SEU@EMAIL';
+-- Perfis: diretor, gerente, analista_sr (consulta a todas as jornadas; só analista_sr administra), analista, guardiao.
 
 create extension if not exists pgcrypto;
 
@@ -8,18 +9,18 @@ create extension if not exists pgcrypto;
 create table public.profiles(
   id uuid primary key references auth.users(id) on delete cascade,
   nome text not null, email text not null,
-  perfil text not null default 'analista' check (perfil in ('chefe_do_chefe','chefe','gestor','analista','guardiao')),
+  perfil text not null default 'analista' check (perfil in ('diretor','gerente','analista_sr','analista','guardiao')),
   ativo boolean not null default true,
   criado_em timestamptz not null default now());
 
 create function public.is_active() returns boolean language sql stable security definer set search_path=public as
 $$ select exists(select 1 from profiles where id=auth.uid() and ativo) $$;
 create function public.is_manager() returns boolean language sql stable security definer set search_path=public as
-$$ select exists(select 1 from profiles where id=auth.uid() and ativo and perfil='gestor') $$;
+$$ select exists(select 1 from profiles where id=auth.uid() and ativo and perfil='analista_sr') $$;
 -- Quem pode CONSULTAR as jornadas de todos (somente leitura) e os dados consolidados.
 -- Administração (usuários, perfis, configuração global) continua exclusiva de is_manager().
 create function public.is_viewer_all() returns boolean language sql stable security definer set search_path=public as
-$$ select exists(select 1 from profiles where id=auth.uid() and ativo and perfil in ('chefe_do_chefe','chefe','gestor')) $$;
+$$ select exists(select 1 from profiles where id=auth.uid() and ativo and perfil in ('diretor','gerente','analista_sr')) $$;
 
 -- perfil NUNCA vem do metadata do cliente: todo novo usuário nasce analista
 create function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$
@@ -199,6 +200,42 @@ from daily_records r
 cross join lateral (select count(*) total, count(*) filter (where t.concluida) concluidas from daily_tasks t join daily_blocks b on b.id=t.block_id where b.daily_record_id=r.id) x
 cross join lateral (select coalesce(sum(acumulado_seg+case when em_execucao_desde is not null then extract(epoch from now()-em_execucao_desde)::int else 0 end),0)::int seg from daily_blocks where daily_record_id=r.id) y;
 
+-- ===== Arquivo de atividades concluídas =====
+-- Quando o usuário "limpa" o dia (dia_limpar), as atividades JÁ CONCLUÍDAS são arquivadas aqui antes de serem
+-- desmarcadas/excluídas, para o histórico de atividades nunca perder o que foi realizado.
+create table public.activity_archive(
+  id uuid primary key default gen_random_uuid(), user_id uuid not null default auth.uid() references profiles(id) on delete cascade,
+  data date not null, bloco_numero int, bloco_nome text, descricao text not null, grupo text,
+  concluida_em timestamptz, arquivada_em timestamptz not null default now());
+create index on activity_archive(user_id, data);
+
+-- Histórico de atividades concluídas = tarefas concluídas dos dias + as arquivadas na limpeza.
+create view public.v_atividades with (security_invoker=true) as
+select t.user_id, r.data, b.numero as bloco_numero, b.nome as bloco_nome, t.descricao, t.grupo, t.concluida_em, 'dia'::text as origem
+  from daily_tasks t join daily_blocks b on b.id=t.block_id join daily_records r on r.id=b.daily_record_id where t.concluida
+union all
+select user_id, data, bloco_numero, bloco_nome, descricao, grupo, concluida_em, 'arquivada'::text from activity_archive;
+
+-- Limpa o dia do usuário logado. p_modo: 'desmarcar' (mantém a lista, remove as marcações) ou 'excluir' (apaga todas as tarefas).
+-- Em ambos, as tarefas concluídas são arquivadas antes. Atômico (uma transação).
+create function public.dia_limpar(p_record uuid, p_modo text) returns int language plpgsql as $$
+declare n int;
+begin
+  if p_modo not in ('desmarcar','excluir') then raise exception 'modo inválido'; end if;
+  if not exists(select 1 from daily_records where id=p_record and user_id=auth.uid()) then raise exception 'dia não encontrado'; end if;
+  insert into activity_archive(user_id,data,bloco_numero,bloco_nome,descricao,grupo,concluida_em)
+    select t.user_id, r.data, b.numero, b.nome, t.descricao, t.grupo, t.concluida_em
+    from daily_tasks t join daily_blocks b on b.id=t.block_id join daily_records r on r.id=b.daily_record_id
+    where r.id=p_record and t.user_id=auth.uid() and t.concluida;
+  get diagnostics n = row_count;
+  if p_modo='excluir' then
+    delete from daily_tasks t using daily_blocks b where b.id=t.block_id and b.daily_record_id=p_record and t.user_id=auth.uid();
+  else
+    update daily_tasks t set concluida=false from daily_blocks b where b.id=t.block_id and b.daily_record_id=p_record and t.user_id=auth.uid() and t.concluida;
+  end if;
+  return n;
+end $$;
+
 -- ===== Auditoria geral =====
 create table public.audit_log(
   id bigint generated always as identity primary key, tabela text not null, registro_id uuid, usuario_id uuid,
@@ -225,7 +262,7 @@ create trigger touch_imprevistos before update on imprevistos for each row execu
 -- ===== RLS =====
 alter table profiles enable row level security;
 create policy pf_sel on profiles for select to authenticated using (is_active() or id=auth.uid());
-create policy pf_upd on profiles for update to authenticated using (is_manager()) with check (is_manager());   -- só gestor altera perfil/ativo
+create policy pf_upd on profiles for update to authenticated using (is_manager()) with check (is_manager());   -- só analista_sr altera perfil/ativo
 
 alter table microdeliveries enable row level security;
 create policy md_sel on microdeliveries for select to authenticated using (is_active());
@@ -247,10 +284,10 @@ create policy st_wr on app_settings for all to authenticated
   with check (is_active() and ((user_id is null and is_manager()) or user_id=auth.uid()));
 
 -- Jornada individual (registros, blocos, tarefas, agenda, imprevistos, ideias):
---   LEITURA : o próprio dono, ou chefe_do_chefe / chefe / gestor (is_viewer_all) — consulta de todas as jornadas
---   ESCRITA : SOMENTE o dono. Ninguém (nem gestor) altera a jornada de outra pessoa.
+--   LEITURA : o próprio dono, ou diretor / gerente / analista_sr (is_viewer_all) — consulta de todas as jornadas
+--   ESCRITA : SOMENTE o dono. Ninguém (nem analista_sr) altera a jornada de outra pessoa.
 do $$ declare t text; begin
-  foreach t in array array['daily_records','daily_blocks','daily_tasks','agenda','imprevistos','ideas','block_templates','task_templates'] loop
+  foreach t in array array['daily_records','daily_blocks','daily_tasks','agenda','imprevistos','ideas','block_templates','task_templates','activity_archive'] loop
     execute format('alter table %I enable row level security',t);
     execute format('create policy j_sel on %I for select to authenticated using (is_active() and (user_id=auth.uid() or is_viewer_all()))',t);
     execute format('create policy j_ins on %I for insert to authenticated with check (user_id=auth.uid() and is_active())',t);

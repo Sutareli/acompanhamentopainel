@@ -1,7 +1,7 @@
 import { ChangeEvent, useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, Settings } from '../lib/settings'
-import { fmtDate, fmtMin } from '../lib/rules'
+import { canAdmin, fmtDate, fmtMin } from '../lib/rules'
 import { Legacy, parseLegacy, runImport } from '../lib/legacyImport'
 import { btnG, btnP, btnS, Card, Field, inp, Msg } from '../components/ui'
 
@@ -59,7 +59,7 @@ export default function Configuracoes() {
         <div className="mt-4 flex flex-wrap gap-2">
           <button className={btnP} onClick={() => save(false)}>Salvar</button>
           <button className={btnG} onClick={() => setS(DEFAULT_SETTINGS)}>Restaurar valores originais</button>
-          {profile!.perfil === 'gestor' && <button className={btnG} onClick={() => save(true)}>Salvar como padrão global da equipe</button>}
+          {canAdmin(profile!.perfil) && <button className={btnG} onClick={() => save(true)}>Salvar como padrão global da equipe</button>}
         </div>
         <p className="mt-3 text-xs text-slate-500">Nomes, durações e tarefas dos blocos são editados diretamente no Painel e passam a valer nos dias seguintes.</p>
       </Card>

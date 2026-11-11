@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
-import { BLOCK_COLORS, BLOCK_ICONS, DEFAULT_BLOCKS, chk, fmtDate, fmtMin, fmtSec, hhmm, todayStr } from '../lib/rules'
+import { BLOCK_COLORS, BLOCK_ICONS, DEFAULT_BLOCKS, chk, fmtDate, fmtMin, hhmm, todayStr } from '../lib/rules'
 import { ensureDay } from '../lib/journal'
 import { DEFAULT_SETTINGS, loadSettings, Settings } from '../lib/settings'
 import { Bar, btnG, btnP, btnS, btnSm, Card, Chip, inp, Kpi, Msg } from '../components/ui'
 import Resumo from '../components/Resumo'
 
 interface Task { id: string; block_id: string; descricao: string; grupo: string | null; ordem: number; concluida: boolean; concluida_em: string | null; idea_id: string | null }
-interface Block { id: string; numero: number; nome: string; duracao_planejada_min: number; acumulado_seg: number; em_execucao_desde: string | null; iniciado_em: string | null; finalizado_em: string | null; observacoes: string | null; daily_tasks: Task[] }
+interface Block { id: string; numero: number; nome: string; duracao_planejada_min: number; observacoes: string | null; daily_tasks: Task[] }
 
 export default function Painel() {
   const { profile } = useAuth()
@@ -21,9 +21,9 @@ export default function Painel() {
   const [cfg, setCfg] = useState<Settings>(DEFAULT_SETTINGS)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(true)
-  const [now, setNow] = useState(Date.now())
   const [version, setVersion] = useState(0)
   const [prep, setPrep] = useState('')
+  const [clearing, setClearing] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -47,7 +47,6 @@ export default function Painel() {
   }, [uid, date])
 
   useEffect(() => { load() }, [load])
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [])
   useEffect(() => {
     const f = () => { const t = todayStr(); if (t !== date) setDate(t); else load() }
     window.addEventListener('focus', f)
@@ -67,19 +66,16 @@ export default function Painel() {
     load()
   }
 
-  const elapsed = (b: Block) => b.acumulado_seg + (b.em_execucao_desde ? (now - Date.parse(b.em_execucao_desde)) / 1000 : 0)
   const all = blocks.flatMap((b) => b.daily_tasks)
   const done = all.filter((t) => t.concluida).length
   const pct = all.length ? Math.round((done / all.length) * 100) : 0
-  const worked = blocks.reduce((s, b) => s + elapsed(b), 0)
-  const planned = blocks.reduce((s, b) => s + b.duracao_planejada_min, 0)
+  const blocksDone = blocks.filter((b) => b.daily_tasks.length > 0 && b.daily_tasks.every((t) => t.concluida)).length
   const margem = cfg.margem_min - impMin
-  const running = blocks.find((b) => b.em_execucao_desde)
   const hour = Number(new Date().toLocaleString('pt-BR', { timeZone: 'America/Fortaleza', hour: '2-digit', hour12: false }))
   const saud = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
   const T = cfg.atuacao_min + cfg.pausa_min + cfg.reunioes_min + cfg.margem_min || 1
   const seg = [
-    { n: 'Atuação prática', v: cfg.atuacao_min, c: '#12295a', s: fmtSec(worked) + ' realizados' },
+    { n: 'Atuação prática', v: cfg.atuacao_min, c: '#12295a', s: '' },
     { n: 'Pausa', v: cfg.pausa_min, c: '#64748b', s: '' },
     { n: 'Reuniões', v: cfg.reunioes_min, c: '#0ea5b7', s: fmtMin(meetMin) + ' registrados' },
     { n: 'Margem flexível', v: cfg.margem_min, c: '#f59e0b', s: fmtMin(impMin) + ' em imprevistos' },
@@ -96,36 +92,30 @@ export default function Painel() {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Minha Jornada de Trabalho</h1>
+          <h1 className="text-2xl font-bold text-navy">Gestão de atividades</h1>
           <p className="text-sm text-slate-500">
             {saud}, {profile!.nome.split(' ')[0]}! {new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'UTC' })}, {fmtDate(date)}
           </p>
         </div>
+        <button className={btnG + ' ' + btnSm} onClick={() => setClearing(true)} disabled={all.length === 0}>🧹 Limpar lista do dia</button>
       </div>
-
-      {running && (
-        <div className="sticky top-0 z-30 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-md" style={{ borderLeft: `8px solid ${BLOCK_COLORS[running.numero - 1]}` }}>
-          <span className="live rounded-full px-2.5 py-0.5 text-xs font-bold text-white" style={{ background: BLOCK_COLORS[running.numero - 1] }}>● EM EXECUÇÃO</span>
-          <b>{BLOCK_ICONS[running.numero - 1]} Bloco {running.numero}: {running.nome}</b>
-          <span className="text-sm">Transcorrido <b>{fmtSec(elapsed(running))}</b></span>
-          <span className="text-sm">{running.duracao_planejada_min * 60 - elapsed(running) >= 0 ? 'Restante ' + fmtSec(running.duracao_planejada_min * 60 - elapsed(running)) : 'Excedido ' + fmtSec(elapsed(running) - running.duracao_planejada_min * 60)}</span>
-          <div className="min-w-[160px] flex-1"><Bar pct={(elapsed(running) / (running.duracao_planejada_min * 60)) * 100} color={BLOCK_COLORS[running.numero - 1]} /></div>
-          <button className={btnP + ' ' + btnSm} onClick={() => act(() => supabase.rpc('bloco_parar', { p: running.id, p_finalizar: false }))}>⏸ Pausar</button>
-        </div>
-      )}
+      {clearing && <ClearDialog total={all.length} done={done} onCancel={() => setClearing(false)} onConfirm={async (modo) => {
+        setClearing(false)
+        await act(() => supabase.rpc('dia_limpar', { p_record: rec.id, p_modo: modo }))
+      }} />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
         <Kpi icon="📈" label="Execução das tarefas" value={pct + '%'} pct={pct} color="#0ea5b7" />
         <Kpi icon="✅" label="Tarefas concluídas" value={done} pct={pct} color="#16a34a" />
         <Kpi icon="⏳" label="Tarefas pendentes" value={all.length - done} pct={all.length ? 100 - pct : 0} color="#f59e0b" />
-        <Kpi icon="⏱️" label="Tempo trabalhado" value={fmtSec(worked)} pct={planned ? (worked / (planned * 60)) * 100 : 0} sub={`meta ${fmtMin(planned)}`} />
+        <Kpi icon="🧱" label="Blocos concluídos" value={`${blocksDone}/${blocks.length || 5}`} pct={blocks.length ? (blocksDone / blocks.length) * 100 : 0} color="#12295a" sub="todas as tarefas do bloco marcadas" />
         <Kpi icon="👥" label="Tempo em reuniões" value={fmtMin(meetMin)} pct={cfg.reunioes_min ? (meetMin / cfg.reunioes_min) * 100 : 0} color="#0ea5b7" sub={`de ${fmtMin(cfg.reunioes_min)} reservados`} />
         <Kpi icon="🧭" label="Margem flexível restante" value={fmtMin(margem)} pct={cfg.margem_min ? (Math.max(0, margem) / cfg.margem_min) * 100 : 0} color={margem < 0 ? '#dc2626' : '#12295a'} sub={`de ${fmtMin(cfg.margem_min)}, menos imprevistos`} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 min-[1700px]:grid-cols-5">
         {blocks.map((b) => (
-          <BlockCard key={b.id + b.nome + b.duracao_planejada_min} b={b} now={now} el={elapsed(b)} act={act} toggle={toggle}
+          <BlockCard key={b.id + b.nome + b.duracao_planejada_min} b={b} act={act} toggle={toggle}
             prep={prep} setPrep={setPrep} recId={rec?.id} uid={uid} />
         ))}
       </div>
@@ -151,8 +141,8 @@ export default function Painel() {
   )
 }
 
-function BlockCard({ b, el, now, act, toggle, prep, setPrep, recId, uid }: {
-  b: Block; el: number; now: number; act: (f: () => PromiseLike<any>) => void; toggle: (t: Task) => void
+function BlockCard({ b, act, toggle, prep, setPrep, recId, uid }: {
+  b: Block; act: (f: () => PromiseLike<any>) => void; toggle: (t: Task) => void
   prep: string; setPrep: (s: string) => void; recId: string; uid: string
 }) {
   const color = BLOCK_COLORS[b.numero - 1]
@@ -164,16 +154,14 @@ function BlockCard({ b, el, now, act, toggle, prep, setPrep, recId, uid }: {
   const tasks = b.daily_tasks
   const nd = tasks.filter((t) => t.concluida).length
   const pct = tasks.length ? Math.round((nd / tasks.length) * 100) : 0
-  const running = !!b.em_execucao_desde
-  const plan = b.duracao_planejada_min * 60
-  const st = b.finalizado_em || (tasks.length && nd === tasks.length) ? 'c' : nd > 0 || el > 0 || running ? 'a' : 'n'
+  const st = tasks.length && nd === tasks.length ? 'c' : nd > 0 ? 'a' : 'n'
   const stLabel = { c: 'Concluído', a: 'Em andamento', n: 'Não iniciado' }[st]
   const stColor = { c: '#16a34a', a: '#f59e0b', n: '#94a3b8' }[st]
   const objetivo = DEFAULT_BLOCKS[b.numero - 1]?.objetivo
   let g = ''
 
   return (
-    <Card className={'flex flex-col gap-2 !p-5 ' + (running ? 'ring-4' : '')} >
+    <Card className="flex flex-col gap-2 !p-5">
       <div style={{ borderTop: `5px solid ${color}`, margin: '-20px -20px 4px', borderRadius: '16px 16px 0 0' }} />
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-bold" style={{ color }}>{BLOCK_ICONS[b.numero - 1]} {b.numero}. {b.nome}</h3>
@@ -214,19 +202,6 @@ function BlockCard({ b, el, now, act, toggle, prep, setPrep, recId, uid }: {
         <button className={btnG + ' ' + btnSm}>+</button>
       </form>
 
-      <div className={'rounded-xl border bg-slate-50 p-3 text-sm ' + (running ? '!border-2' : 'border-slate-200')} style={running ? { borderColor: color } : undefined}>
-        {running && <span className="live mb-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ background: color }}>● EM EXECUÇÃO</span>}
-        <div>⏱ <b className="text-base tabular-nums">{fmtSec(el)}</b> <small className="text-slate-500">/ {fmtMin(b.duracao_planejada_min)} planejados</small></div>
-        <small className="text-slate-500">{plan - el >= 0 ? 'Restante: ' + fmtSec(plan - el) : 'Excedido: ' + fmtSec(el - plan)} · diferença {el / 60 - b.duracao_planejada_min >= 0 ? '+' : '−'}{Math.abs(Math.round(el / 60 - b.duracao_planejada_min))}min</small>
-        <div className="mt-1"><Bar pct={(el / plan) * 100} color={el > plan ? '#dc2626' : color} /></div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {running
-          ? <button className={btnS + ' ' + btnSm} onClick={() => act(() => supabase.rpc('bloco_parar', { p: b.id, p_finalizar: false }))}>⏸ Pausar</button>
-          : <button className={btnS + ' ' + btnSm} onClick={() => act(() => supabase.rpc('bloco_iniciar', { p: b.id }))}>▶ {b.acumulado_seg > 0 ? 'Retomar' : 'Iniciar'}</button>}
-        <button className={btnG + ' ' + btnSm} onClick={() => act(() => supabase.rpc('bloco_parar', { p: b.id, p_finalizar: true }))}>⏹ Finalizar</button>
-      </div>
-
       {b.numero === 5 && (
         <label className="block text-sm">
           <span className="font-semibold text-turq">PREPARAÇÃO PARA O PRÓXIMO DIA</span>
@@ -237,5 +212,30 @@ function BlockCard({ b, el, now, act, toggle, prep, setPrep, recId, uid }: {
       <textarea className={inp + ' min-h-[60px]'} placeholder="Observações do bloco" value={notes} onChange={(e) => setNotes(e.target.value)}
         onBlur={() => { if ((notes || null) !== (b.observacoes || null)) act(() => supabase.from('daily_blocks').update({ observacoes: notes || null }).eq('id', b.id)) }} />
     </Card>
+  )
+}
+
+/** Confirmação para limpar a lista do dia. As tarefas já concluídas são arquivadas no Histórico de atividades antes. */
+function ClearDialog({ total, done, onCancel, onConfirm }: { total: number; done: number; onCancel: () => void; onConfirm: (modo: 'desmarcar' | 'excluir') => void }) {
+  const [modo, setModo] = useState<'desmarcar' | 'excluir'>('desmarcar')
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" onClick={onCancel}>
+      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="mb-1 text-lg font-bold text-navy">Limpar a lista de atividades do dia?</h3>
+        <p className="mb-3 text-sm text-slate-600">Hoje há {total} tarefa(s), {done} concluída(s). As concluídas ficam guardadas no <b>Histórico de atividades</b>.</p>
+        <label className="mb-2 flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 p-3 text-sm">
+          <input type="radio" name="modo" className="mt-1" checked={modo === 'desmarcar'} onChange={() => setModo('desmarcar')} />
+          <span><b>Desmarcar tudo</b> — mantém as tarefas e remove os “concluído”, para recomeçar o dia.</span>
+        </label>
+        <label className="mb-4 flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 p-3 text-sm">
+          <input type="radio" name="modo" className="mt-1" checked={modo === 'excluir'} onChange={() => setModo('excluir')} />
+          <span><b>Apagar todas as tarefas</b> — esvazia a lista do dia (você pode adicionar novas tarefas depois).</span>
+        </label>
+        <div className="flex justify-end gap-2">
+          <button className={btnG} onClick={onCancel}>Cancelar</button>
+          <button className={btnP + (modo === 'excluir' ? ' !bg-red-600' : '')} onClick={() => onConfirm(modo)}>{modo === 'excluir' ? 'Sim, apagar tudo' : 'Sim, desmarcar tudo'}</button>
+        </div>
+      </div>
+    </div>
   )
 }
