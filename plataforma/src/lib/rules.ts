@@ -44,12 +44,17 @@ export const CRIT_COLOR: Record<Crit, string> = { alta: '#dc2626', media: '#f59e
 export const STATUS_LABEL: Record<StatusGeral, string> = { a_iniciar: 'A iniciar', em_andamento: 'Em andamento', concluido: 'Concluído', concluido_parcial: 'Concluído c/ cancelamentos', cancelado: 'Cancelado' }
 export const STATUS_COLOR: Record<StatusGeral, string> = { a_iniciar: '#94a3b8', em_andamento: '#2563eb', concluido: '#16a34a', concluido_parcial: '#0d9488', cancelado: '#f87171' }
 
+export type TipoProjeto = 'macro' | 'micro'
+export const TIPO_LABEL: Record<TipoProjeto, string> = { macro: 'MacroProjeto', micro: 'MicroProjeto' }
+export const TIPO_COLOR: Record<TipoProjeto, string> = { macro: '#2e1a6e', micro: '#0e7490' }
+
 export interface Micro {
   id: string; criticidade: Crit; responsavel_id: string; responsavel_nome: string; criado_por: string
   demanda: string; resumo: string | null; data_target: string; quantidade: number
   a_iniciar: number; em_andamento: number; concluido: number; cancelado: number
   observacoes: string | null; criado_em: string; atualizado_em: string; mes_referencia: string
   status_geral: StatusGeral; atrasada: boolean; pct_conclusao: number | null
+  tipo_projeto: TipoProjeto; com_quem_id: string | null; com_quem_nome: string | null
 }
 
 export interface MicroInput {

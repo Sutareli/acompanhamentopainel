@@ -2,6 +2,30 @@
 
 Aplicação web multiusuário (React + TypeScript + Tailwind) com **Supabase** (banco Postgres, autenticação, Realtime, RLS) e hospedagem no **Cloudflare Pages** (plano gratuito). Fuso padrão: America/Fortaleza · datas DD/MM/AAAA · 24 h.
 
+## Versão consolidada — o que este pacote contém
+
+Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` completo para instalação nova + migrações 002–006 para quem já tem banco no ar):
+
+1. Nome **Gestão de atividades** · perfis Diretor / Gerente / Analista Sr / Analista / Guardião · função de convite atualizada.
+2. Botão **Limpar lista do dia** (desmarcar ou apagar) e aba **Histórico de atividades**.
+3. **Sem cronômetro**; usuários novos começam **sem atividades** (o dia seguinte herda o último dia com tarefas).
+4. Paleta roxa e nova tela de login.
+5. **Backlog de Melhorias** com painel de status, visão detalhada, etapas, histórico e cálculo automático; resumo dos chamados da base.
+6. **Pareto backlog** (análise dos chamados).
+7. **Importar bases** (somente Analista Sr): chamados do backlog (alimenta Pareto e Backlog) e projetos.
+8. Menu: itens de backlog sempre por último (`… Gestão da equipe · Importar bases · Backlog de Melhorias · Pareto backlog`).
+
+| Migração | O que faz | Rodar se o banco já está no ar |
+|---|---|---|
+| 001 | instalação completa | **nunca** em banco existente |
+| 002 | perfis novos, arquivo de atividades, limpar dia | uma vez (se ainda não rodou) |
+| 003 | Backlog de Melhorias | uma vez (se ainda não rodou) |
+| 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
+| 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
+| 006 | Atividades futuras (por bloco) e Projetos macro/micro (“com quem está”) | uma vez (se ainda não rodou) |
+
+**Atalho:** quem rodou só a 002 pode executar **`supabase/003_a_006_tudo_junto.sql`** (003 + 004 + 005 + 006 em um arquivo, uma única vez) em vez de rodar um por um.
+
 ## Perfis e permissões
 
 | Perfil | Própria jornada | Ver jornadas de outros (somente leitura) | Visão consolidada | Gestão (equipe, convites, configurações globais, auditoria) | Microentregas |
@@ -26,9 +50,61 @@ Calculado a partir da distribuição numérica (a iniciar `a`, em andamento `e`,
 
 ---
 
+## Atividades futuras (Painel)
+
+Cada bloco do Painel tem o quadro **📅 Atividades futuras**: escreva a atividade e escolha uma data (a partir de amanhã). Ela fica guardada e **continua visível no bloco** (com a data / “amanhã”) mesmo depois de **Limpar lista do dia**. Quando a data chega, ao abrir o Painel ela entra **uma única vez** na lista do bloco, no fim, como uma tarefa normal (se a data passou com o sistema fechado, entra no próximo acesso). Depois de incorporada, limpar o dia a remove como qualquer tarefa, e ela **não é copiada** para o dia seguinte. Cada pessoa vê e altera só as suas; Diretor/Gerente/Analista Sr podem ler. A tabela é `atividades_futuras` (migração 006).
+
+### Alterar para dia seguinte
+
+No lugar da caixa de observações, cada bloco tem o botão **➡️ Alterar para dia seguinte**: abre a lista das tarefas **pendentes** do bloco, você marca as que quer e clica em **Transferir para amanhã**. Elas saem da lista de hoje (não pesam na execução do dia) e ficam no quadro de atividades futuras do mesmo bloco como “amanhã”, entrando sozinhas na lista de amanhã. Não exige migração nova (usa a tabela da 006). Observações já gravadas antes continuam no banco e aparecem como “Observação anterior” (somente leitura).
+
+## Projetos (antes “Microentregas”)
+
+O menu **Microentregas** agora se chama **Projetos** (a tabela no banco continua `microdeliveries`). No cadastro há o seletor **MacroProjeto / MicroProjeto**; MacroProjeto tem ainda **Com quem está agora**. A lista tem filtro Todos · MacroProjetos · MicroProjetos. Projetos já existentes viram MicroProjeto automaticamente. Em **Gestão da equipe** há a alternância **Consolidado · MacroProjetos · MicroProjetos**: consolidado traz o comparativo macro × micro e as contagens por pessoa; MacroProjetos traz o quadro (projeto, responsável, com quem está, status, progresso, target) e “com quem estão os projetos em aberto”; MicroProjetos mantém os gráficos anteriores.
+
+## Backlog de Melhorias (atividades, etapas e histórico)
+
+Menu **Backlog de Melhorias**, visível a todos os perfis.
+
+- **Tela principal:** painel **Status das Atividades** (rosca com total no centro, tabela Atrasado / Novo Prazo / Em andamento / A Iniciar / Concluído com % e quantidade, e **Análise de Desempenho**: Desempenho, % Planejado, % Realizado), lista das últimas mudanças de status e a tabela de atividades com filtros. Clicar num status do painel filtra a tabela.
+- **Visão detalhada (clique na atividade):** painel **Status das Etapas**, descrição/objetivo/AS IS–TO BE, tabela de etapas (COMO? / responsável / início / término / novo prazo / prazo realizado / % concluído / % planejado / status / observações) e **Histórico de alterações** (quem mudou, quando, de→para; filtros por tipo e por etapa).
+- **Cálculo automático:** quando a atividade tem etapas, o status e o % dela são calculados pelas etapas (todas concluídas → Concluído; alguma Atrasada → Atrasado; alguma Novo Prazo → Novo Prazo; alguma em andamento/concluída → Em andamento; senão A Iniciar; % = média). Nesse caso o status/% da atividade ficam bloqueados para edição manual (o banco também impede).
+- **Planejado** = parte do prazo (início → novo prazo ou término) já decorrida hoje. **Desempenho** = % realizado ÷ % planejado (ex.: 0,60). O status é informado manualmente; o selo "prazo vencido" é só um aviso calculado pela data.
+
+| Ação | Quem pode (garantido pelo RLS) |
+|---|---|
+| Ver atividades, etapas e histórico | todos os usuários ativos |
+| Cadastrar atividade | todos os usuários ativos |
+| Editar atividade / criar, editar e excluir etapas | quem cadastrou a atividade, e Diretor, Gerente e Analista Sr |
+| Excluir atividade | somente Analista Sr |
+| Histórico | gravado só pelo banco (ninguém edita) |
+
+Regras: `Concluído` exige 100%; término não pode ser anterior ao início; novo prazo ≥ término; prioridade 1 = mais alta. O histórico **só registra a partir da execução da migração 004** (o que aconteceu antes não existe).
+
+**Para quem já tem o banco no ar:** no SQL Editor rode, nesta ordem, `supabase/003_backlog_melhorias.sql` (se ainda não rodou) e depois `supabase/004_backlog_etapas_historico.sql`; em seguida faça o push desta versão. Instalação nova: só o `001`, que já inclui tudo. A função de convite não muda.
+
+## Pareto backlog (análise dos chamados)
+
+Menu **Pareto backlog** (os itens de backlog ficam sempre por último no menu), com a visão da planilha "Análise de backlog": filtros de **mês** e **tipo**; KPIs (total de chamados, no prazo e %, tipos, subcategorias) com comparação ao mês anterior; **Pareto por tipo** e **por subcategoria** (barras + % acumulado + linha de 80%); chamados por dia; rosquinhas de categoria e de tipo; lista dos chamados (clique numa barra de subcategoria para listar só os dela) e exportação CSV.
+
+- **Quem vê:** todos os usuários ativos. **Quem importa:** somente o Analista Sr, na janela **Importar bases** (ver abaixo). A mesma base alimenta o Pareto e o card "Chamados da base do backlog" dentro do Backlog de Melhorias.
+- **Regras iguais às da planilha:** o mês e o dia vêm de MÊS_REF/DIA/ANO_REF; "no prazo" = `TRATADO DENTRO DO PRAZO?` = "Dentro do prazo"; tipos que só mudam de maiúsculas/minúsculas (CONFIGURAÇÃO × Configuração) são somados; chamados sem subcategoria não entram no Pareto de subcategoria (a página avisa quantos são).
+- **Filtro de tipo:** vale para tudo, exceto o Pareto de tipo (que é onde se escolhe). Na planilha o tipo só afetava a subcategoria; aqui também afeta KPIs e rosquinhas.
+
+**Para quem já tem o banco no ar:** rode no SQL Editor `supabase/005_pareto_backlog_chamados.sql` (depois da 003 e 004), faça o push da versão e importe o CSV. Instalação nova: só o `001`.
+
+---
+
+## Importar bases (somente Analista Sr)
+
+Menu **Importar bases** — aparece só para o Analista Sr (e a trava real está no banco). Duas cargas, ambas por CSV (Excel: *Salvar como → CSV UTF-8*; separador `;` ou `,`; a codificação "ANSI" também é aceita):
+
+1. **Base de chamados do backlog** — aba `base` da planilha de análise. **Substitui toda a base** (operação única no banco: se der erro, a base atual é mantida). Cabeçalhos lidos: ID, DATA IDENTIFICAÇÃO, CATEGORIA, SUBCATEGORIA, TIPO, ITEM - SINTOMA, SISTEMA OFENSOR, CLIENTE, SITE, STATUS, TRATADO DENTRO DO PRAZO?, MÊS_REF, DIA, ANO_REF (as demais colunas são ignoradas). O arquivo `modelos/chamados_backlog_import.csv` já vem pronto com os dados da sua planilha (e `modelos/modelo-projetos.csv` é o modelo de projetos).
+2. **Projetos (macro e micro)** — **adiciona** em lote, sem apagar as existentes. Use o botão "Baixar modelo CSV". Colunas: DEMANDA, RESPONSÁVEL (e-mail ou nome exato de usuário ativo), CRITICIDADE (alta/média/baixa), DATA TARGET (dd/mm/aaaa), QUANTIDADE, A INICIAR, EM ANDAMENTO, CONCLUÍDO, CANCELADO, RESUMO, OBSERVAÇÕES, TIPO (`macro` ou `micro`; vazio = micro) e COM QUEM ESTÁ (só para macro; opcional). Sem distribuição, tudo entra como "a iniciar". A soma dos status deve igualar a quantidade. Se **qualquer** linha tiver erro, nada é importado e a tela lista as linhas com problema. Linhas iguais às já cadastradas (mesma demanda + responsável + data target) são puladas, então reimportar o mesmo arquivo não duplica. O histórico de criação é gravado como no cadastro manual.
+
 ## Atualizando um banco que JÁ está no ar (versão anterior → esta)
 
-Esta versão renomeia os perfis, remove o cronômetro, adiciona o Histórico de atividades e o botão "Limpar lista do dia". Faça nesta ordem:
+Passo 2 abaixo é o da versão que renomeou os perfis; **se o seu banco já tem a 002, pule para a tabela da seção "Versão consolidada" e rode o que falta (003 a 006, ou o atalho `003_a_006_tudo_junto.sql`)** (tabela da seção "Versão consolidada"). Faça nesta ordem:
 
 1. **Backup** (veja "Backup e recuperação" abaixo) — recomendado antes de mexer no banco.
 2. **Supabase → SQL Editor**: cole e execute **`supabase/002_migracao_perfis_e_historico.sql`** (uma única vez). Ele converte `chefe_do_chefe → diretor`, `chefe → gerente`, `gestor → analista_sr`, atualiza as funções do RLS e cria o arquivo de atividades. **Não** reexecute o `001`.
@@ -140,6 +216,15 @@ Cada pessoa, em **Configurações**, importa o JSON de backup do painel antigo. 
 
 - (Versão atual) Migração 002 aplicada sobre uma cópia do esquema anterior com usuários nos perfis antigos: perfis convertidos corretamente; e o `001` novo carregado do zero. Nos dois bancos: visão de todas as jornadas só para Diretor/Gerente/Analista Sr (Analista e Guardião veem apenas a própria), escrita em dado alheio bloqueada, só Analista Sr altera perfis, `dia_limpar` (desmarcar/apagar) arquiva as concluídas e não funciona no dia de outra pessoa, `v_atividades` respeita o RLS.
 - (Versão atual) `tsc` contra stubs, bundle esbuild e prévia no Chromium com banco simulado: sem cronômetro, diálogo de confirmação, aba Histórico de atividades e menus por perfil.
+
+- (Versão atual) Esquema: o `001` novo e a cadeia `001 antigo → 002 → 003 → 004 → 005` produzem catálogos **idênticos** (444 linhas de tabelas, colunas, funções, políticas, gatilhos e restrições comparadas). Função `chamados_substituir`: Analista comum barrado, escrita direta barrada pelo RLS, substituição atômica (falha mantém a base), Analista Sr importa.
+- (Versão atual) Prévia no Chromium com banco simulado: Backlog (painel, detalhe, etapas, histórico), Pareto (números conferidos contra a planilha de origem: 133 chamados/109 no prazo em outubro), Importar bases (modelo CSV, arquivo com erros bloqueado, importação, reimportação sem duplicar, chamados via nova janela), menus por perfil e celular.
+- O leitor de CSV (aspas, quebras de linha, `;`/`,`, datas dd/mm/aaaa e número de série do Excel) foi exercitado com a base real de 1.226 linhas.
+
+- (Versão atual) Migração 006: cadeia `001 antigo → 002 → 003_a_006` e `001` novo produzem catálogos **idênticos** (472 linhas). Testado no Postgres: `futuras_incorporar` (incorpora vencidas e de hoje uma única vez, 2ª chamada devolve 0, data futura recusada), limpar dia não apaga futuras pendentes, RLS (não cria em nome de terceiro, outro usuário não apaga nem altera), MacroProjeto com “com quem”, “com quem” inativo e tipo inválido recusados, histórico das mudanças de tipo/com quem, `com_quem_nome` na visão.
+- (Versão atual) Prévia no Chromium: quadro de atividades futuras por bloco (permanece após limpar; incorporação de vencida), Projetos (filtro, seletor de tipo, “com quem”), Gestão da equipe nas 3 visões, painel de status executivo, Pareto com “Tipo de chamado” em largura total. Sem erros de console.
+
+- (Versão atual) Prévia no Chromium: “Alterar para dia seguinte” (seleção de 2 tarefas, bloco de 7 para 5 tarefas, aparecem como “amanhã” nas futuras do bloco).
 
 **NÃO executado (precisa de internet/credenciais — faça você):**
 - `npm install`, `npm run typecheck` e `npm run build` reais (o ambiente de validação não tinha acesso ao npm). Rode-os antes do primeiro deploy; se `tsc` apontar algo, é ajuste pontual.

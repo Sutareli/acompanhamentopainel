@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
-import { BLOCK_COLORS, BLOCK_ICONS, DEFAULT_BLOCKS, chk, fmtDate, fmtMin, hhmm, todayStr } from '../lib/rules'
+import { addDays, BLOCK_COLORS, BLOCK_ICONS, DEFAULT_BLOCKS, chk, fmtDate, fmtMin, hhmm, todayStr } from '../lib/rules'
 import { ensureDay } from '../lib/journal'
 import { DEFAULT_SETTINGS, loadSettings, Settings } from '../lib/settings'
 import { Bar, btnG, btnP, btnS, btnSm, Card, Chip, inp, Kpi, Msg } from '../components/ui'
 import Resumo from '../components/Resumo'
 
 interface Task { id: string; block_id: string; descricao: string; grupo: string | null; ordem: number; concluida: boolean; concluida_em: string | null; idea_id: string | null }
+export interface Futura { id: string; bloco_numero: number; data_alvo: string; descricao: string }
 interface Block { id: string; numero: number; nome: string; duracao_planejada_min: number; observacoes: string | null; daily_tasks: Task[] }
 
 export default function Painel() {
@@ -24,17 +25,25 @@ export default function Painel() {
   const [version, setVersion] = useState(0)
   const [prep, setPrep] = useState('')
   const [clearing, setClearing] = useState(false)
+  const [futuras, setFuturas] = useState<Futura[]>([])
 
   const load = useCallback(async () => {
     try {
       const r = await ensureDay(uid, date)
+      // Atividades agendadas que já chegaram na data entram na lista do dia (uma única vez). Só faz sentido no dia de hoje.
+      if (date === todayStr()) {
+        const inc = await supabase.rpc('futuras_incorporar', { p_data: date })
+        if (inc.error) throw new Error(inc.error.message)
+      }
       setRec(r); setPrep(r.preparacao_proximo_dia || '')
-      const [b, a, i, s] = await Promise.all([
+      const [b, a, i, s, fu] = await Promise.all([
         supabase.from('daily_blocks').select('*, daily_tasks(*)').eq('daily_record_id', r.id).order('numero'),
         supabase.from('agenda').select('duracao_min').eq('user_id', uid).eq('data', date),
         supabase.from('imprevistos').select('estimativa_min').eq('user_id', uid).eq('data', date),
         loadSettings(uid),
+        supabase.from('atividades_futuras').select('id,bloco_numero,data_alvo,descricao').eq('user_id', uid).is('incorporada_em', null).order('data_alvo'),
       ])
+      setFuturas(chk(fu) as Futura[])
       const bd = chk(b) as Block[]
       bd.forEach((x) => x.daily_tasks.sort((p, q) => p.ordem - q.ordem))
       setBlocks(bd)
@@ -116,7 +125,7 @@ export default function Painel() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 min-[1700px]:grid-cols-5">
         {blocks.map((b) => (
           <BlockCard key={b.id + b.nome + b.duracao_planejada_min} b={b} act={act} toggle={toggle}
-            prep={prep} setPrep={setPrep} recId={rec?.id} uid={uid} />
+            prep={prep} setPrep={setPrep} recId={rec?.id} uid={uid} futuras={futuras.filter((f) => f.bloco_numero === b.numero)} />
         ))}
       </div>
 
@@ -141,16 +150,15 @@ export default function Painel() {
   )
 }
 
-function BlockCard({ b, act, toggle, prep, setPrep, recId, uid }: {
+function BlockCard({ b, act, toggle, prep, setPrep, recId, uid, futuras }: {
   b: Block; act: (f: () => PromiseLike<any>) => void; toggle: (t: Task) => void
-  prep: string; setPrep: (s: string) => void; recId: string; uid: string
+  prep: string; setPrep: (s: string) => void; recId: string; uid: string; futuras: Futura[]
 }) {
   const color = BLOCK_COLORS[b.numero - 1]
   const [nt, setNt] = useState('')
   const [edit, setEdit] = useState(false)
   const [nome, setNome] = useState(b.nome)
   const [min, setMin] = useState(b.duracao_planejada_min)
-  const [notes, setNotes] = useState(b.observacoes || '')
   const tasks = b.daily_tasks
   const nd = tasks.filter((t) => t.concluida).length
   const pct = tasks.length ? Math.round((nd / tasks.length) * 100) : 0
@@ -209,8 +217,9 @@ function BlockCard({ b, act, toggle, prep, setPrep, recId, uid }: {
             onBlur={() => act(() => supabase.from('daily_records').update({ preparacao_proximo_dia: prep || null }).eq('id', recId))} />
         </label>
       )}
-      <textarea className={inp + ' min-h-[60px]'} placeholder="Observações do bloco" value={notes} onChange={(e) => setNotes(e.target.value)}
-        onBlur={() => { if ((notes || null) !== (b.observacoes || null)) act(() => supabase.from('daily_blocks').update({ observacoes: notes || null }).eq('id', b.id)) }} />
+      <Agendadas b={b} futuras={futuras} act={act} uid={uid} color={color} />
+      <Adiar b={b} tasks={tasks} act={act} uid={uid} color={color} />
+      {b.observacoes && <p className="rounded-lg bg-slate-50 p-2 text-xs text-slate-500"><b>Observação anterior:</b> {b.observacoes}</p>}
     </Card>
   )
 }
@@ -235,6 +244,93 @@ function ClearDialog({ total, done, onCancel, onConfirm }: { total: number; done
           <button className={btnG} onClick={onCancel}>Cancelar</button>
           <button className={btnP + (modo === 'excluir' ? ' !bg-red-600' : '')} onClick={() => onConfirm(modo)}>{modo === 'excluir' ? 'Sim, apagar tudo' : 'Sim, desmarcar tudo'}</button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/** Quadro de atividades futuras do bloco: ficam guardadas para a data escolhida e aparecem aqui até serem incorporadas à lista do dia. */
+function Agendadas({ b, futuras, act, uid, color }: { b: Block; futuras: Futura[]; act: (f: () => PromiseLike<any>) => void; uid: string; color: string }) {
+  const hoje = todayStr()
+  const amanha = new Date(new Date(hoje + 'T12:00:00Z').getTime() + 86400000).toISOString().slice(0, 10)
+  const [txt, setTxt] = useState('')
+  const [dt, setDt] = useState(amanha)
+  const [open, setOpen] = useState(futuras.length > 0)
+  const dias = (d: string) => Math.round((new Date(d + 'T12:00:00Z').getTime() - new Date(hoje + 'T12:00:00Z').getTime()) / 86400000)
+  return (
+    <div className="rounded-xl border border-dashed p-3" style={{ borderColor: color, background: color + '0d' }} aria-label={`Atividades futuras do bloco ${b.numero}`}>
+      <button type="button" className="flex w-full items-center justify-between text-left text-xs font-bold" style={{ color }} onClick={() => setOpen(!open)}>
+        <span>📅 Atividades futuras{futuras.length ? ` (${futuras.length})` : ''}</span><span>{open ? '▾' : '▸'}</span>
+      </button>
+      {futuras.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {futuras.map((f) => {
+            const d = dias(f.data_alvo)
+            return (
+              <li key={f.id} className="flex items-start gap-2 rounded-lg bg-white px-2 py-1.5 text-sm shadow-sm">
+                <span className="mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-white" style={{ background: color }} title={fmtDate(f.data_alvo)}>
+                  {d <= 0 ? 'hoje' : d === 1 ? 'amanhã' : `${fmtDate(f.data_alvo).slice(0, 5)} · ${d}d`}
+                </span>
+                <span className="min-w-0 flex-1 break-words">{f.descricao}</span>
+                <button className="text-slate-400 hover:text-red-600" title="Remover atividade futura" onClick={() => act(() => supabase.from('atividades_futuras').delete().eq('id', f.id))}>×</button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      {open && (
+        <form className="mt-2 flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); const v = txt.trim(); if (!v || !dt || dt < amanha) return; setTxt(''); act(() => supabase.from('atividades_futuras').insert({ user_id: uid, bloco_numero: b.numero, data_alvo: dt, descricao: v })) }}>
+          <input className={inp + ' min-w-[120px] flex-[3]'} placeholder="Atividade para outra data" aria-label="Descrição da atividade futura" value={txt} onChange={(e) => setTxt(e.target.value)} />
+          <input className={inp + ' w-[9.5rem]'} type="date" min={amanha} aria-label="Data da atividade futura" value={dt} onChange={(e) => setDt(e.target.value)} />
+          <button className={btnG + ' ' + btnSm}>Agendar</button>
+        </form>
+      )}
+    </div>
+  )
+}
+
+/**
+ * "Alterar para dia seguinte": escolhe tarefas pendentes do bloco e as transfere para amanhã.
+ * A tarefa sai da lista de hoje (não pesa na execução do dia) e é guardada como atividade futura do mesmo bloco para amanhã:
+ * continua visível no quadro de atividades futuras e entra sozinha na lista de amanhã.
+ */
+function Adiar({ b, tasks, act, uid, color }: { b: Block; tasks: Task[]; act: (f: () => PromiseLike<any>) => void; uid: string; color: string }) {
+  const [open, setOpen] = useState(false)
+  const [sel, setSel] = useState<Set<string>>(new Set())
+  const pend = tasks.filter((t) => !t.concluida)
+  const toggleSel = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const close = () => { setOpen(false); setSel(new Set()) }
+  const escolhidas = pend.filter((t) => sel.has(t.id))
+  async function transferir() {
+    if (!escolhidas.length) return
+    const alvo = addDays(todayStr(), 1)
+    const ids = escolhidas.map((t) => t.id)
+    close()
+    await act(async () => {
+      const ins = await supabase.from('atividades_futuras').insert(escolhidas.map((t) => ({ user_id: uid, bloco_numero: b.numero, data_alvo: alvo, descricao: t.descricao })))
+      if (ins.error) return ins
+      return supabase.from('daily_tasks').delete().in('id', ids)
+    })
+  }
+  if (!open) return (
+    <button type="button" className="rounded-xl border px-3 py-2 text-left text-xs font-bold hover:bg-slate-50 disabled:opacity-50" style={{ borderColor: color, color }} disabled={pend.length === 0}
+      title={pend.length ? 'Escolher tarefas pendentes para fazer amanhã' : 'Não há tarefas pendentes neste bloco'} onClick={() => setOpen(true)}>➡️ Alterar para dia seguinte</button>
+  )
+  return (
+    <div className="rounded-xl border p-3" style={{ borderColor: color }} aria-label={`Alterar para dia seguinte, bloco ${b.numero}`}>
+      <div className="mb-1 flex items-center justify-between text-xs font-bold" style={{ color }}>
+        <span>➡️ Transferir para o dia seguinte</span>
+        <button type="button" className="underline" onClick={() => setSel(new Set(sel.size === pend.length ? [] : pend.map((t) => t.id)))}>{sel.size === pend.length ? 'Limpar seleção' : 'Selecionar todas'}</button>
+      </div>
+      <p className="mb-2 text-[11px] text-slate-500">As tarefas escolhidas saem de hoje (sem pesar na execução do dia) e entram na lista de amanhã, neste mesmo bloco.</p>
+      <ul className="space-y-1">
+        {pend.map((t) => (
+          <li key={t.id}><label className="flex cursor-pointer items-start gap-2 rounded-lg px-1 py-1 text-sm hover:bg-slate-50"><input type="checkbox" className="mt-0.5 h-4 w-4" checked={sel.has(t.id)} onChange={() => toggleSel(t.id)} /><span>{t.descricao}</span></label></li>
+        ))}
+      </ul>
+      <div className="mt-2 flex justify-end gap-2">
+        <button type="button" className={btnG + ' ' + btnSm} onClick={close}>Cancelar</button>
+        <button type="button" className={btnS + ' ' + btnSm} disabled={!escolhidas.length} onClick={transferir}>Transferir {escolhidas.length ? `(${escolhidas.length})` : ''} para amanhã</button>
       </div>
     </div>
   )

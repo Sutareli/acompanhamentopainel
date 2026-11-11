@@ -11,12 +11,18 @@ import Historico from './pages/Historico'
 import Configuracoes from './pages/Configuracoes'
 import Equipe from './pages/Equipe'
 import Jornadas from './pages/Jornadas'
+import Backlog from './pages/Backlog'
+import ParetoBacklog from './pages/ParetoBacklog'
+import ImportarBases from './pages/ImportarBases'
 import { canAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
 const ITEMS: [string, string, string][] = [
   ['painel', '🏠', 'Painel'], ['agenda', '📅', 'Agenda'], ['ideias', '💡', 'Ideias'],
-  ['micro', '📦', 'Microentregas'], ['historico', '🕘', 'Histórico'], ['config', '⚙️', 'Configurações'],
+  ['micro', '📦', 'Projetos'], ['historico', '🕘', 'Histórico'], ['config', '⚙️', 'Configurações'],
 ]
+/** Tudo que é de backlog fica sempre por último no menu (depois dos itens de equipe, quando existirem). */
+const IMPORT_ITEM: [string, string, string][] = [['importar', '⬆️', 'Importar bases']]   // só Analista Sr
+const BACKLOG_ITEMS: [string, string, string][] = [['backlog', '🧭', 'Backlog de Melhorias'], ['pareto', '📊', 'Pareto backlog']]
 
 export default function App() {
   const { session, profile, loading, authError, needsPassword, signOut } = useAuth()
@@ -49,9 +55,9 @@ export default function App() {
   // Perfis com visão de equipe (somente consulta das jornadas + consolidado). A trava real está nas políticas RLS do banco.
   const viewer = canViewAll(profile.perfil)
   const items: [string, string, string][] = viewer
-    ? [...ITEMS, ['jornadas', '👀', 'Jornadas da equipe'], ['equipe', '👥', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada']]
-    : ITEMS
-  const view = (page === 'equipe' || page === 'jornadas') && !viewer ? 'painel' : page
+    ? [...ITEMS, ['jornadas', '👀', 'Jornadas da equipe'], ['equipe', '👥', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canAdmin(profile.perfil) ? IMPORT_ITEM : []), ...BACKLOG_ITEMS]
+    : [...ITEMS, ...BACKLOG_ITEMS]
+  const view = ((page === 'equipe' || page === 'jornadas') && !viewer) || (page === 'importar' && !canAdmin(profile.perfil)) ? 'painel' : page
 
   return (
     <div className="min-h-screen">
@@ -81,6 +87,9 @@ export default function App() {
         {view === 'agenda' && <Agenda />}
         {view === 'ideias' && <Ideias />}
         {view === 'micro' && <Microentregas />}
+        {view === 'backlog' && <Backlog onNavigate={setPage} />}
+        {view === 'pareto' && <ParetoBacklog onNavigate={setPage} />}
+        {view === 'importar' && canAdmin(profile.perfil) && <ImportarBases onNavigate={setPage} />}
         {view === 'historico' && <Historico />}
         {view === 'config' && <Configuracoes />}
         {view === 'jornadas' && viewer && <Jornadas />}
@@ -90,7 +99,7 @@ export default function App() {
       <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
         {items.map(([k, i, l]) => (
           <button key={k} onClick={() => setPage(k)} className={'flex min-w-[76px] flex-1 flex-col items-center py-2 text-[11px] ' + (view === k ? 'font-bold text-navy' : 'text-slate-500')}>
-            <span className="text-lg">{i}</span>{l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Jornadas da equipe', 'Jornadas')}
+            <span className="text-lg">{i}</span>{l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Jornadas da equipe', 'Jornadas').replace('Backlog de Melhorias', 'Backlog').replace('Pareto backlog', 'Pareto').replace('Importar bases', 'Importar')}
           </button>
         ))}
       </nav>

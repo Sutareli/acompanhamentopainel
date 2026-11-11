@@ -3,18 +3,18 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { useMicros } from '../lib/useMicros'
 import {
-  CRIT_COLOR, CRIT_LABEL, Crit, distribuicao, download, fmtDate, fmtDateTime, Micro, STATUS_COLOR, STATUS_LABEL, StatusGeral, statusGeral, toCSV, todayStr, validateMicro,
+  CRIT_COLOR, CRIT_LABEL, Crit, distribuicao, download, fmtDate, fmtDateTime, Micro, STATUS_COLOR, TIPO_COLOR, TIPO_LABEL, TipoProjeto, STATUS_LABEL, StatusGeral, statusGeral, toCSV, todayStr, validateMicro,
 } from '../lib/rules'
 import { btnG, btnP, btnS, btnSm, Card, Chip, Empty, Field, inp, Kpi, Modal, Msg, StackBar } from '../components/ui'
 
-const EMPTY = { criticidade: 'media' as Crit, responsavel_id: '', demanda: '', resumo: '', data_target: '', quantidade: 1, a_iniciar: 1, em_andamento: 0, concluido: 0, cancelado: 0, observacoes: '' }
+const EMPTY = { criticidade: 'media' as Crit, responsavel_id: '', demanda: '', resumo: '', data_target: '', quantidade: 1, a_iniciar: 1, em_andamento: 0, concluido: 0, cancelado: 0, observacoes: '', tipo_projeto: 'micro' as TipoProjeto, com_quem_id: '' }
 type Form = typeof EMPTY
 const FIELDS: [keyof Form, string][] = [['a_iniciar', 'A iniciar'], ['em_andamento', 'Em andamento'], ['concluido', 'Concluído'], ['cancelado', 'Cancelado']]
 
-export default function Microentregas({ presetResp }: { presetResp?: string }) {
+export default function Microentregas({ presetResp, presetTipo }: { presetResp?: string; presetTipo?: TipoProjeto }) {
   const { profile } = useAuth()
   const { rows, profiles, loading, error, reload } = useMicros()
-  const [fl, setFl] = useState({ resp: presetResp || '', crit: '', status: '', mes: '', de: '', ate: '', atrasadas: false, q: '' })
+  const [fl, setFl] = useState({ tipo: (presetTipo || '') as '' | TipoProjeto, resp: presetResp || '', crit: '', status: '', mes: '', de: '', ate: '', atrasadas: false, q: '' })
   const [form, setForm] = useState<{ id?: string; v: Form } | null>(null)
   const [detail, setDetail] = useState<Micro | null>(null)
   const [msg, setMsg] = useState('')
@@ -22,44 +22,46 @@ export default function Microentregas({ presetResp }: { presetResp?: string }) {
   const ativos = profiles.filter((p) => p.ativo)
   const meses = useMemo(() => [...new Set(rows.map((r) => r.mes_referencia))].sort(), [rows])
   const list = useMemo(() => rows.filter((r) =>
-    (!fl.resp || r.responsavel_id === fl.resp) && (!fl.crit || r.criticidade === fl.crit) && (!fl.status || r.status_geral === fl.status) &&
+    (!fl.tipo || r.tipo_projeto === fl.tipo) && (!fl.resp || r.responsavel_id === fl.resp) && (!fl.crit || r.criticidade === fl.crit) && (!fl.status || r.status_geral === fl.status) &&
     (!fl.mes || r.mes_referencia === fl.mes) && (!fl.de || r.data_target >= fl.de) && (!fl.ate || r.data_target <= fl.ate) &&
     (!fl.atrasadas || r.atrasada) && (!fl.q || r.demanda.toLowerCase().includes(fl.q.toLowerCase())),
   ), [rows, fl])
 
-  const cnt = (s: StatusGeral) => rows.filter((r) => r.status_geral === s).length
+  const base = rows.filter((r) => !fl.tipo || r.tipo_projeto === fl.tipo)
+  const cnt = (s: StatusGeral) => base.filter((r) => r.status_geral === s).length
   const upd = (id: string) => rows.find((r) => r.id === id) || null
   // mantém o modal de detalhes sincronizado quando outro usuário altera
   useEffect(() => { if (detail) setDetail(upd(detail.id)) }, [rows]) // eslint-disable-line
 
   function exportCSV() {
-    download(`microentregas-${todayStr()}.csv`, toCSV([
-      ['Criticidade', 'Responsável', 'Demanda', 'Resumo', 'Data Target', 'Mês de referência', 'Quantidade', 'A iniciar', 'Em andamento', 'Concluído', 'Cancelado', 'Status', 'Atrasada', 'Observações', 'Criado em', 'Atualizado em'],
-      ...list.map((r) => [CRIT_LABEL[r.criticidade], r.responsavel_nome, r.demanda, r.resumo, fmtDate(r.data_target), r.mes_referencia.slice(0, 7), r.quantidade, r.a_iniciar, r.em_andamento, r.concluido, r.cancelado, STATUS_LABEL[r.status_geral], r.atrasada ? 'Sim' : 'Não', r.observacoes, fmtDateTime(r.criado_em), fmtDateTime(r.atualizado_em)]),
+    download(`projetos-${todayStr()}.csv`, toCSV([
+      ['Tipo', 'Criticidade', 'Responsável', 'Com quem está', 'Demanda', 'Resumo', 'Data Target', 'Mês de referência', 'Quantidade', 'A iniciar', 'Em andamento', 'Concluído', 'Cancelado', 'Status', 'Atrasada', 'Observações', 'Criado em', 'Atualizado em'],
+      ...list.map((r) => [TIPO_LABEL[r.tipo_projeto], CRIT_LABEL[r.criticidade], r.responsavel_nome, r.com_quem_nome, r.demanda, r.resumo, fmtDate(r.data_target), r.mes_referencia.slice(0, 7), r.quantidade, r.a_iniciar, r.em_andamento, r.concluido, r.cancelado, STATUS_LABEL[r.status_geral], r.atrasada ? 'Sim' : 'Não', r.observacoes, fmtDateTime(r.criado_em), fmtDateTime(r.atualizado_em)]),
     ]))
   }
 
-  if (loading) return <p className="py-10 text-center text-slate-500">Carregando microentregas…</p>
+  if (loading) return <p className="py-10 text-center text-slate-500">Carregando projetos…</p>
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-navy">Microentregas</h1>
+        <h1 className="text-2xl font-bold text-navy">Projetos</h1>
         <div className="flex gap-2">
           <button className={btnG} onClick={exportCSV} disabled={!list.length}>⬇ Exportar CSV ({list.length})</button>
-          <button className={btnS} onClick={() => setForm({ v: { ...EMPTY, responsavel_id: profile!.id } })}>+ Nova Microentrega</button>
+          <button className={btnS} onClick={() => setForm({ v: { ...EMPTY, tipo_projeto: fl.tipo || 'micro', responsavel_id: profile!.id } })}>+ Novo Projeto</button>
         </div>
       </div>
       {error && <Msg kind="erro">{error} <button className="underline" onClick={reload}>Tentar novamente</button></Msg>}
       {msg && <Msg kind="ok">{msg}</Msg>}
+      <Seg value={fl.tipo} onChange={(t) => setFl({ ...fl, tipo: t })} contagem={{ '': rows.length, macro: rows.filter((r) => r.tipo_projeto === 'macro').length, micro: rows.filter((r) => r.tipo_projeto === 'micro').length }} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-7">
-        <Kpi icon="📦" label="Total" value={rows.length} />
+        <Kpi icon="📦" label="Total" value={base.length} />
         <Kpi icon="⚪" label="A iniciar" value={cnt('a_iniciar')} color="#64748b" />
         <Kpi icon="🔵" label="Em andamento" value={cnt('em_andamento')} color="#2563eb" />
         <Kpi icon="✅" label="Concluídas" value={cnt('concluido')} color="#16a34a" />
         <Kpi icon="☑️" label="Concl. c/ cancelamentos" value={cnt('concluido_parcial')} color="#0d9488" />
         <Kpi icon="🚫" label="Canceladas" value={cnt('cancelado')} color="#f87171" />
-        <Kpi icon="⚠️" label="Atrasadas" value={rows.filter((r) => r.atrasada).length} color="#dc2626" />
+        <Kpi icon="⚠️" label="Atrasadas" value={base.filter((r) => r.atrasada).length} color="#dc2626" />
       </div>
 
       <Card>
@@ -76,17 +78,18 @@ export default function Microentregas({ presetResp }: { presetResp?: string }) {
       </Card>
 
       <Card className="!p-0">
-        {list.length === 0 ? <div className="p-5"><Empty>{rows.length ? 'Nenhuma microentrega corresponde aos filtros.' : 'Nenhuma microentrega cadastrada. Use “Nova Microentrega”.'}</Empty></div> : (
+        {list.length === 0 ? <div className="p-5"><Empty>{rows.length ? 'Nenhum projeto corresponde aos filtros.' : 'Nenhum projeto cadastrado. Use “Novo Projeto”.'}</Empty></div> : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[1000px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                <tr>{['Criticidade', 'Responsável', 'Demanda', 'Data Target', 'Status', 'Progresso', 'Última atualização', 'Ações'].map((h) => <th key={h} className="px-3 py-2.5">{h}</th>)}</tr>
+                <tr>{['Tipo', 'Criticidade', 'Responsável', 'Demanda', 'Data Target', 'Status', 'Progresso', 'Última atualização', 'Ações'].map((h) => <th key={h} className="px-3 py-2.5">{h}</th>)}</tr>
               </thead>
               <tbody>
                 {list.map((r) => (
                   <tr key={r.id} className="border-t border-slate-100 align-top hover:bg-slate-50">
+                    <td className="px-3 py-2.5"><Chip color={TIPO_COLOR[r.tipo_projeto]}>{TIPO_LABEL[r.tipo_projeto]}</Chip></td>
                     <td className="px-3 py-2.5"><Chip color={CRIT_COLOR[r.criticidade]}>{CRIT_LABEL[r.criticidade]}</Chip></td>
-                    <td className="px-3 py-2.5">{r.responsavel_nome}</td>
+                    <td className="px-3 py-2.5">{r.responsavel_nome}{r.tipo_projeto === 'macro' && r.com_quem_nome && <div className="text-xs text-slate-500">com {r.com_quem_nome}</div>}</td>
                     <td className="max-w-xs px-3 py-2.5"><b>{r.demanda}</b><div className="text-xs text-slate-500">{r.quantidade} unidade(s)</div></td>
                     <td className={'whitespace-nowrap px-3 py-2.5 ' + (r.atrasada ? 'font-bold text-red-600' : '')}>{fmtDate(r.data_target)}{r.atrasada && <div className="text-xs">atrasada</div>}</td>
                     <td className="px-3 py-2.5"><Chip color={STATUS_COLOR[r.status_geral]}>{STATUS_LABEL[r.status_geral]}</Chip>
@@ -98,7 +101,7 @@ export default function Microentregas({ presetResp }: { presetResp?: string }) {
                     <td className="whitespace-nowrap px-3 py-2.5 text-xs text-slate-500">{fmtDateTime(r.atualizado_em)}</td>
                     <td className="whitespace-nowrap px-3 py-2.5">
                       <button className={btnG + ' ' + btnSm} onClick={() => setDetail(r)}>Ver</button>{' '}
-                      <button className={btnG + ' ' + btnSm} onClick={() => setForm({ id: r.id, v: { criticidade: r.criticidade, responsavel_id: r.responsavel_id, demanda: r.demanda, resumo: r.resumo || '', data_target: r.data_target, quantidade: r.quantidade, a_iniciar: r.a_iniciar, em_andamento: r.em_andamento, concluido: r.concluido, cancelado: r.cancelado, observacoes: r.observacoes || '' } })}>Editar</button>
+                      <button className={btnG + ' ' + btnSm} onClick={() => setForm({ id: r.id, v: { criticidade: r.criticidade, responsavel_id: r.responsavel_id, demanda: r.demanda, resumo: r.resumo || '', data_target: r.data_target, quantidade: r.quantidade, a_iniciar: r.a_iniciar, em_andamento: r.em_andamento, concluido: r.concluido, cancelado: r.cancelado, observacoes: r.observacoes || '', tipo_projeto: r.tipo_projeto, com_quem_id: r.com_quem_id || '' } })}>Editar</button>
                     </td>
                   </tr>
                 ))}
@@ -127,21 +130,32 @@ function FormModal({ init, ativos, uid, onClose, onSaved }: { init: { id?: strin
     const m = validateMicro(v)
     if (m) return setErr(m)
     setBusy(true)
-    const payload = { criticidade: v.criticidade, responsavel_id: v.responsavel_id, demanda: v.demanda.trim(), resumo: v.resumo || null, data_target: v.data_target, quantidade: v.quantidade, a_iniciar: v.a_iniciar, em_andamento: v.em_andamento, concluido: v.concluido, cancelado: v.cancelado, observacoes: v.observacoes || null }
+    const payload = { criticidade: v.criticidade, responsavel_id: v.responsavel_id, demanda: v.demanda.trim(), resumo: v.resumo || null, data_target: v.data_target, quantidade: v.quantidade, a_iniciar: v.a_iniciar, em_andamento: v.em_andamento, concluido: v.concluido, cancelado: v.cancelado, observacoes: v.observacoes || null, tipo_projeto: v.tipo_projeto, com_quem_id: v.tipo_projeto === 'macro' && v.com_quem_id ? v.com_quem_id : null }
     const r = init.id ? await supabase.from('microdeliveries').update(payload).eq('id', init.id) : await supabase.from('microdeliveries').insert({ ...payload, criado_por: uid })
     setBusy(false)
     if (r.error) return setErr(r.error.message.includes('soma_confere') ? 'A soma dos status deve ser igual à quantidade total.' : r.error.message)
-    onSaved(init.id ? 'Microentrega atualizada.' : 'Microentrega cadastrada.')
+    onSaved(init.id ? 'Projeto atualizado.' : 'Projeto cadastrado.')
   }
 
   return (
-    <Modal title={init.id ? 'Editar microentrega' : 'Nova microentrega'} onClose={onClose} wide>
+    <Modal title={init.id ? 'Editar projeto' : 'Novo projeto'} onClose={onClose} wide>
       {err && <Msg kind="erro">{err}</Msg>}
       <form onSubmit={save} className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="col-span-2 text-sm md:col-span-4"><span className="mb-1 block font-medium text-slate-600">Tipo de projeto *</span>
+          <div className="inline-flex overflow-hidden rounded-lg border border-slate-300" role="radiogroup" aria-label="Tipo de projeto">
+            {(['macro', 'micro'] as TipoProjeto[]).map((t) => (
+              <button key={t} type="button" role="radio" aria-checked={v.tipo_projeto === t} onClick={() => setV({ ...v, tipo_projeto: t })}
+                className={'px-4 py-2 text-sm font-semibold ' + (v.tipo_projeto === t ? 'text-white' : 'bg-white text-slate-600 hover:bg-slate-50')} style={v.tipo_projeto === t ? { background: TIPO_COLOR[t] } : undefined}>{TIPO_LABEL[t]}</button>
+            ))}
+          </div>
+        </div>
         <Field label="Demanda *" className="col-span-2 md:col-span-4"><input className={inp} value={v.demanda} onChange={(e) => setV({ ...v, demanda: e.target.value })} /></Field>
         <Field label="Resumo" className="col-span-2 md:col-span-4"><textarea className={inp + ' min-h-[70px]'} value={v.resumo} onChange={(e) => setV({ ...v, resumo: e.target.value })} /></Field>
         <Field label="Criticidade" className="col-span-1"><select className={inp} value={v.criticidade} onChange={(e) => setV({ ...v, criticidade: e.target.value as Crit })}>{Object.entries(CRIT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
         <Field label="Responsável *" className="col-span-1 md:col-span-2"><select className={inp} value={v.responsavel_id} onChange={(e) => setV({ ...v, responsavel_id: e.target.value })}><option value="">Selecione…</option>{ativos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></Field>
+        {v.tipo_projeto === 'macro' && (
+          <Field label="Com quem está agora" className="col-span-2 md:col-span-4"><select className={inp} value={v.com_quem_id} onChange={(e) => setV({ ...v, com_quem_id: e.target.value })}><option value="">— ninguém / não definido —</option>{ativos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></Field>
+        )}
         <Field label="Data Target *" className="col-span-2 md:col-span-1"><input type="date" className={inp} value={v.data_target} onChange={(e) => setV({ ...v, data_target: e.target.value })} /></Field>
         <Field label="Quantidade total *"><input type="number" min={1} className={inp} value={v.quantidade} onChange={(e) => { const q = num(e.target.value); setV({ ...v, quantidade: q, ...(touched ? {} : { a_iniciar: q }) }) }} /></Field>
         {FIELDS.map(([k, l]) => (
@@ -169,8 +183,8 @@ function Detail({ m, ativos, onClose, onChanged }: { m: Micro; ativos: any[]; on
   const loadH = () => supabase.from('microdelivery_history').select('*, usuario:profiles(nome)').eq('microdelivery_id', m.id).order('data_hora', { ascending: false }).then(({ data, error }) => error ? setErr(error.message) : setHist(data || []))
   useEffect(() => { loadH() }, [m.id, m.atualizado_em]) // eslint-disable-line
   const nome = (id: string) => ativos.find((p) => p.id === id)?.nome || id
-  const LABEL: Record<string, string> = { criacao: 'Criação', status_geral: 'Status geral', criticidade: 'Criticidade', responsavel_id: 'Responsável', demanda: 'Demanda', resumo: 'Resumo', data_target: 'Data Target', quantidade: 'Quantidade', a_iniciar: 'A iniciar', em_andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado', observacoes: 'Observações' }
-  const show = (campo: string, x: string | null) => x === null ? '—' : campo === 'status_geral' ? STATUS_LABEL[x as StatusGeral] || x : campo === 'responsavel_id' ? nome(x) : campo === 'data_target' ? fmtDate(x) : campo === 'criticidade' ? CRIT_LABEL[x as Crit] || x : x
+  const LABEL: Record<string, string> = { criacao: 'Criação', status_geral: 'Status geral', criticidade: 'Criticidade', responsavel_id: 'Responsável', demanda: 'Demanda', resumo: 'Resumo', data_target: 'Data Target', quantidade: 'Quantidade', a_iniciar: 'A iniciar', em_andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado', observacoes: 'Observações', tipo_projeto: 'Tipo de projeto', com_quem_id: 'Com quem está' }
+  const show = (campo: string, x: string | null) => x === null ? '—' : campo === 'status_geral' ? STATUS_LABEL[x as StatusGeral] || x : campo === 'responsavel_id' || campo === 'com_quem_id' ? nome(x) : campo === 'tipo_projeto' ? TIPO_LABEL[x as TipoProjeto] || x : campo === 'data_target' ? fmtDate(x) : campo === 'criticidade' ? CRIT_LABEL[x as Crit] || x : x
 
   async function move(e: FormEvent) {
     e.preventDefault(); setErr(''); setOk('')
@@ -183,9 +197,10 @@ function Detail({ m, ativos, onClose, onChanged }: { m: Micro; ativos: any[]; on
 
   return (
     <Modal title={m.demanda} onClose={onClose} wide>
-      <div className="mb-3 flex flex-wrap gap-2"><Chip color={CRIT_COLOR[m.criticidade]}>{CRIT_LABEL[m.criticidade]}</Chip><Chip color={STATUS_COLOR[m.status_geral]}>{STATUS_LABEL[m.status_geral]}</Chip>{m.atrasada && <Chip color="#dc2626">Atrasada</Chip>}</div>
+      <div className="mb-3 flex flex-wrap gap-2"><Chip color={TIPO_COLOR[m.tipo_projeto]}>{TIPO_LABEL[m.tipo_projeto]}</Chip><Chip color={CRIT_COLOR[m.criticidade]}>{CRIT_LABEL[m.criticidade]}</Chip><Chip color={STATUS_COLOR[m.status_geral]}>{STATUS_LABEL[m.status_geral]}</Chip>{m.atrasada && <Chip color="#dc2626">Atrasada</Chip>}</div>
       <dl className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm md:grid-cols-3">
         <div><dt className="text-slate-500">Responsável</dt><dd>{m.responsavel_nome}</dd></div>
+        {m.tipo_projeto === 'macro' && <div><dt className="text-slate-500">Com quem está</dt><dd>{m.com_quem_nome || '—'}</dd></div>}
         <div><dt className="text-slate-500">Data Target</dt><dd>{fmtDate(m.data_target)}</dd></div>
         <div><dt className="text-slate-500">Mês de referência</dt><dd>{m.mes_referencia.slice(5, 7)}/{m.mes_referencia.slice(0, 4)}</dd></div>
         <div><dt className="text-slate-500">Criada em</dt><dd>{fmtDateTime(m.criado_em)}</dd></div>
@@ -212,11 +227,26 @@ function Detail({ m, ativos, onClose, onChanged }: { m: Micro; ativos: any[]; on
           {hist.map((h) => (
             <li key={h.id}>
               <div className="text-xs text-slate-500">{fmtDateTime(h.data_hora)} · {h.usuario?.nome || 'sistema'}</div>
-              {h.campo_alterado === 'criacao' ? <div>Microentrega criada.</div> : <div><b>{LABEL[h.campo_alterado] || h.campo_alterado}:</b> {show(h.campo_alterado, h.valor_anterior)} → {show(h.campo_alterado, h.valor_novo)}</div>}
+              {h.campo_alterado === 'criacao' ? <div>Projeto criado.</div> : <div><b>{LABEL[h.campo_alterado] || h.campo_alterado}:</b> {show(h.campo_alterado, h.valor_anterior)} → {show(h.campo_alterado, h.valor_novo)}</div>}
             </li>
           ))}
         </ol>
       )}
     </Modal>
+  )
+}
+
+/** Alternância Todos · MacroProjetos · MicroProjetos (usada no cadastro e na Gestão da equipe). */
+export function Seg({ value, onChange, contagem }: { value: '' | TipoProjeto; onChange: (t: '' | TipoProjeto) => void; contagem?: Record<string, number> }) {
+  const opts: ['' | TipoProjeto, string][] = [['', 'Todos'], ['macro', 'MacroProjetos'], ['micro', 'MicroProjetos']]
+  return (
+    <div className="inline-flex flex-wrap overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" role="tablist" aria-label="Tipo de projeto">
+      {opts.map(([k, l]) => (
+        <button key={k || 'todos'} role="tab" aria-selected={value === k} onClick={() => onChange(k)}
+          className={'px-4 py-2 text-sm font-semibold transition ' + (value === k ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-50')}>
+          {l}{contagem && <span className={'ml-1.5 rounded-full px-1.5 text-xs ' + (value === k ? 'bg-white/20' : 'bg-slate-100')}>{contagem[k]}</span>}
+        </button>
+      ))}
+    </div>
   )
 }
