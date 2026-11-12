@@ -4,7 +4,7 @@ Aplicação web multiusuário (React + TypeScript + Tailwind) com **Supabase** (
 
 ## Versão consolidada — o que este pacote contém
 
-Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` completo para instalação nova + migrações 002–006 para quem já tem banco no ar):
+Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` completo para instalação nova + migrações 002–007 para quem já tem banco no ar):
 
 1. Nome **Gestão de atividades** · perfis Diretor / Gerente / Analista Sr / Analista / Guardião · função de convite atualizada.
 2. Botão **Limpar lista do dia** (desmarcar ou apagar) e aba **Histórico de atividades**.
@@ -22,6 +22,7 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 | 003 | Backlog de Melhorias | uma vez (se ainda não rodou) |
 | 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
 | 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
+| 007 | responsável e fase nos chamados (detalhamento “Quem é responsável” do Pareto) | uma vez, **depois** de 006, e reimporte a base de chamados |
 | 006 | Atividades futuras (por bloco) e Projetos macro/micro (“com quem está”) | uma vez (se ainda não rodou) |
 
 **Atalho:** quem rodou só a 002 pode executar **`supabase/003_a_006_tudo_junto.sql`** (003 + 004 + 005 + 006 em um arquivo, uma única vez) em vez de rodar um por um.
@@ -95,11 +96,15 @@ Menu **Pareto backlog** (os itens de backlog ficam sempre por último no menu), 
 
 ---
 
+### Quem é responsável pelos chamados (Pareto backlog)
+
+Cartão com Almawave / Almaviva / Outros (empresa responsável). **Os números acompanham os filtros do Pareto** (mês, tipo e subcategoria selecionada): total de chamados e **abertos** (A iniciar + Em andamento + Suspenso; Concluído, Cancelado e Improcedente ficam fora). Clique no cartão (ou em “Ver detalhamento”) para abrir a janela, com abas Abertos · Todos do filtro, filtro por empresa, indicadores (chamados, abertos, % no prazo, idade média e mais antigo) e gráficos correlacionados: **Categoria × empresa**, **Responsável ROCCO × status**, **Pareto de subcategoria**, **idade dos abertos** e **fase**. Os gráficos se filtram entre si (clique em uma categoria, pessoa ou subcategoria) e a lista de chamados abaixo acompanha, com exportação CSV. Requer a migração 007 e reimportar a base (o CSV `modelos/chamados_backlog_import.csv` já vem com as colunas novas). A empresa vem da coluna “Empresa Responsável” da planilha; não é recalculada.
+
 ## Importar bases (somente Analista Sr)
 
 Menu **Importar bases** — aparece só para o Analista Sr (e a trava real está no banco). Duas cargas, ambas por CSV (Excel: *Salvar como → CSV UTF-8*; separador `;` ou `,`; a codificação "ANSI" também é aceita):
 
-1. **Base de chamados do backlog** — aba `base` da planilha de análise. **Substitui toda a base** (operação única no banco: se der erro, a base atual é mantida). Cabeçalhos lidos: ID, DATA IDENTIFICAÇÃO, CATEGORIA, SUBCATEGORIA, TIPO, ITEM - SINTOMA, SISTEMA OFENSOR, CLIENTE, SITE, STATUS, TRATADO DENTRO DO PRAZO?, MÊS_REF, DIA, ANO_REF (as demais colunas são ignoradas). O arquivo `modelos/chamados_backlog_import.csv` já vem pronto com os dados da sua planilha (e `modelos/modelo-projetos.csv` é o modelo de projetos).
+1. **Base de chamados do backlog** — aba `base` da planilha de análise. **Substitui toda a base** (operação única no banco: se der erro, a base atual é mantida). Cabeçalhos lidos: ID, DATA IDENTIFICAÇÃO, CATEGORIA, SUBCATEGORIA, TIPO, ITEM - SINTOMA, SISTEMA OFENSOR, CLIENTE, SITE, STATUS, TRATADO DENTRO DO PRAZO?, MÊS_REF, DIA, ANO_REF e, para o detalhamento de responsáveis, RESPONSÁVEL, EMPRESA RESPONSÁVEL (ou “Empresa Responsável”), RESPONSÁVEL ROCCO e FASE (as demais colunas são ignoradas). O arquivo `modelos/chamados_backlog_import.csv` já vem pronto com os dados da sua planilha (e `modelos/modelo-projetos.csv` é o modelo de projetos).
 2. **Projetos (macro e micro)** — **adiciona** em lote, sem apagar as existentes. Use o botão "Baixar modelo CSV". Colunas: DEMANDA, RESPONSÁVEL (e-mail ou nome exato de usuário ativo), CRITICIDADE (alta/média/baixa), DATA TARGET (dd/mm/aaaa), QUANTIDADE, A INICIAR, EM ANDAMENTO, CONCLUÍDO, CANCELADO, RESUMO, OBSERVAÇÕES, TIPO (`macro` ou `micro`; vazio = micro) e COM QUEM ESTÁ (só para macro; opcional). Sem distribuição, tudo entra como "a iniciar". A soma dos status deve igualar a quantidade. Se **qualquer** linha tiver erro, nada é importado e a tela lista as linhas com problema. Linhas iguais às já cadastradas (mesma demanda + responsável + data target) são puladas, então reimportar o mesmo arquivo não duplica. O histórico de criação é gravado como no cadastro manual.
 
 ## Atualizando um banco que JÁ está no ar (versão anterior → esta)
@@ -225,6 +230,8 @@ Cada pessoa, em **Configurações**, importa o JSON de backup do painel antigo. 
 - (Versão atual) Prévia no Chromium: quadro de atividades futuras por bloco (permanece após limpar; incorporação de vencida), Projetos (filtro, seletor de tipo, “com quem”), Gestão da equipe nas 3 visões, painel de status executivo, Pareto com “Tipo de chamado” em largura total. Sem erros de console.
 
 - (Versão atual) Prévia no Chromium: “Alterar para dia seguinte” (seleção de 2 tarefas, bloco de 7 para 5 tarefas, aparecem como “amanhã” nas futuras do bloco).
+
+- (Versão atual) Migração 007: `001` novo e `001 anterior → 007` com mesmas colunas e mesma função (`chamados_substituir`, grants idênticos); importação com os 4 campos novos gravada e lida. Prévia no Chromium com a base real: 19 abertos (18 Almawave, 1 Almaviva), janela de detalhamento, filtros por empresa e pessoa.
 
 **NÃO executado (precisa de internet/credenciais — faça você):**
 - `npm install`, `npm run typecheck` e `npm run build` reais (o ambiente de validação não tinha acesso ao npm). Rode-os antes do primeiro deploy; se `tsc` apontar algo, é ajuste pontual.

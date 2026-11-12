@@ -5,6 +5,7 @@ import { canAdmin, download, fmtDate, fmtDateTime, toCSV } from '../lib/rules'
 import { btnG, btnSm, Card, Empty, HBars, Msg } from '../components/ui'
 import ParetoChart from '../components/ParetoChart'
 import { AreaDias, Rosca } from '../components/Charts2'
+import Responsaveis from '../components/Responsaveis'
 import { Chamado, contar, kpis, mesAnterior, mesKey, mesLabel, noPrazo, porDia } from '../lib/chamados'
 
 /** "Pareto backlog" — análise qualitativa dos chamados abertos no backlog (visão da planilha "Análise de backlog"). Leitura para todos; carga só do Analista Sr. */
@@ -77,8 +78,8 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
   const toggleTipo = (nome: string) => { const t = lc(nome); setSub(null); setTipos((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t])) }
   const escolheMes = (m: string) => { setMes(m); setSub(null) }
   const exporta = () => download(`chamados-backlog-${mesSel || 'todos'}.csv`, toCSV([
-    ['ID', 'Data ref.', 'Item - sintoma', 'Cliente', 'Tipo', 'Categoria', 'Subcategoria', 'Sistema ofensor', 'Prazo', 'Status'],
-    ...lista.map((c) => [c.id_chamado, fmtDate(c.data_ref), c.item_sintoma, c.cliente, c.tipo, c.categoria, c.subcategoria, c.sistema_ofensor, c.prazo, c.status]),
+    ['ID', 'Data ref.', 'Item - sintoma', 'Cliente', 'Tipo', 'Categoria', 'Subcategoria', 'Sistema ofensor', 'Prazo', 'Status', 'Empresa responsável', 'Responsável', 'Responsável ROCCO'],
+    ...lista.map((c) => [c.id_chamado, fmtDate(c.data_ref), c.item_sintoma, c.cliente, c.tipo, c.categoria, c.subcategoria, c.sistema_ofensor, c.prazo, c.status, c.empresa_responsavel, c.responsavel, c.responsavel_rocco]),
   ]))
   const pct = (v: number | null) => (v === null ? '—' : Math.round(v * 100) + '%')
 
@@ -150,6 +151,9 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
             </div>
           </div>
         )}
+
+        {/* ===== responsabilidade (clique para detalhar) ===== */}
+        <Responsaveis base={rows} itens={lista} filtroTxt={(mesSel ? mesLabel(mesSel) : 'todos os meses') + (tipos.length ? ' · ' + tipos.join(', ') : '') + (sub ? ' · ' + sub : '')} />
 
         {/* ===== chamados (detalhe) ===== */}
         <Card className="!p-0">

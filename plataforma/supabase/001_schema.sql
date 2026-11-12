@@ -448,7 +448,11 @@ create table public.backlog_chamados(
   categoria text, subcategoria text, tipo text,
   item_sintoma text, sistema_ofensor text, cliente text, site text, status text,
   prazo text,                           -- "Dentro do prazo" | "Fora do prazo" | nulo (coluna TRATADO DENTRO DO PRAZO?)
-  importado_em timestamptz not null default now());
+  importado_em timestamptz not null default now(),
+  responsavel text,                     -- coluna RESPONSÁVEL (quem trata: Almawave, MIS Qualidade, NeoSyx, Beedoo…)
+  empresa_responsavel text,             -- coluna Empresa Responsável (Almawave | Almaviva | Outros)
+  responsavel_rocco text,               -- coluna RESPONSÁVEL ROCCO (pessoa da equipe)
+  fase text);                           -- coluna FASE
 create index on backlog_chamados(data_ref);
 create table public.backlog_chamados_carga(
   id bigint generated always as identity primary key,
@@ -465,9 +469,9 @@ begin
   if not is_manager() then raise exception 'Somente o Analista Sr pode importar a base de chamados.'; end if;
   if jsonb_typeof(p_rows) <> 'array' or jsonb_array_length(p_rows) = 0 then raise exception 'Nenhuma linha para importar.'; end if;
   delete from backlog_chamados where true;
-  insert into backlog_chamados(id_chamado,data_identificacao,data_ref,categoria,subcategoria,tipo,item_sintoma,sistema_ofensor,cliente,site,status,prazo)
-    select id_chamado,data_identificacao,data_ref,categoria,subcategoria,tipo,item_sintoma,sistema_ofensor,cliente,site,status,prazo
-    from jsonb_to_recordset(p_rows) as x(id_chamado text,data_identificacao date,data_ref date,categoria text,subcategoria text,tipo text,item_sintoma text,sistema_ofensor text,cliente text,site text,status text,prazo text);
+  insert into backlog_chamados(id_chamado,data_identificacao,data_ref,categoria,subcategoria,tipo,item_sintoma,sistema_ofensor,cliente,site,status,prazo,responsavel,empresa_responsavel,responsavel_rocco,fase)
+    select id_chamado,data_identificacao,data_ref,categoria,subcategoria,tipo,item_sintoma,sistema_ofensor,cliente,site,status,prazo,responsavel,empresa_responsavel,responsavel_rocco,fase
+    from jsonb_to_recordset(p_rows) as x(id_chamado text,data_identificacao date,data_ref date,categoria text,subcategoria text,tipo text,item_sintoma text,sistema_ofensor text,cliente text,site text,status text,prazo text,responsavel text,empresa_responsavel text,responsavel_rocco text,fase text);
   get diagnostics n = row_count;
   insert into backlog_chamados_carga(qtd) values (n);
   return n;

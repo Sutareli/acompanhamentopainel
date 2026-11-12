@@ -3,6 +3,7 @@ export interface Chamado {
   id: string; id_chamado: string | null; data_identificacao: string | null; data_ref: string
   categoria: string | null; subcategoria: string | null; tipo: string | null; item_sintoma: string | null
   sistema_ofensor: string | null; cliente: string | null; site: string | null; status: string | null; prazo: string | null
+  responsavel: string | null; empresa_responsavel: string | null; responsavel_rocco: string | null; fase: string | null
 }
 export type ChamadoImport = Omit<Chamado, 'id'>
 
@@ -86,10 +87,13 @@ export function lerBase(text: string): Leitura {
       categoria: clean(g(r, 'categoria')), subcategoria: clean(g(r, 'subcategoria')), tipo: tipoNorm(clean(g(r, 'tipo'))),
       item_sintoma: clean(g(r, 'itemsintoma')), sistema_ofensor: clean(g(r, 'sistemaofensor')), cliente: clean(g(r, 'cliente')),
       site: clean(g(r, 'site')), status: clean(g(r, 'status')),
+      responsavel: clean(g(r, 'responsavel')), empresa_responsavel: clean(g(r, 'empresaresponsavel')), responsavel_rocco: clean(g(r, 'responsavelrocco')), fase: clean(g(r, 'fase')),
       prazo: prazoRaw === 'dentro do prazo' ? 'Dentro do prazo' : prazoRaw === 'fora do prazo' ? 'Fora do prazo' : null,
     })
   }
   const avisos: string[] = []
+  const semResp = ['responsavel', 'empresaresponsavel', 'responsavelrocco'].filter((k) => !(k in idx))
+  if (semResp.length) avisos.push('Sem as colunas de responsável (' + semResp.join(', ') + '): o detalhamento “Quem é responsável” ficará incompleto. Use o CSV com RESPONSÁVEL, EMPRESA RESPONSÁVEL e RESPONSÁVEL ROCCO.')
   if (faltam.length) avisos.push('Colunas não encontradas (ficarão vazias): ' + faltam.join(', ') + '.')
   if (ignoradas) avisos.push(`${ignoradas} linha(s) sem data válida foram ignoradas.`)
   if (semRef) avisos.push(`${semRef} linha(s) com MÊS_REF/DIA inválidos usaram a data de identificação.`)
@@ -124,4 +128,29 @@ export interface KpiMes { total: number; noPrazo: number; pctPrazo: number | nul
 export function kpis(items: Chamado[]): KpiMes {
   const total = items.length, np = items.filter(noPrazo).length
   return { total, noPrazo: np, pctPrazo: total ? np / total : null, tipos: contar(items, (c) => c.tipo).barras.length, subcategorias: contar(items, (c) => c.subcategoria).barras.length }
+}
+
+// ---------------- responsabilidade e chamados abertos ----------------
+/** Chamado aberto = ainda sem desfecho: A iniciar, Em andamento ou Suspenso (fora: Concluído, Cancelado e Improcedente). */
+export const aberto = (c: Chamado) => !!(c.status || '').trim() && !/conclu|cancel|improced/i.test(c.status || '')
+export const statusNome = (c: Chamado) => (c.status || '').replace(/^\s*\d+\s*-\s*/, '').trim() || '—'
+export const SEM_RESP = '(não informado)'
+export const empresaDe = (c: Chamado) => (c.empresa_responsavel || '').trim() || SEM_RESP
+export const respDe = (c: Chamado) => (c.responsavel || '').trim() || SEM_RESP
+export const roccoDe = (c: Chamado) => (c.responsavel_rocco || '').trim() || SEM_RESP
+export function diasEmAberto(c: Chamado, hoje: string): number {
+  const d = c.data_identificacao || c.data_ref
+  return Math.max(0, Math.round((Date.parse(hoje + 'T12:00:00Z') - Date.parse(d + 'T12:00:00Z')) / 86400000))
+}
+export interface Grupo { nome: string; total: number; abertos: number; noPrazo: number; comPrazo: number }
+/** Agrupa por chave e devolve total, abertos e % no prazo (ordenado do maior para o menor total). */
+export function agrupar(items: Chamado[], chave: (c: Chamado) => string): Grupo[] {
+  const m = new Map<string, Grupo>()
+  for (const c of items) {
+    const k = chave(c); const g = m.get(k) || { nome: k, total: 0, abertos: 0, noPrazo: 0, comPrazo: 0 }
+    g.total++; if (aberto(c)) g.abertos++
+    if (c.prazo) { g.comPrazo++; if (noPrazo(c)) g.noPrazo++ }
+    m.set(k, g)
+  }
+  return [...m.values()].sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome))
 }

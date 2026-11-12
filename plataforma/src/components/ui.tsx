@@ -50,10 +50,10 @@ export function Kpi({ label, value, sub, icon, color = '#2e1a6e', pct }: { label
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">{children}</p>
 }
-export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
+export function Modal({ title, onClose, children, wide, xl }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean; xl?: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={'max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl ' + (wide ? 'sm:max-w-3xl' : 'sm:max-w-xl')}>
+      <div className={'max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl ' + (xl ? 'sm:max-w-6xl' : wide ? 'sm:max-w-3xl' : 'sm:max-w-xl')}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold text-navy">{title}</h3>
           <button onClick={onClose} className="text-2xl leading-none text-slate-400 hover:text-slate-700" aria-label="Fechar">×</button>
