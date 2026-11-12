@@ -8,8 +8,9 @@ export interface Melhoria {
   id: string; modulo: string; melhoria: string; descricao: string | null; descricao_detalhada: string | null
   objetivo: string | null; objetivo_detalhado: string | null; as_is: string | null; to_be: string | null
   prioridade: number; status: Status; percentual_concluido: number; responsavel: string | null
-  data_inicio: string | null; data_termino: string | null; observacoes: string | null
+  data_inicio: string | null; data_termino: string | null; data_conclusao?: string | null; observacoes: string | null
   criado_por: string | null; criado_em: string; atualizado_em: string
+  origem?: 'manual' | 'chamado'; chamado_chave?: string | null; chamado_status?: string | null
 }
 export interface Etapa {
   id: string; melhoria_id: string; ordem: number; como: string; responsavel: string | null

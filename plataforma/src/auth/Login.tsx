@@ -53,7 +53,8 @@ export function SetPassword() {
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (a.length < 8) return setErr('A senha deve ter pelo menos 8 caracteres.')
+    if (a.length < 10) return setErr('A senha deve ter pelo menos 10 caracteres.')
+    if (!/[A-Za-z]/.test(a) || !/\d/.test(a)) return setErr('Use letras e números na senha.')
     if (a !== b) return setErr('As senhas não coincidem.')
     setBusy(true)
     const m = await setPassword(a)

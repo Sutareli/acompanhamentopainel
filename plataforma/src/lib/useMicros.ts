@@ -14,10 +14,10 @@ export function useMicros() {
   const reload = useCallback(async () => {
     const [m, p] = await Promise.all([
       supabase.from('v_microdeliveries').select('*').order('data_target'),
-      supabase.from('profiles').select('id,nome,email,perfil,ativo').order('nome'),
+      supabase.from('profiles').select('id,nome,email,perfil,ativo,excluido_em').order('nome'),
     ])
     if (m.error || p.error) setError('Não foi possível carregar os dados: ' + (m.error || p.error)!.message)
-    else { setRows(m.data as Micro[]); setProfiles(p.data as Prof[]); setError('') }
+    else { setRows(m.data as Micro[]); setProfiles((p.data as (Prof & { excluido_em: string | null })[]).filter((x) => !x.excluido_em)); setError('') }
     setLoading(false)
   }, [])
 

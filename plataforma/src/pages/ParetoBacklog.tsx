@@ -6,7 +6,7 @@ import { btnG, btnSm, Card, Empty, HBars, Msg } from '../components/ui'
 import ParetoChart from '../components/ParetoChart'
 import { AreaDias, Rosca } from '../components/Charts2'
 import Responsaveis from '../components/Responsaveis'
-import { Chamado, contar, kpis, mesAnterior, mesKey, mesLabel, noPrazo, porDia } from '../lib/chamados'
+import { Chamado, contar, kpis, mesAnterior, mesKey, mesLabel, noPrazo, porDia, quinzenaDe, semanaDe, semanasDoMes } from '../lib/chamados'
 
 /** "Pareto backlog" — análise qualitativa dos chamados abertos no backlog (visão da planilha "Análise de backlog"). Leitura para todos; carga só do Analista Sr. */
 const lc = (s: string | null) => (s ?? '').trim().toLowerCase()
@@ -35,6 +35,8 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
   const [mes, setMes] = useState<string | null>(null)      // null = ainda não escolhido (usa o mais recente) · '' = todos
   const [tipos, setTipos] = useState<string[]>([])         // chaves em minúsculas; vazio = todos
   const [sub, setSub] = useState<string | null>(null)
+  const [quinz, setQuinz] = useState<0 | 1 | 2>(0)       // 0 = mês inteiro · 1 = dias 1–15 · 2 = dia 16 em diante
+  const [sem, setSem] = useState(0)                       // 0 = todas as semanas do mês · n = semana n (segunda a domingo)
   const [carga, setCarga] = useState<{ em: string; qtd: number; nome: string } | null>(null)
 
   async function load() {
@@ -60,12 +62,14 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
   const mesSel = mes === null ? meses[meses.length - 1] || '' : mes
   const tiposDisp = useMemo(() => contar(rows, (c) => c.tipo).barras.map((b) => b.nome), [rows])
   const filtraTipo = (c: Chamado) => !tipos.length || tipos.includes(lc(c.tipo))
-  const doMes = useMemo(() => rows.filter((r) => !mesSel || mesKey(r.data_ref) === mesSel), [rows, mesSel])
+  const semanas = useMemo(() => (mesSel ? semanasDoMes(mesSel) : []), [mesSel])
+  const noPeriodo = (c: Chamado) => (!quinz || quinzenaDe(c.data_ref) === quinz) && (!sem || semanaDe(c.data_ref) === sem)
+  const doMes = useMemo(() => rows.filter((r) => (!mesSel || mesKey(r.data_ref) === mesSel) && (!mesSel || noPeriodo(r))), [rows, mesSel, quinz, sem]) // eslint-disable-line react-hooks/exhaustive-deps
   const filtrado = useMemo(() => doMes.filter(filtraTipo), [doMes, tipos])  // eslint-disable-line react-hooks/exhaustive-deps
-  const anterior = useMemo(() => (mesSel ? rows.filter((r) => mesKey(r.data_ref) === mesAnterior(mesSel)).filter(filtraTipo) : []), [rows, mesSel, tipos]) // eslint-disable-line react-hooks/exhaustive-deps
+  const anterior = useMemo(() => (mesSel ? rows.filter((r) => mesKey(r.data_ref) === mesAnterior(mesSel) && (!quinz || quinzenaDe(r.data_ref) === quinz)).filter(filtraTipo) : []), [rows, mesSel, tipos, quinz]) // eslint-disable-line react-hooks/exhaustive-deps
   const k = useMemo(() => kpis(filtrado), [filtrado])
   const kp = useMemo(() => kpis(anterior), [anterior])
-  const temAnt = !!mesSel && anterior.length > 0
+  const temAnt = !!mesSel && !sem && anterior.length > 0
 
   const parTipo = useMemo(() => contar(doMes, (c) => c.tipo).barras, [doMes])            // o gráfico de tipo mostra todos os tipos (é ele que filtra)
   const sc = useMemo(() => contar(filtrado, (c) => c.subcategoria), [filtrado])
@@ -76,8 +80,9 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
   const lista = useMemo(() => filtrado.filter((c) => !sub || lc(c.subcategoria) === lc(sub)), [filtrado, sub])
 
   const toggleTipo = (nome: string) => { const t = lc(nome); setSub(null); setTipos((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t])) }
-  const escolheMes = (m: string) => { setMes(m); setSub(null) }
-  const exporta = () => download(`chamados-backlog-${mesSel || 'todos'}.csv`, toCSV([
+  const escolheMes = (m: string) => { setMes(m); setSub(null); setQuinz(0); setSem(0) }
+  const periodoTxt = (quinz ? `${quinz}ª quinzena` : '') + (quinz && sem ? ' · ' : '') + (sem ? `semana ${sem}` : '')
+  const exporta = () => download(`chamados-backlog-${mesSel || 'todos'}${quinz ? '-q' + quinz : ''}${sem ? '-s' + sem : ''}.csv`, toCSV([
     ['ID', 'Data ref.', 'Item - sintoma', 'Cliente', 'Tipo', 'Categoria', 'Subcategoria', 'Sistema ofensor', 'Prazo', 'Status', 'Empresa responsável', 'Responsável', 'Responsável ROCCO'],
     ...lista.map((c) => [c.id_chamado, fmtDate(c.data_ref), c.item_sintoma, c.cliente, c.tipo, c.categoria, c.subcategoria, c.sistema_ofensor, c.prazo, c.status, c.empresa_responsavel, c.responsavel, c.responsavel_rocco]),
   ]))
@@ -110,6 +115,17 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
               {meses.map((m) => <button key={m} className={chip(mesSel === m)} aria-pressed={mesSel === m} onClick={() => escolheMes(m)}>{mesLabel(m)}</button>)}
               <button className={chip(mesSel === '')} aria-pressed={mesSel === ''} onClick={() => escolheMes('')}>Todos</button>
             </div>
+            {mesSel && <>
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Quinzena">
+                <span className="text-xs font-bold uppercase text-slate-500">Quinzena</span>
+                {([[0, 'Mês inteiro'], [1, '1ª (dias 1–15)'], [2, '2ª (dia 16 em diante)']] as [0 | 1 | 2, string][]).map(([v, l]) => <button key={v} className={chip(quinz === v)} aria-pressed={quinz === v} onClick={() => { setQuinz(v); setSub(null) }}>{l}</button>)}
+              </div>
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Semana">
+                <span className="text-xs font-bold uppercase text-slate-500">Semana</span>
+                <button className={chip(sem === 0)} aria-pressed={sem === 0} onClick={() => { setSem(0); setSub(null) }}>Todas</button>
+                {semanas.map((w) => <button key={w.n} className={chip(sem === w.n)} aria-pressed={sem === w.n} title="Semana de segunda a domingo" onClick={() => { setSem(w.n); setSub(null) }}>S{w.n} · {String(w.ini).padStart(2, '0')}–{String(w.fim).padStart(2, '0')}</button>)}
+              </div>
+            </>}
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Tipo de chamado">
               <span className="text-xs font-bold uppercase text-slate-500">Tipo</span>
               {tiposDisp.map((t) => <button key={t} className={chip(tipos.includes(lc(t)))} aria-pressed={tipos.includes(lc(t))} onClick={() => toggleTipo(t)}>{t}</button>)}
@@ -125,7 +141,8 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
           <KpiCard titulo="Tipos de chamados" valor={k.tipos}><Delta valor={temAnt ? k.tipos - kp.tipos : null} texto={Math.abs(k.tipos - kp.tipos) + ''} bomSeSobe={false} /></KpiCard>
           <KpiCard titulo="Subcategorias" valor={k.subcategorias}><Delta valor={temAnt ? k.subcategorias - kp.subcategorias : null} texto={Math.abs(k.subcategorias - kp.subcategorias) + ''} bomSeSobe={false} /></KpiCard>
         </div>
-        {!mesSel && <p className="text-xs text-slate-500">Com “Todos” os meses não há comparação com o mês anterior.</p>}
+        {!mesSel && <p className="text-xs text-slate-500">Com “Todos” os meses não há comparação com o mês anterior; os filtros de quinzena e semana aparecem ao escolher um mês.</p>}
+        {!!mesSel && !!sem && <p className="text-xs text-slate-500">Filtro de semana: sem comparação com o mês anterior. Semanas vão de segunda a domingo (a 1ª e a última podem ser parciais).</p>}
 
         {filtrado.length === 0 ? <Empty>Nenhum chamado para este filtro.</Empty> : (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -153,7 +170,7 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
         )}
 
         {/* ===== responsabilidade (clique para detalhar) ===== */}
-        <Responsaveis base={rows} itens={lista} filtroTxt={(mesSel ? mesLabel(mesSel) : 'todos os meses') + (tipos.length ? ' · ' + tipos.join(', ') : '') + (sub ? ' · ' + sub : '')} />
+        <Responsaveis base={rows} itens={lista} filtroTxt={(mesSel ? mesLabel(mesSel) : 'todos os meses') + (periodoTxt ? ' · ' + periodoTxt : '') + (tipos.length ? ' · ' + tipos.join(', ') : '') + (sub ? ' · ' + sub : '')} />
 
         {/* ===== chamados (detalhe) ===== */}
         <Card className="!p-0">

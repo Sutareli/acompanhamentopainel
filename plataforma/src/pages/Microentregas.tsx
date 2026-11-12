@@ -2,8 +2,9 @@ import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { useMicros } from '../lib/useMicros'
+import { confirmar } from '../components/Confirm'
 import {
-  CRIT_COLOR, CRIT_LABEL, Crit, distribuicao, download, fmtDate, fmtDateTime, Micro, STATUS_COLOR, TIPO_COLOR, TIPO_LABEL, TipoProjeto, STATUS_LABEL, StatusGeral, statusGeral, toCSV, todayStr, validateMicro,
+  canAdmin, CRIT_COLOR, CRIT_LABEL, Crit, distribuicao, download, fmtDate, fmtDateTime, Micro, STATUS_COLOR, TIPO_COLOR, TIPO_LABEL, TipoProjeto, STATUS_LABEL, StatusGeral, statusGeral, toCSV, todayStr, validateMicro,
 } from '../lib/rules'
 import { btnG, btnP, btnS, btnSm, Card, Chip, Empty, Field, inp, Kpi, Modal, Msg, StackBar } from '../components/ui'
 
@@ -18,6 +19,15 @@ export default function Microentregas({ presetResp, presetTipo }: { presetResp?:
   const [form, setForm] = useState<{ id?: string; v: Form } | null>(null)
   const [detail, setDetail] = useState<Micro | null>(null)
   const [msg, setMsg] = useState('')
+  const [errDel, setErrDel] = useState('')
+  async function excluir(r: Micro) {
+    setErrDel('')
+    if (!(await confirmar({ titulo: 'Excluir projeto?', mensagem: <>Excluir <b>“{r.demanda}”</b> com o histórico de alterações? Fica na <b>Lixeira por 48 horas</b> e pode ser restaurado; depois disso some de vez. Para só encerrar o projeto sem apagar, use <b>Editar</b> e marque as unidades como canceladas.</>, confirmar: 'Excluir projeto', perigo: true }))) return
+    const x = await supabase.from('microdeliveries').delete().eq('id', r.id).select('id')
+    if (x.error) return setErrDel('Não foi possível excluir: ' + x.error.message)
+    if (!x.data?.length) return setErrDel('Você não tem permissão para excluir este projeto (somente quem o criou ou o Analista Sr).')
+    setMsg('Projeto excluído.'); reload()
+  }
 
   const ativos = profiles.filter((p) => p.ativo)
   const meses = useMemo(() => [...new Set(rows.map((r) => r.mes_referencia))].sort(), [rows])
@@ -50,6 +60,7 @@ export default function Microentregas({ presetResp, presetTipo }: { presetResp?:
           <button className={btnS} onClick={() => setForm({ v: { ...EMPTY, tipo_projeto: fl.tipo || 'micro', responsavel_id: profile!.id } })}>+ Novo Projeto</button>
         </div>
       </div>
+      {errDel && <Msg kind="erro">{errDel}</Msg>}
       {error && <Msg kind="erro">{error} <button className="underline" onClick={reload}>Tentar novamente</button></Msg>}
       {msg && <Msg kind="ok">{msg}</Msg>}
       <Seg value={fl.tipo} onChange={(t) => setFl({ ...fl, tipo: t })} contagem={{ '': rows.length, macro: rows.filter((r) => r.tipo_projeto === 'macro').length, micro: rows.filter((r) => r.tipo_projeto === 'micro').length }} />
@@ -102,6 +113,7 @@ export default function Microentregas({ presetResp, presetTipo }: { presetResp?:
                     <td className="whitespace-nowrap px-3 py-2.5">
                       <button className={btnG + ' ' + btnSm} onClick={() => setDetail(r)}>Ver</button>{' '}
                       <button className={btnG + ' ' + btnSm} onClick={() => setForm({ id: r.id, v: { criticidade: r.criticidade, responsavel_id: r.responsavel_id, demanda: r.demanda, resumo: r.resumo || '', data_target: r.data_target, quantidade: r.quantidade, a_iniciar: r.a_iniciar, em_andamento: r.em_andamento, concluido: r.concluido, cancelado: r.cancelado, observacoes: r.observacoes || '', tipo_projeto: r.tipo_projeto, com_quem_id: r.com_quem_id || '' } })}>Editar</button>
+                      {(r.criado_por === profile!.id || canAdmin(profile!.perfil)) && <>{' '}<button className={btnG + ' ' + btnSm + ' !border-red-200 !text-red-600 hover:!bg-red-50'} title="Excluir projeto" onClick={() => excluir(r)}>Excluir</button></>}
                     </td>
                   </tr>
                 ))}

@@ -6,12 +6,13 @@ import { ensureDay } from '../lib/journal'
 import { DEFAULT_SETTINGS, loadSettings, Settings } from '../lib/settings'
 import { Bar, btnG, btnP, btnS, btnSm, Card, Chip, inp, Kpi, Msg } from '../components/ui'
 import Resumo from '../components/Resumo'
+import EnviarProjetos from '../components/EnviarProjetos'
 
 interface Task { id: string; block_id: string; descricao: string; grupo: string | null; ordem: number; concluida: boolean; concluida_em: string | null; idea_id: string | null }
 export interface Futura { id: string; bloco_numero: number; data_alvo: string; descricao: string }
 interface Block { id: string; numero: number; nome: string; duracao_planejada_min: number; observacoes: string | null; daily_tasks: Task[] }
 
-export default function Painel() {
+export default function Painel({ onNavigate }: { onNavigate?: (p: string) => void }) {
   const { profile } = useAuth()
   const uid = profile!.id
   const [date, setDate] = useState(todayStr())
@@ -25,6 +26,7 @@ export default function Painel() {
   const [version, setVersion] = useState(0)
   const [prep, setPrep] = useState('')
   const [clearing, setClearing] = useState(false)
+  const [enviando, setEnviando] = useState(false)
   const [futuras, setFuturas] = useState<Futura[]>([])
 
   const load = useCallback(async () => {
@@ -106,8 +108,12 @@ export default function Painel() {
             {saud}, {profile!.nome.split(' ')[0]}! {new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'UTC' })}, {fmtDate(date)}
           </p>
         </div>
-        <button className={btnG + ' ' + btnSm} onClick={() => setClearing(true)} disabled={all.length === 0}>🧹 Limpar lista do dia</button>
+        <div className="flex flex-wrap gap-2">
+          <button className={btnS + ' ' + btnSm} onClick={() => setEnviando(true)} disabled={all.length === 0}>📦 Enviar para Projetos</button>
+          <button className={btnG + ' ' + btnSm} onClick={() => setClearing(true)} disabled={all.length === 0}>🧹 Limpar lista do dia</button>
+        </div>
       </div>
+      {enviando && <EnviarProjetos blocos={blocks} data={date} uid={uid} onClose={() => setEnviando(false)} onDone={load} onNavigate={onNavigate} />}
       {clearing && <ClearDialog total={all.length} done={done} onCancel={() => setClearing(false)} onConfirm={async (modo) => {
         setClearing(false)
         await act(() => supabase.rpc('dia_limpar', { p_record: rec.id, p_modo: modo }))

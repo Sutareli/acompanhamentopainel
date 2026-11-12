@@ -130,7 +130,9 @@ export const DEFAULT_BLOCKS: { nome: string; min: number; objetivo: string; task
 /** CSV com ';' e BOM UTF-8: abre corretamente no Excel em português. */
 export function toCSV(rows: (string | number | null | undefined)[][]): string {
   return '﻿' + rows.map((r) => r.map((c) => {
-    const s = String(c ?? '')
+    let s = String(c ?? '')
+    // Proteção contra injeção de fórmulas (Excel/Sheets): texto que começa com = + @ ou tab/CR é gravado como texto literal (prefixo '); “-” só se não for número
+    if (typeof c === 'string' && /^([=+@\t\r]|-(?!\s*\d+([.,]\d+)?$))/.test(s)) s = "'" + s
     return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
   }).join(';')).join('\r\n')
 }

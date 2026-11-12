@@ -5,6 +5,7 @@ import { useMicros } from '../lib/useMicros'
 import { canAdmin, CRIT_COLOR, CRIT_LABEL, download, fmtDate, Perfil, PERFIL_LABEL, PERFIS, STATUS_COLOR, STATUS_LABEL, StatusGeral, TIPO_COLOR, TipoProjeto, toCSV, todayStr, TZ, Micro } from '../lib/rules'
 import { Bar, btnG, btnP, Card, Chip, Empty, Field, HBars, inp, Kpi, Msg, StackBar, VBars } from '../components/ui'
 import Microentregas, { Seg } from './Microentregas'
+import { confirmar } from '../components/Confirm'
 
 export default function Equipe() {
   const { profile } = useAuth()
@@ -55,6 +56,14 @@ export default function Equipe() {
     let acc = 0
     return [...d.entries()].sort().map(([k, v]) => { acc += v; return { label: k.slice(8) + '/' + k.slice(5, 7), value: acc, title: `${fmtDate(k)}: ${acc} unidade(s) concluída(s) acumuladas` } }).slice(-30)
   }, [hist])
+
+  async function excluirUsuario(p: { id: string; nome: string }) {
+    setErr(''); setMsg('')
+    if (!(await confirmar({ titulo: 'Excluir usuário?', mensagem: <>O acesso de <b>{p.nome}</b> é bloqueado agora. Você pode restaurar o usuário na <b>Lixeira</b> por 48 horas; depois disso a conta e os dados pessoais (jornadas, agenda, ideias e modelos) são apagados definitivamente. Se for só uma saída temporária, prefira <b>desativar</b>.</>, confirmar: 'Excluir usuário', perigo: true }))) return
+    const r = await supabase.rpc('usuario_excluir', { p_id: p.id })
+    if (r.error) return setErr(r.error.message)
+    setMsg(`Usuário ${p.nome} excluído. Dá para restaurar na Lixeira por 48 h.`); reload()
+  }
 
   async function invite(e: FormEvent) {
     e.preventDefault(); setErr(''); setMsg('')
@@ -150,13 +159,14 @@ export default function Equipe() {
         </form>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500"><tr><th className="py-2">Nome</th><th>E-mail</th><th>Perfil</th><th>Situação</th></tr></thead>
+            <thead className="text-xs uppercase text-slate-500"><tr><th className="py-2">Nome</th><th>E-mail</th><th>Perfil</th><th>Situação</th><th></th></tr></thead>
             <tbody>
               {profiles.map((p) => (
                 <tr key={p.id} className="border-t border-slate-100">
                   <td className="py-2">{p.nome}</td><td>{p.email}</td>
                   <td><select className={inp + ' !w-auto !py-1'} value={p.perfil} disabled={p.id === profile!.id} onChange={(e) => patch(p.id, { perfil: e.target.value })}>{PERFIS.map((k) => <option key={k} value={k}>{PERFIL_LABEL[k as Perfil]}</option>)}</select></td>
                   <td>{p.id === profile!.id ? <Chip color="#16a34a">Você</Chip> : <button className={btnG + ' !px-3 !py-1 !text-xs'} onClick={() => patch(p.id, { ativo: !p.ativo })}>{p.ativo ? 'Ativo · desativar' : 'Inativo · reativar'}</button>}</td>
+                  <td className="text-right">{p.id !== profile!.id && <button className={btnG + ' !px-3 !py-1 !text-xs !border-red-200 !text-red-600 hover:!bg-red-50'} onClick={() => excluirUsuario(p)}>Excluir</button>}</td>
                 </tr>
               ))}
             </tbody>

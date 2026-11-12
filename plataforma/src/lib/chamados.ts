@@ -14,6 +14,19 @@ export const mesLabel = (k: string) => `${MESES[+k.slice(5, 7) - 1]}/${k.slice(2
 export const mesAnterior = (k: string) => { const y = +k.slice(0, 4), m = +k.slice(5, 7); return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}` }
 export const diasNoMes = (k: string) => new Date(Date.UTC(+k.slice(0, 4), +k.slice(5, 7), 0)).getUTCDate()
 
+/** Quinzena do dia de referência: 1 = dias 1 a 15 · 2 = dia 16 até o fim do mês. */
+export const quinzenaDe = (ref: string) => (+ref.slice(8, 10) <= 15 ? 1 : 2)
+/** Semanas do mês (segunda a domingo; a 1ª e a última podem ser parciais). */
+export function semanasDoMes(mes: string) {
+  const dim = diasNoMes(mes), pri = (new Date(Date.UTC(+mes.slice(0, 4), +mes.slice(5, 7) - 1, 1)).getUTCDay() + 6) % 7 // 0 = segunda
+  const n = Math.floor((dim - 1 + pri) / 7) + 1
+  return Array.from({ length: n }, (_, i) => ({ n: i + 1, ini: Math.max(1, i * 7 - pri + 1), fim: Math.min(dim, (i + 1) * 7 - pri) }))
+}
+export const semanaDe = (ref: string) => {
+  const pri = (new Date(Date.UTC(+ref.slice(0, 4), +ref.slice(5, 7) - 1, 1)).getUTCDay() + 6) % 7
+  return Math.floor((+ref.slice(8, 10) - 1 + pri) / 7) + 1
+}
+
 // ---------------- CSV ----------------
 /** Lê CSV (separador , ; ou tab detectado na 1ª linha; aspas duplas; quebras de linha dentro de aspas). */
 export function parseCsv(text: string): string[][] {

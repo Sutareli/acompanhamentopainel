@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { confirmar } from './Confirm'
 import { supabase } from '../lib/supabase'
 import { fmtDate, fmtDateTime, todayStr } from '../lib/rules'
 import { Bar, btnD, btnG, btnP, btnSm, Card, Chip, Empty, inp, Msg } from './ui'
@@ -70,7 +71,7 @@ export default function BacklogDetalhe({ m, nomes, podeEditar, podeExcluir, modu
     return ''
   }
   async function delEtapa(e: Etapa) {
-    if (!confirm(`Excluir a etapa "${e.como}"? O registro fica no histórico.`)) return
+    if (!(await confirmar({ titulo: 'Excluir etapa?', mensagem: <>Excluir a etapa <b>“{e.como}”</b>? O registro permanece no histórico da atividade.</>, confirmar: 'Excluir', perigo: true }))) return
     const r = await supabase.from('backlog_etapas').delete().eq('id', e.id).select('id')
     if (r.error || !r.data?.length) setErr('Não foi possível excluir a etapa: ' + (r.error?.message || 'sem permissão.'))
     else await refresh()

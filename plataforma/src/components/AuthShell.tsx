@@ -1,4 +1,5 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode } from 'react'
+import { LogoIcone } from './Logo'
 
 /** Ondas decorativas (linhas finas em degradê lilás → azul-claro), desenhadas em SVG próprio. */
 function Waves({ flip = false }: { flip?: boolean }) {
@@ -18,19 +19,8 @@ function Waves({ flip = false }: { flip?: boolean }) {
   )
 }
 
-/** Emblema próprio (lista de tarefas). Se existir /logo.png no site, ele é usado no lugar. */
 function Emblem() {
-  const [custom, setCustom] = useState(true)
-  if (custom) return <img src="/logo.png" alt="" className="mx-auto mb-4 h-36 w-auto object-contain" onError={() => setCustom(false)} />
-  return (
-    <svg aria-hidden="true" viewBox="0 0 120 120" className="mx-auto mb-4 h-28 w-28">
-      <defs><linearGradient id="em" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#8b3fff" /><stop offset="1" stopColor="#2e1a6e" /></linearGradient></defs>
-      <rect x="14" y="14" width="92" height="92" rx="28" fill="url(#em)" />
-      <rect x="34" y="34" width="14" height="14" rx="4" fill="#fff" /><rect x="56" y="38" width="30" height="6" rx="3" fill="#fff" opacity=".9" />
-      <rect x="34" y="53" width="14" height="14" rx="4" fill="#a5e3fb" /><rect x="56" y="57" width="30" height="6" rx="3" fill="#fff" opacity=".9" />
-      <rect x="34" y="72" width="14" height="14" rx="4" fill="#fff" opacity=".6" /><rect x="56" y="76" width="22" height="6" rx="3" fill="#fff" opacity=".6" />
-    </svg>
-  )
+  return <LogoIcone size={96} className="mx-auto mb-4 drop-shadow-md" />
 }
 
 export default function AuthShell({ title, children }: { title: string; children: ReactNode }) {

@@ -1,4 +1,5 @@
 import { CSSProperties, useEffect, useMemo, useState } from 'react'
+import { confirmar } from '../components/Confirm'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { canAdmin, canViewAll, download, fmtDate, fmtDateTime, toCSV, todayStr } from '../lib/rules'
@@ -19,7 +20,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
   const [rows, setRows] = useState<Melhoria[]>([])
   const [etapas, setEtapas] = useState<Etapa[]>([])
   const [mudancas, setMudancas] = useState<Hist[]>([])
-  const [chamados, setChamados] = useState<Pick<Chamado, 'data_ref' | 'subcategoria' | 'prazo'>[]>([])
+  const [chamados, setChamados] = useState<Pick<Chamado, 'data_ref' | 'subcategoria' | 'prazo' | 'status'>[]>([])
   const [nomes, setNomes] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -27,14 +28,32 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
   const [fSt, setFSt] = useState('')
   const [q, setQ] = useState('')
   const [soVencidas, setSoVencidas] = useState(false)
+  // Ao abrir a página já vem filtrado o mês vigente (criação/início). “Todo o período” remove o filtro.
+  const mesIni = hoje.slice(0, 8) + '01'
+  const mesFim = hoje.slice(0, 8) + String(new Date(Date.UTC(+hoje.slice(0, 4), +hoje.slice(5, 7), 0)).getUTCDate()).padStart(2, '0')
+  const [iDe, setIDe] = useState(mesIni); const [iAte, setIAte] = useState(mesFim) // data de criação/início
+  const [cDe, setCDe] = useState(''); const [cAte, setCAte] = useState('') // data de finalização
+  const [fOrig, setFOrig] = useState<'' | 'chamado' | 'manual'>('')
+  const [limite, setLimite] = useState(150)
   const [selId, setSelId] = useState<string | null>(null)
   const [edit, setEdit] = useState<Partial<Melhoria> | null>(null)
 
   const canEdit = (m: Melhoria) => m.criado_por === uid || canViewAll(profile!.perfil)
 
+  // Os chamados da base viram atividades (>1000 linhas): o Supabase devolve no máx. 1000 por consulta, então paginamos.
+  async function carregarMelhorias() {
+    const all: Melhoria[] = []
+    for (let from = 0; ; from += 1000) {
+      const r = await supabase.from('backlog_melhorias').select('*').order('prioridade', { ascending: true }).order('data_termino', { ascending: true }).order('id', { ascending: true }).range(from, from + 999)
+      if (r.error) return { data: null, error: r.error }
+      all.push(...((r.data || []) as Melhoria[])); if (!r.data || r.data.length < 1000) break
+    }
+    return { data: all, error: null }
+  }
+
   async function load() {
     const [a, b, c, d] = await Promise.all([
-      supabase.from('backlog_melhorias').select('*').order('prioridade', { ascending: true }).order('data_termino', { ascending: true }),
+      carregarMelhorias(),
       supabase.from('backlog_etapas').select('*').order('ordem', { ascending: true }),
       supabase.from('backlog_historico').select('*').eq('campo', 'status').order('data_hora', { ascending: false }).order('id', { ascending: false }).limit(12),
       supabase.from('profiles').select('id,nome'),
@@ -47,7 +66,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
     setMudancas((c.data || []) as Hist[])
     const ch: typeof chamados = []   // base de chamados compartilhada com o Pareto (o Supabase devolve no máx. 1000 linhas por consulta)
     for (let from = 0; ; from += 1000) {
-      const r = await supabase.from('backlog_chamados').select('data_ref,subcategoria,prazo').order('data_ref', { ascending: true }).order('id', { ascending: true }).range(from, from + 999)
+      const r = await supabase.from('backlog_chamados').select('data_ref,subcategoria,prazo,status').order('data_ref', { ascending: true }).order('id', { ascending: true }).range(from, from + 999)
       if (r.error) break
       ch.push(...((r.data || []) as typeof chamados)); if (!r.data || r.data.length < 1000) break
     }
@@ -64,14 +83,24 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
   }, [etapas])
 
   const modulos = useMemo(() => [...new Set(rows.map((r) => r.modulo))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [rows])
+  const temData = !!(iDe || iAte || cDe || cAte)
+  /** Filtros de data: início/criação (data_inicio) e finalização (data_conclusao, só das concluídas). Valem para o painel e para a tabela. */
+  const porData = useMemo(() => rows.filter((r) =>
+    (!iDe || (!!r.data_inicio && r.data_inicio >= iDe)) && (!iAte || (!!r.data_inicio && r.data_inicio <= iAte)) &&
+    (!cDe || (r.status === 'Concluído' && !!r.data_conclusao && r.data_conclusao >= cDe)) && (!cAte || (r.status === 'Concluído' && !!r.data_conclusao && r.data_conclusao <= cAte))),
+  [rows, iDe, iAte, cDe, cAte])
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase()
-    return rows.filter((r) => (!fMod || r.modulo === fMod) && (!fSt || r.status === fSt) && (!soVencidas || melhoriaVencida(r, hoje)) &&
+    return porData.filter((r) => (!fMod || r.modulo === fMod) && (!fSt || r.status === fSt) && (!fOrig || (r.origem || 'manual') === fOrig) && (!soVencidas || melhoriaVencida(r, hoje)) &&
       (!t || [r.melhoria, r.descricao, r.objetivo, r.responsavel, r.modulo].join(' ').toLowerCase().includes(t)))
-  }, [rows, fMod, fSt, q, soVencidas, hoje])
+  }, [porData, fMod, fSt, fOrig, q, soVencidas, hoje])
+  // em aberto primeiro, concluídas por último (mantém prioridade e prazo dentro de cada grupo)
+  const ordenadas = useMemo(() => [...filtered].sort((a, b) => (a.status === 'Concluído' ? 1 : 0) - (b.status === 'Concluído' ? 1 : 0)), [filtered])
+  const visiveis = ordenadas.slice(0, limite)
+  useEffect(() => { setLimite(150) }, [fMod, fSt, fOrig, q, soVencidas, iDe, iAte, cDe, cAte])
 
-  // Painel superior: uma linha por ATIVIDADE (status e % já refletem as etapas). Os filtros afetam só a tabela.
-  const items: ItemStat[] = rows.map((r) => {
+  // Painel superior: uma linha por ATIVIDADE (status e % já refletem as etapas). Os filtros de data valem também aqui; os demais afetam só a tabela.
+  const items: ItemStat[] = porData.map((r) => {
     const es = etapasDe[r.id] || []
     const pls = es.map((e) => planejadoEtapa(e, hoje)).filter((x): x is number => x !== null)
     return {
@@ -94,6 +123,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
     if (!temEt) { // com etapas, status e % vêm do cálculo automático do banco
       payload.status = p.status || 'A Iniciar'
       payload.percentual_concluido = p.status === 'Concluído' ? 100 : Number(p.percentual_concluido) || 0
+      payload.data_conclusao = p.status === 'Concluído' ? p.data_conclusao || null : null
     }
     const r = p.id
       ? await supabase.from('backlog_melhorias').update(payload).eq('id', p.id).select('id')
@@ -104,16 +134,16 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
     return ''
   }
   async function remove(m: Melhoria) {
-    if (!confirm(`Excluir definitivamente "${m.melhoria}" e todas as suas etapas e histórico? Esta ação não pode ser desfeita (fica apenas no registro de auditoria).`)) return
+    if (!(await confirmar({ titulo: 'Excluir atividade?', mensagem: <>Excluir <b>“{m.melhoria}”</b> com suas etapas e histórico? Fica na <b>Lixeira por 48 horas</b> e pode ser restaurado; depois disso some de vez.</>, confirmar: 'Excluir', perigo: true }))) return
     const r = await supabase.from('backlog_melhorias').delete().eq('id', m.id).select('id')
     if (r.error || !r.data?.length) setErr('Não foi possível excluir: ' + (r.error?.message || 'sem permissão.'))
     else { setSelId(null); await load() }
   }
   const exportCsv = () => download(`backlog-melhorias-${hoje}.csv`, toCSV([
-    ['Módulo', 'Melhoria', 'Descrição', 'Objetivo', 'AS IS', 'TO BE', 'Prioridade', 'Status', '% concluído', 'Etapas', 'Responsável', 'Início', 'Término', 'Observações'],
+    ['Módulo', 'Melhoria', 'Descrição', 'Objetivo', 'AS IS', 'TO BE', 'Prioridade', 'Status', '% concluído', 'Etapas', 'Responsável', 'Início (criação)', 'Término (prazo)', 'Finalização', 'Observações'],
     ...filtered.map((r) => {
       const es = etapasDe[r.id] || []
-      return [r.modulo, r.melhoria, r.descricao, r.objetivo, r.as_is, r.to_be, r.prioridade, r.status, r.percentual_concluido, es.length ? `${es.filter((e) => e.status === 'Concluído').length}/${es.length}` : '', r.responsavel, fmtDate(r.data_inicio), fmtDate(r.data_termino), r.observacoes]
+      return [r.modulo, r.melhoria, r.descricao, r.objetivo, r.as_is, r.to_be, r.prioridade, r.status, r.percentual_concluido, es.length ? `${es.filter((e) => e.status === 'Concluído').length}/${es.length}` : '', r.responsavel, fmtDate(r.data_inicio), fmtDate(r.data_termino), r.status === 'Concluído' ? fmtDate(r.data_conclusao || null) : '', r.observacoes]
     }),
   ]))
 
@@ -143,6 +173,21 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
         </div>
       </div>
       {err && <Msg kind="erro">{err}</Msg>}
+
+      {/* ===== Período (topo da página): mês vigente por padrão ===== */}
+      <Card className="!p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <span className="pb-2 text-sm font-bold text-navy">📅 Período</span>
+          <Field label="Criação/início (de)" className="min-w-[150px]"><input className={inp} type="date" value={iDe} max={iAte || undefined} onChange={(e) => setIDe(e.target.value)} /></Field>
+          <Field label="Criação/início (até)" className="min-w-[150px]"><input className={inp} type="date" value={iAte} min={iDe || undefined} onChange={(e) => setIAte(e.target.value)} /></Field>
+          <Field label="Finalização (de)" className="min-w-[150px]"><input className={inp} type="date" value={cDe} max={cAte || undefined} onChange={(e) => setCDe(e.target.value)} /></Field>
+          <Field label="Finalização (até)" className="min-w-[150px]"><input className={inp} type="date" value={cAte} min={cDe || undefined} onChange={(e) => setCAte(e.target.value)} /></Field>
+          <button className={btnG + ' ' + btnSm} onClick={() => { setIDe(mesIni); setIAte(mesFim); setCDe(''); setCAte('') }}>Mês atual</button>
+          <button className={btnG + ' ' + btnSm} onClick={() => { setIDe(''); setIAte(''); setCDe(''); setCAte('') }}>Todo o período</button>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">{temData ? 'Período aplicado ao painel, à tabela e à exportação.' : 'Mostrando todo o período.'} <b>Criação/início</b>: data de início da atividade (nos chamados, o mês de referência). <b>Finalização</b>: data de conclusão.</p>
+        {(cDe || cAte) && <p className="mt-1 text-xs text-amber-700">Filtro de finalização: só entram atividades concluídas com data de conclusão. Os chamados da base não trazem essa data na planilha; informe-a na atividade, se quiser que apareçam.</p>}
+      </Card>
 
       {/* ===== Painel de status (estilo planilha de acompanhamento) ===== */}
       <PainelStatus titulo="Status das Atividades" rotulo="atividades" items={items} ativo={fSt} onStatus={(s) => setFSt(s)} />
@@ -177,10 +222,11 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
         </div>
         {chamados.length === 0 ? <p className="mt-2 text-sm text-slate-500">Ainda não há chamados importados. A mesma base alimenta o Pareto backlog.</p> : (
           <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-[auto_1fr]">
-            <div className="flex items-start gap-3 text-sm">
+            <div className="flex flex-wrap items-start gap-3 text-sm">
               {([[chMes.length, 'chamados no mês'], [(chMes.length ? Math.round((chMes.filter((c) => noPrazo(c as Chamado)).length / chMes.length) * 100) : 0) + '%', 'no prazo'], [chamados.length, 'na base']] as [string | number, string][]).map(([v, l]) => (
                 <div key={l} className="min-w-[110px] rounded-2xl bg-violet-50 px-4 py-3"><div className="text-3xl font-extrabold text-navy">{v}</div><div className="text-xs text-slate-500">{l}</div></div>
               ))}
+              <p className="basis-full text-xs text-slate-500">Dos {chamados.length} chamados, {chamados.filter((c) => /(cancel|improced)/i.test(c.status || '') || !c.status).length} (Cancelado/Improcedente) não viram atividade; os {chamados.filter((c) => c.status && !/(cancel|improced)/i.test(c.status)).length} restantes alimentam o painel “Status das Atividades” junto com as melhorias cadastradas.</p>
             </div>
             <div><div className="mb-1 text-xs font-semibold uppercase text-slate-500">Principais subcategorias do mês</div><HBars rows={chTop} empty="Sem subcategorias." /></div>
           </div>
@@ -193,10 +239,11 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
           <Field label="Módulo" className="min-w-[160px]"><select className={inp} value={fMod} onChange={(e) => setFMod(e.target.value)}><option value="">Todos</option>{modulos.map((m) => <option key={m}>{m}</option>)}</select></Field>
           <Field label="Status" className="min-w-[160px]"><select className={inp} value={fSt} onChange={(e) => setFSt(e.target.value)}><option value="">Todos</option>{STATUS.map((s) => <option key={s}>{s}</option>)}</select></Field>
           <Field label="Buscar" className="min-w-[200px] flex-1"><input className={inp} placeholder="Melhoria, descrição, objetivo, responsável…" value={q} onChange={(e) => setQ(e.target.value)} /></Field>
+          <Field label="Origem" className="min-w-[170px]"><select className={inp} value={fOrig} onChange={(e) => setFOrig(e.target.value as '' | 'chamado' | 'manual')}><option value="">Todas</option><option value="chamado">Chamados da base</option><option value="manual">Cadastradas aqui</option></select></Field>
           <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" checked={soVencidas} onChange={(e) => setSoVencidas(e.target.checked)} />Somente prazo vencido</label>
-          {(fMod || fSt || q || soVencidas) && <button className={btnG + ' ' + btnSm} onClick={() => { setFMod(''); setFSt(''); setQ(''); setSoVencidas(false) }}>Limpar filtros</button>}
+          {(fMod || fSt || fOrig || q || soVencidas) && <button className={btnG + ' ' + btnSm} onClick={() => { setFMod(''); setFSt(''); setFOrig(''); setQ(''); setSoVencidas(false) }}>Limpar filtros</button>}
         </div>
-        <p className="mt-2 text-xs text-slate-500">{filtered.length} de {total} atividade(s) · ordenadas por prioridade e prazo. <b>Clique em uma atividade para abrir a visão detalhada</b> (etapas, status e histórico).</p>
+        <p className="mt-2 text-xs text-slate-500">{filtered.length} de {total} atividade(s) · em aberto primeiro, por prioridade e prazo. Os chamados da base entram como atividades (marcadas “Chamado”). <b>Clique em uma atividade para abrir a visão detalhada</b> (etapas, status e histórico).</p>
       </Card>
 
       {loading ? <p className="py-6 text-center text-slate-500">Carregando…</p> : filtered.length === 0 ? (
@@ -209,11 +256,11 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
                 <tr><th className="px-3 py-3">Prior.</th><th>Módulo</th><th>Melhoria</th><th>Descrição</th><th>Objetivo</th><th>AS IS → TO BE</th><th>Status</th><th>%</th><th>Etapas</th><th>Prazo</th><th className="pr-3">Responsável</th></tr>
               </thead>
               <tbody>
-                {filtered.map((r) => (
+                {visiveis.map((r) => (
                   <tr key={r.id} className="cursor-pointer border-t border-slate-100 align-top hover:bg-violet-50/50" onClick={() => setSelId(r.id)}>
                     <td className="px-3 py-2 text-center font-bold text-navy">{r.prioridade}</td>
                     <td className="py-2 pr-2">{r.modulo}</td>
-                    <td className="max-w-[200px] py-2 pr-2 font-semibold text-navy">{r.melhoria}</td>
+                    <td className="max-w-[200px] py-2 pr-2 font-semibold text-navy">{r.melhoria}{r.origem === 'chamado' && <span className="ml-1 rounded-md bg-violet-100 px-1.5 py-0.5 align-middle text-[10px] font-bold text-violet-700">Chamado</span>}</td>
                     <td className="max-w-[240px] py-2 pr-2 text-slate-600"><div style={clamp(3)}>{r.descricao || '—'}</div></td>
                     <td className="max-w-[220px] py-2 pr-2 text-slate-600"><div style={clamp(3)}>{r.objetivo || '—'}</div></td>
                     <td className="max-w-[260px] py-2 pr-2 text-xs text-slate-600">
@@ -222,7 +269,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
                     <td className="py-2 pr-2"><Chip color={STATUS_COLOR[r.status]}>{r.status}</Chip>{melhoriaVencida(r, hoje) && r.status !== 'Atrasado' && <div className="mt-1 text-[11px] font-semibold text-red-600">prazo vencido</div>}</td>
                     <td className="w-24 py-2 pr-2"><div className="text-xs font-semibold">{Math.round(Number(r.percentual_concluido))}%</div><Bar pct={Number(r.percentual_concluido)} color={STATUS_COLOR[r.status]} /></td>
                     <td className="py-2 pr-2 text-center text-xs font-semibold text-slate-600">{prog(r)}</td>
-                    <td className="whitespace-nowrap py-2 pr-2 text-xs text-slate-600">{fmtDate(r.data_inicio)}<br />{fmtDate(r.data_termino)}</td>
+                    <td className="whitespace-nowrap py-2 pr-2 text-xs text-slate-600">{fmtDate(r.data_inicio)}<br />{fmtDate(r.data_termino)}{r.status === 'Concluído' && r.data_conclusao && <><br /><span className="font-semibold text-emerald-700">✔ {fmtDate(r.data_conclusao)}</span></>}</td>
                     <td className="py-2 pr-3">{r.responsavel || '—'}</td>
                   </tr>
                 ))}
@@ -231,7 +278,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
           </div>
         </Card>
         <div className="space-y-3 md:hidden">
-          {filtered.map((r) => (
+          {visiveis.map((r) => (
             <Card key={r.id} className="!p-4">
               <button className="w-full text-left" onClick={() => setSelId(r.id)}>
                 <div className="mb-1 flex items-center justify-between gap-2"><span className="text-xs text-slate-500">{r.modulo} · prioridade {r.prioridade}</span><Chip color={STATUS_COLOR[r.status]}>{r.status}</Chip></div>
@@ -243,6 +290,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
             </Card>
           ))}
         </div>
+        {ordenadas.length > limite && <div className="text-center"><button className={btnG} onClick={() => setLimite(limite + 300)}>Mostrar mais ({ordenadas.length - limite} restantes)</button></div>}
       </>)}
 
       {edit && <MelhoriaForm init={edit} modulos={modulos} temEtapas={false} onClose={() => setEdit(null)} onSave={save} />}

@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
+import { confirmar } from '../components/Confirm'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { chk, fmtDate, fmtDateTime, todayStr } from '../lib/rules'
@@ -95,7 +96,7 @@ export default function Ideias() {
               ? <span className="text-xs font-semibold text-green-700">✔ No Bloco 4{links[i.id].concluida ? ' (tarefa concluída)' : ''}</span>
               : <button className={btnG + ' ' + btnSm} onClick={() => toBlock4(i)}>→ Bloco 4</button>}
             <button className={btnG + ' ' + btnSm} onClick={() => setEd({ id: i.id, titulo: i.titulo, descricao: i.descricao || '', prioridade: i.prioridade })}>Editar</button>
-            <button className="text-slate-400 hover:text-red-600" title="Excluir" onClick={() => { if (confirm('Excluir esta ideia?')) run(() => supabase.from('ideas').delete().eq('id', i.id)) }}>×</button>
+            <button className="text-slate-400 hover:text-red-600" title="Excluir" onClick={async () => { if (await confirmar({ titulo: 'Excluir ideia?', mensagem: 'A ideia sai do Banco de Ideias e fica na Lixeira por 48 horas.', confirmar: 'Excluir', perigo: true })) run(() => supabase.from('ideas').delete().eq('id', i.id)) }}>×</button>
           </div>
         ))}
       </Card>

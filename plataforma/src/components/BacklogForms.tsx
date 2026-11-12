@@ -51,7 +51,8 @@ export function MelhoriaForm({ init, modulos, temEtapas, onClose, onSave }: {
         <Field label="% concluído (0 a 100)"><input className={inp} type="number" min={0} max={100} value={f.percentual_concluido ?? 0} disabled={temEtapas || f.status === 'Concluído'} onChange={(e) => set('percentual_concluido', e.target.value)} /></Field>
         {temEtapas && <p className="text-xs text-violet-700 sm:col-span-2">Status e % são calculados automaticamente a partir das etapas desta atividade.</p>}
         <Field label="Data de início"><input className={inp} type="date" value={f.data_inicio || ''} onChange={(e) => set('data_inicio', e.target.value)} /></Field>
-        <Field label="Data de término"><input className={inp} type="date" value={f.data_termino || ''} min={f.data_inicio || undefined} onChange={(e) => set('data_termino', e.target.value)} /></Field>
+        <Field label="Data de término (prazo)"><input className={inp} type="date" value={f.data_termino || ''} min={f.data_inicio || undefined} onChange={(e) => set('data_termino', e.target.value)} /></Field>
+        {(f.status === 'Concluído' || f.data_conclusao) && <Field label="Data de finalização (conclusão real)"><input className={inp} type="date" value={f.data_conclusao || ''} onChange={(e) => set('data_conclusao', e.target.value)} /></Field>}
         {txt('observacoes', 'Observações')}
         <div className="flex justify-end gap-2 sm:col-span-2">
           <button type="button" className={btnG} onClick={onClose}>Cancelar</button>

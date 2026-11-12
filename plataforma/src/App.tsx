@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { ConfirmHost } from './components/Confirm'
+import { LogoHorizontal, LogoIcone } from './components/Logo'
 import { useAuth } from './auth/AuthContext'
 import { Login, SetPassword } from './auth/Login'
 import { configured } from './lib/supabase'
@@ -14,11 +16,13 @@ import Jornadas from './pages/Jornadas'
 import Backlog from './pages/Backlog'
 import ParetoBacklog from './pages/ParetoBacklog'
 import ImportarBases from './pages/ImportarBases'
+import Lixeira from './pages/Lixeira'
+import Seguranca from './pages/Seguranca'
 import { canAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
 const ITEMS: [string, string, string][] = [
   ['painel', '🏠', 'Painel'], ['agenda', '📅', 'Agenda'], ['ideias', '💡', 'Ideias'],
-  ['micro', '📦', 'Projetos'], ['historico', '🕘', 'Histórico'], ['config', '⚙️', 'Configurações'],
+  ['micro', '📦', 'Projetos'], ['historico', '🕘', 'Histórico'], ['lixeira', '🗑️', 'Lixeira'], ['config', '⚙️', 'Configurações'],
 ]
 /** Tudo que é de backlog fica sempre por último no menu (depois dos itens de equipe, quando existirem). */
 const IMPORT_ITEM: [string, string, string][] = [['importar', '⬆️', 'Importar bases']]   // só Analista Sr
@@ -57,12 +61,13 @@ export default function App() {
   const items: [string, string, string][] = viewer
     ? [...ITEMS, ['jornadas', '👀', 'Jornadas da equipe'], ['equipe', '👥', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canAdmin(profile.perfil) ? IMPORT_ITEM : []), ...BACKLOG_ITEMS]
     : [...ITEMS, ...BACKLOG_ITEMS]
-  const view = ((page === 'equipe' || page === 'jornadas') && !viewer) || (page === 'importar' && !canAdmin(profile.perfil)) ? 'painel' : page
+  const view = ((page === 'equipe' || page === 'jornadas') && !viewer) || ((page === 'importar' || page === 'seguranca') && !canAdmin(profile.perfil)) ? 'painel' : page
 
   return (
     <div className="min-h-screen">
+      <ConfirmHost />
       <aside className="fixed inset-y-0 left-0 hidden w-56 flex-col bg-navy p-3 text-white md:flex">
-        <div className="px-2 py-4 font-bold leading-tight">Gestão de<br /><span className="text-violet-300">atividades</span></div>
+        <div className="px-2 py-4"><LogoHorizontal /></div>
         <nav className="flex-1 space-y-1">
           {items.map(([k, i, l]) => (
             <button key={k} onClick={() => setPage(k)} className={'flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ' + (view === k ? 'bg-violet-700' : 'text-violet-100 hover:bg-violet-900')}>
@@ -70,6 +75,9 @@ export default function App() {
             </button>
           ))}
         </nav>
+        {canAdmin(profile.perfil) && (
+          <button onClick={() => setPage('seguranca')} className={'mb-3 mt-6 flex w-full items-center gap-2 rounded-lg border border-violet-800 px-3 py-2 text-left text-xs ' + (view === 'seguranca' ? 'bg-violet-700' : 'text-violet-200 hover:bg-violet-900')}><span>🛡️</span>Segurança</button>
+        )}
         <div className="border-t border-violet-900 px-2 pt-3 text-xs text-violet-200">
           <div className="truncate font-semibold text-white">{profile.nome}</div>
           <div className="mb-2">{PERFIL_LABEL[profile.perfil]}</div>
@@ -78,12 +86,12 @@ export default function App() {
       </aside>
 
       <header className="flex items-center justify-between bg-navy px-4 py-2 text-white md:hidden">
-        <span className="text-sm font-bold">Gestão de atividades</span>
-        <button onClick={signOut} className="text-xs underline">Sair ({profile.nome.split(' ')[0]})</button>
+        <span className="flex items-center gap-2 text-sm font-bold"><LogoIcone size={26} />Gestão de atividades</span>
+        <span className="flex items-center gap-3">{canAdmin(profile.perfil) && <button onClick={() => setPage('seguranca')} aria-label="Segurança" className="text-lg">🛡️</button>}<button onClick={signOut} className="text-xs underline">Sair ({profile.nome.split(' ')[0]})</button></span>
       </header>
 
       <main className="px-3 pb-24 pt-4 md:ml-56 md:px-8 md:pb-10 md:pt-6">
-        {view === 'painel' && <Painel />}
+        {view === 'painel' && <Painel onNavigate={setPage} />}
         {view === 'agenda' && <Agenda />}
         {view === 'ideias' && <Ideias />}
         {view === 'micro' && <Microentregas />}
@@ -91,6 +99,8 @@ export default function App() {
         {view === 'pareto' && <ParetoBacklog onNavigate={setPage} />}
         {view === 'importar' && canAdmin(profile.perfil) && <ImportarBases onNavigate={setPage} />}
         {view === 'historico' && <Historico />}
+        {view === 'lixeira' && <Lixeira />}
+        {view === 'seguranca' && canAdmin(profile.perfil) && <Seguranca />}
         {view === 'config' && <Configuracoes />}
         {view === 'jornadas' && viewer && <Jornadas />}
         {view === 'equipe' && viewer && <Equipe />}

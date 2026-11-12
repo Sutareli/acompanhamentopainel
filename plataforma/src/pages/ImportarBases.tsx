@@ -12,6 +12,8 @@ async function lerArquivo(f: File): Promise<string> {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf) } catch { return new TextDecoder('windows-1252').decode(buf) }   // CSV "ANSI" do Excel
 }
 
+const MAX_ARQ = 15 * 1024 * 1024   // limite de tamanho dos CSVs importados
+
 export default function ImportarBases({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { profile } = useAuth()
   if (!canAdmin(profile?.perfil)) return <Msg kind="aviso">Esta janela é exclusiva do Analista Sr.</Msg>
@@ -38,6 +40,7 @@ function ChamadosCard({ onNavigate }: { onNavigate: (p: string) => void }) {
 
   async function escolher(f: File | undefined) {
     setRows(null); setErr(''); setOk(''); setAvisos([]); if (!f) return
+    if (f.size > MAX_ARQ) return setErr('Arquivo muito grande (máximo de 15 MB). Confira se é o CSV correto.')
     setNome(f.name)
     const r = lerBase(await lerArquivo(f))
     setAvisos(r.avisos); if (r.erro) setErr(r.erro); else setRows(r.rows)
@@ -69,7 +72,7 @@ function ChamadosCard({ onNavigate }: { onNavigate: (p: string) => void }) {
         </div>
         <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('pareto')}>Abrir Pareto backlog →</button>
       </div>
-      <p className="mt-2 text-xs text-slate-500">{atual ? `Base atual: ${atual.qtd} chamados, carregada em ${fmtDateTime(atual.em)}.` : 'Nenhuma carga registrada ainda.'} A importação <b>substitui toda a base</b>.</p>
+      <p className="mt-2 text-xs text-slate-500">{atual ? `Base atual: ${atual.qtd} chamados, carregada em ${fmtDateTime(atual.em)}.` : 'Nenhuma carga registrada ainda.'} A importação <b>substitui a base de chamados</b> e <b>alimenta o Backlog de Melhorias</b>: chamados válidos viram atividades (sem apagar nem duplicar o que já existe).</p>
       <div className="mt-3 space-y-3 text-sm">
         <input key={key} type="file" accept=".csv,text/csv" aria-label="CSV da base de chamados" onChange={(e) => escolher(e.target.files?.[0])} />
         {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}
@@ -96,6 +99,7 @@ function MicroCard({ onNavigate }: { onNavigate: (p: string) => void }) {
 
   async function escolher(f: File | undefined) {
     setLei(null); setErr(''); setOk(''); if (!f) return
+    if (f.size > MAX_ARQ) return setErr('Arquivo muito grande (máximo de 15 MB). Confira se é o CSV correto.')
     setNome(f.name); await carregaRef()
     setLei(lerMicro(await lerArquivo(f), pessoas, existentes))
   }

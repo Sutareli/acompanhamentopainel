@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
+import { confirmar } from '../components/Confirm'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { chk, fmtDateTime, fmtMin, todayStr } from '../lib/rules'
@@ -95,7 +96,7 @@ export default function Agenda() {
               <small className="text-slate-500">{x.observacoes}</small>
               {edited(x) && <small className="text-xs text-amber-700">editado {fmtDateTime(x.atualizado_em)}</small>}
               <button className={btnG + ' ' + btnSm + ' ml-auto'} onClick={() => setEd({ kind: 'meet', row: { ...x, duracao_min: String(x.duracao_min), horario: x.horario ? x.horario.slice(0, 5) : '', observacoes: x.observacoes || '' } })}>Editar</button>
-              <button className="text-slate-400 hover:text-red-600" title="Excluir" onClick={() => { if (confirm('Excluir esta reunião?')) run(() => supabase.from('agenda').delete().eq('id', x.id)) }}>×</button>
+              <button className="text-slate-400 hover:text-red-600" title="Excluir" onClick={async () => { if (await confirmar({ titulo: 'Excluir reunião?', mensagem: 'A reunião sai da sua agenda e fica na Lixeira por 48 horas.', confirmar: 'Excluir', perigo: true })) run(() => supabase.from('agenda').delete().eq('id', x.id)) }}>×</button>
             </div>
           ))}
         </Card>
@@ -120,7 +121,7 @@ export default function Agenda() {
               </select>
               {edited(x) && <small className="text-xs text-amber-700">editado {fmtDateTime(x.atualizado_em)}</small>}
               <button className={btnG + ' ' + btnSm} onClick={() => setEd({ kind: 'imp', row: { ...x, estimativa_min: String(x.estimativa_min) } })}>Editar</button>
-              <button className={btnG + ' ' + btnSm} onClick={() => { if (confirm('Excluir este imprevisto?')) run(() => supabase.from('imprevistos').delete().eq('id', x.id)) }}>Excluir</button>
+              <button className={btnG + ' ' + btnSm} onClick={async () => { if (await confirmar({ titulo: 'Excluir imprevisto?', mensagem: 'O imprevisto sai do dia e fica na Lixeira por 48 horas.', confirmar: 'Excluir', perigo: true })) run(() => supabase.from('imprevistos').delete().eq('id', x.id)) }}>Excluir</button>
             </div>
           ))}
         </Card>
