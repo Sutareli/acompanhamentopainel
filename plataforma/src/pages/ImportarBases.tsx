@@ -48,7 +48,16 @@ function ChamadosCard({ onNavigate }: { onNavigate: (p: string) => void }) {
     const r = await supabase.rpc('chamados_substituir', { p_rows: rows })
     setBusy(false)
     if (r.error) return setErr('Falha na importação (a base atual foi mantida): ' + r.error.message)
-    setOk(`Base substituída: ${rows.length} chamados importados.`); setRows(null); setKey((k) => k + 1); await carga()
+    // confere se os campos de responsável foram gravados (se a migração 007 não foi executada, o banco os descarta em silêncio)
+    const esperados = rows.filter((x) => x.empresa_responsavel || x.responsavel).length
+    let aviso = ''
+    if (esperados > 0) {
+      const v = await supabase.from('backlog_chamados').select('id', { count: 'exact', head: true }).not('empresa_responsavel', 'is', null)
+      if (v.error) aviso = 'A base foi importada, mas o banco ainda não tem as colunas de responsável: execute a migração supabase/007_responsaveis_chamados.sql no SQL Editor e importe de novo.'
+      else if (!v.count) aviso = 'A base foi importada, mas as colunas de responsável não foram gravadas: a função de importação do banco está desatualizada. Execute a migração supabase/007_responsaveis_chamados.sql no SQL Editor e importe de novo.'
+    }
+    if (aviso) { setErr(aviso); setRows(null); setKey((k) => k + 1); await carga(); return }
+    setOk(`Base substituída: ${rows.length} chamados importados${esperados ? ` (${esperados} com responsável)` : ''}.`); setRows(null); setKey((k) => k + 1); await carga()
   }
   const datas = rows ? rows.map((x) => x.data_ref).sort() : []
   return (
@@ -65,7 +74,7 @@ function ChamadosCard({ onNavigate }: { onNavigate: (p: string) => void }) {
         <input key={key} type="file" accept=".csv,text/csv" aria-label="CSV da base de chamados" onChange={(e) => escolher(e.target.files?.[0])} />
         {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}
         {avisos.map((a) => <Msg key={a} kind="aviso">{a}</Msg>)}
-        {rows && <div className="rounded-xl bg-violet-50 p-3"><b>{nome}</b>: {rows.length} chamados · período {fmtDate(datas[0])} a {fmtDate(datas[datas.length - 1])} · {new Set(rows.map((x) => x.tipo?.toLowerCase()).filter(Boolean)).size} tipos · {new Set(rows.map((x) => x.subcategoria?.toLowerCase()).filter(Boolean)).size} subcategorias.</div>}
+        {rows && <div className="rounded-xl bg-violet-50 p-3"><b>{nome}</b>: {rows.length} chamados · período {fmtDate(datas[0])} a {fmtDate(datas[datas.length - 1])} · {new Set(rows.map((x) => x.tipo?.toLowerCase()).filter(Boolean)).size} tipos · {new Set(rows.map((x) => x.subcategoria?.toLowerCase()).filter(Boolean)).size} subcategorias · <b>{rows.filter((x) => x.empresa_responsavel).length}</b> com empresa responsável · <b>{rows.filter((x) => x.responsavel_rocco).length}</b> com responsável ROCCO.</div>}
         <button className={btnP} disabled={!rows || busy} onClick={enviar}>{busy ? 'Importando…' : rows ? `Substituir base (${rows.length})` : 'Substituir base'}</button>
       </div>
     </Card>

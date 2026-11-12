@@ -56,7 +56,7 @@ export default function Responsaveis({ base, itens, filtroTxt }: { base: Chamado
         <div className="flex items-center gap-3"><span className="rounded-full bg-red-50 px-3 py-1 text-sm font-bold text-red-600">{totAb} abertos</span><button className={btnG + ' ' + btnSm} onClick={() => setAberta('')}>🔎 Ver detalhamento →</button></div>
       </div>
       {semDado ? (
-        <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">A base atual não traz as colunas de responsável. Reimporte a base (Importar bases) usando o CSV com RESPONSÁVEL, EMPRESA RESPONSÁVEL e RESPONSÁVEL ROCCO.</p>
+        <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{base.length > 0 && !('empresa_responsavel' in base[0]) ? 'O banco ainda não tem as colunas de responsável: execute a migração supabase/007_responsaveis_chamados.sql no SQL Editor e depois reimporte a base (Importar bases).' : 'A base importada não tem dados de responsável. Reimporte a base (Importar bases) com o CSV que contém as colunas RESPONSÁVEL, EMPRESA RESPONSÁVEL (ou “Empresa Responsável”) e RESPONSÁVEL ROCCO. Se já fez isso, execute antes a migração 007.'}</p>
       ) : emp.length === 0 ? <div className="mt-3"><Empty>Nenhum chamado neste filtro.</Empty></div> : (
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
           {emp.map((g) => (
