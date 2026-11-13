@@ -111,7 +111,7 @@ function MicroCard({ onNavigate }: { onNavigate: (p: string) => void }) {
     if (r.error) return setErr('Falha na importação (nada foi gravado): ' + r.error.message)
     setOk(`${lei.rows.length} projeto(s) importado(s).`); setLei(null); setKey((k) => k + 1); await carregaRef()
   }
-  const podeImportar = !!lei && !lei.erroGeral && lei.erros.length === 0 && lei.rows.length > 0
+  const podeImportar = !!lei && !lei.erroGeral && lei.rows.length > 0   // linhas com erro ficam de fora; as válidas entram
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -124,19 +124,19 @@ function MicroCard({ onNavigate }: { onNavigate: (p: string) => void }) {
           <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('micro')}>Abrir Projetos →</button>
         </div>
       </div>
-      <p className="mt-2 text-xs text-slate-500">Colunas: DEMANDA, RESPONSÁVEL (e-mail ou nome exato de um usuário ativo), CRITICIDADE (alta/média/baixa), DATA TARGET (dd/mm/aaaa), QUANTIDADE, A INICIAR, EM ANDAMENTO, CONCLUÍDO, CANCELADO, RESUMO, OBSERVAÇÕES, TIPO (macro ou micro; vazio = micro) e COM QUEM ESTÁ (só para macro; opcional). Sem distribuição informada, tudo entra como “a iniciar”. A soma dos status deve igualar a quantidade.</p>
+      <p className="mt-2 text-xs text-slate-500">Colunas: DEMANDA, RESPONSÁVEL (e-mail ou nome exato de um usuário ativo), CRITICIDADE (alta/média/baixa/recorrente), DATA TARGET (dd/mm/aaaa; “Recorrente” usa o último dia do mês da coluna MÊS_REF), QUANTIDADE, A INICIAR, EM ANDAMENTO, CONCLUÍDO, CANCELADO, RESUMO, OBSERVAÇÕES, TIPO (macro ou micro; vazio = micro) e COM QUEM ESTÁ (só para macro; opcional). Sem distribuição informada, tudo entra como “a iniciar”. Planilha de MacroProjetos (sem as colunas CRITICIDADE e QUANTIDADE): entra como MacroProjeto, criticidade média, 1 unidade no status da coluna STATUS; RESPONSÁVEL pode ser nome completo, primeiro nome ou iniciais (se for único). A soma dos status deve igualar a quantidade.</p>
       <div className="mt-3 space-y-3 text-sm">
         <input key={key} type="file" accept=".csv,text/csv" aria-label="CSV de projetos" onChange={(e) => escolher(e.target.files?.[0])} />
         {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}
         {lei?.erroGeral && <Msg kind="erro">{lei.erroGeral}</Msg>}
         {lei && !lei.erroGeral && (
           <div className="rounded-xl bg-violet-50 p-3">
-            <b>{nome}</b>: {lei.rows.length} para importar · {lei.duplicadas} já existente(s)/repetida(s) puladas · {lei.erros.length} com erro{lei.nomes.length ? ` · responsáveis: ${lei.nomes.join(', ')}` : ''}.
+            <b>{nome}</b>: {lei.rows.length} para importar · {lei.duplicadas} já existente(s)/repetida(s) puladas{lei.agrupadas ? ` · ${lei.agrupadas} ocorrência(s) recorrente(s) somada(s) ao mês` : ''}{lei.vazias ? ` · ${lei.vazias} linha(s) em branco ignorada(s)` : ''} · {lei.erros.length} com erro (não serão importadas){lei.nomes.length ? ` · responsáveis: ${lei.nomes.join(', ')}` : ''}.
           </div>
         )}
         {lei && lei.erros.length > 0 && (
           <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-800">
-            <b>Corrija o arquivo e envie de novo — nada foi importado:</b>
+            <b>{lei.erros.length} linha(s) com problema NÃO serão importadas</b> (as demais entram normalmente; depois de corrigir essas, reenvie o arquivo — o que já entrou é pulado):
             <ul className="mt-1 list-disc pl-5">{lei.erros.slice(0, 15).map((e) => <li key={e.linha}>Linha {e.linha}: {e.msg}</li>)}</ul>
             {lei.erros.length > 15 && <p>…e mais {lei.erros.length - 15} erro(s).</p>}
           </div>

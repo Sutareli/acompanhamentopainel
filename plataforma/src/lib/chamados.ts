@@ -60,11 +60,12 @@ export function parseData(v: string | undefined): string | null {
   else if ((r = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/))) { d = +r[1]; m = +r[2]; y = +r[3]; if (y < 100) y += 2000 }
   else if (/^\d{5}(\.\d+)?$/.test(s)) { const t = new Date(Date.UTC(1899, 11, 30) + Math.floor(+s) * 86400000); y = t.getUTCFullYear(); m = t.getUTCMonth() + 1; d = t.getUTCDate() }
   else return null
+  if (y < 1990 || y > 2100) return null   // ano com erro de digitação (ex.: 12/11/206)
   const t = new Date(Date.UTC(y, m - 1, d))
   if (t.getUTCFullYear() !== y || t.getUTCMonth() !== m - 1 || t.getUTCDate() !== d) return null
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
-const mesNum = (v: string | undefined): number | null => {
+export const mesNum = (v: string | undefined): number | null => {
   const s = hnorm(v ?? ''); if (!s) return null
   if (/^\d{1,2}$/.test(s) && +s >= 1 && +s <= 12) return +s
   const i = MESES.findIndex((m) => m.toLowerCase() === s); if (i >= 0) return i + 1

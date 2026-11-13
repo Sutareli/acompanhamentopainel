@@ -30,7 +30,7 @@ export function chk(r: { data: any; error: any }): any {
   return r.data
 }
 
-export type Crit = 'alta' | 'media' | 'baixa'
+export type Crit = 'alta' | 'media' | 'baixa' | 'recorrente'
 export type StatusGeral = 'a_iniciar' | 'em_andamento' | 'concluido' | 'concluido_parcial' | 'cancelado'
 export type Perfil = 'diretor' | 'gerente' | 'analista_sr' | 'analista' | 'guardiao'
 export const PERFIL_LABEL: Record<Perfil, string> = { diretor: 'Diretor', gerente: 'Gerente', analista_sr: 'Analista Sr', analista: 'Analista', guardiao: 'Guardião' }
@@ -39,8 +39,8 @@ export const PERFIS = Object.keys(PERFIL_LABEL) as Perfil[]
 export const canViewAll = (p?: Perfil) => p === 'diretor' || p === 'gerente' || p === 'analista_sr'
 /** Administração (usuários, perfis, configuração global, auditoria): só Analista Sr. Espelha is_manager() no banco. */
 export const canAdmin = (p?: Perfil) => p === 'analista_sr'
-export const CRIT_LABEL: Record<Crit, string> = { alta: 'Alta', media: 'Média', baixa: 'Baixa' }
-export const CRIT_COLOR: Record<Crit, string> = { alta: '#dc2626', media: '#f59e0b', baixa: '#3b82f6' }
+export const CRIT_LABEL: Record<Crit, string> = { alta: 'Alta', media: 'Média', baixa: 'Baixa', recorrente: 'Recorrente' }
+export const CRIT_COLOR: Record<Crit, string> = { alta: '#dc2626', media: '#f59e0b', baixa: '#3b82f6', recorrente: '#8b3fff' }
 export const STATUS_LABEL: Record<StatusGeral, string> = { a_iniciar: 'A iniciar', em_andamento: 'Em andamento', concluido: 'Concluído', concluido_parcial: 'Concluído c/ cancelamentos', cancelado: 'Cancelado' }
 export const STATUS_COLOR: Record<StatusGeral, string> = { a_iniciar: '#94a3b8', em_andamento: '#2563eb', concluido: '#16a34a', concluido_parcial: '#0d9488', cancelado: '#f87171' }
 

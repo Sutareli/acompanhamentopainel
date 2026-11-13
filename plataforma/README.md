@@ -23,7 +23,7 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 | 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
 | 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
 | 007 | responsável e fase nos chamados (detalhamento “Quem é responsável” do Pareto) | uma vez, **depois** de 006, e reimporte a base de chamados |
-| 008 → 018 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** | **`008_a_018_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 017 roda só `018_capacidade_e_arquivamento_atas.sql`; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
+| 008 → 019 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_019_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
 | 006 | Atividades futuras (por bloco) e Projetos macro/micro (“com quem está”) | uma vez (se ainda não rodou) |
 
 **Atalho:** quem rodou só a 002 pode executar **`supabase/003_a_006_tudo_junto.sql`** (003 + 004 + 005 + 006 em um arquivo, uma única vez) em vez de rodar um por um.
@@ -305,7 +305,7 @@ Todas as confirmações de exclusão (reunião, imprevisto, ideia, atividade e e
 **Onde ver:** botão **🛡️ Segurança**, no fim do menu, só para o Analista Sr (no celular, o escudo no topo). Mostra falhas encontradas, corrigidas, pendentes, resumo da IA e histórico. Botões: *Verificar agora* (sem IA) e *Verificar com IA*.
 
 **Ativar:**
-1. Rode a migração 013 (já está no `008_a_018_tudo_junto.sql`). Se a extensão **pg_cron** estiver ativa no Supabase (Database → Extensions), ela já agenda a verificação **toda segunda, 09:00 UTC** (sem IA).
+1. Rode a migração 013 (já está no `008_a_019_tudo_junto.sql`). Se a extensão **pg_cron** estiver ativa no Supabase (Database → Extensions), ela já agenda a verificação **toda segunda, 09:00 UTC** (sem IA).
 2. Para o resumo com IA e/ou agendamento pela função:
 ```
 supabase functions deploy agente-seguranca --no-verify-jwt
@@ -370,6 +370,20 @@ Botão **📦 Enviar para Projetos** no topo do Painel. Abre a lista das tarefas
 - Anexo que não puder ser baixado deixa a ata **fora** do backup e, portanto, **fora** da exclusão (aparece no LEIAME).
 - O espaço de **arquivos** é liberado na hora; o do **banco** pode demorar a cair no painel do Supabase (o Postgres só devolve o espaço no próximo *vacuum*).
 - O backup cobre só as atas. Se quiser incluir outras tabelas no futuro, é uma extensão simples.
+
+## Importar a planilha de projetos (aba “Microprojetos”) e criticidade Recorrente — migração 019
+
+A importação de Projetos lê o CSV da aba **Microprojetos** exatamente como a planilha está (Excel: deixe a aba ativa → *Salvar como → CSV UTF-8*; só a aba ativa é exportada). As colunas extras (Area, Pilar, Status, Último Status, Mês_Ref, “No Prazo”…) são ignoradas, exceto **Status** e **Mês_Ref**, usados nas regras abaixo.
+
+- **Criticidade**: Alta, Média/Media, Baixa e **Recorrente** (nova, com cor própria nos filtros e gráficos). **“Alto” vira Alta** (e “Médio”/“Baixo” também são aceitos).
+- **Data Target = “Recorrente”**: vira o **último dia do mês** da coluna **Mês_Ref** (o ano é o corrente; se o mês for posterior ao atual, ano anterior). As ocorrências recorrentes da mesma demanda + responsável + mês são **somadas em uma única linha** (quantidade e distribuição), para não perder unidades.
+- **Distribuição zerada**: se Quantidade > 0 e A Iniciar/Em Andamento/Concluído/Cancelado estiverem todos 0, usa a coluna **Status** (Suspenso conta como Cancelado).
+- **Linhas em branco** (sem demanda e sem responsável) são ignoradas em silêncio.
+- **Linhas com erro não travam mais a importação**: as válidas entram e as com problema (responsável vazio, data inválida como “A definir” ou “12/11/206”, quantidade zero) aparecem na lista com o número da linha. Depois de corrigir, reenvie o arquivo: o que já entrou é pulado.
+- O responsável precisa existir como **usuário ativo** (nome idêntico ou e-mail); acento e maiúscula não importam.
+- Linhas **não recorrentes** idênticas (mesma demanda, responsável e data) continuam sendo puladas como repetidas.
+- **MacroProjetos**: o CSV da aba Macroprojetos (com a coluna **Responsável** adicionada) é reconhecido pela ausência de Criticidade e Quantidade: entra como **MacroProjeto**, criticidade **média**, **1 unidade** no status da coluna Status (Concluído, Em andamento, A iniciar; Cancelado/Suspenso → cancelado). Data Target inválida (“A definir”) vira erro na lista.
+- **Responsável** aceita e-mail, nome completo, **primeiro nome/sobrenome** (ex.: “Higor”) ou **iniciais** (ex.: “MA”), desde que resolva para uma única pessoa ativa.
 
 ## Ordem do menu lateral
 Painel · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Backlog de Melhorias · Pareto backlog · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).

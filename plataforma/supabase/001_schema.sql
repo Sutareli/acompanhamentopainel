@@ -100,7 +100,7 @@ alter table daily_tasks add constraint daily_tasks_idea_fk foreign key (idea_id)
 -- ===== Microentregas =====
 create table public.microdeliveries(
   id uuid primary key default gen_random_uuid(),
-  criticidade text not null check (criticidade in ('alta','media','baixa')),
+  criticidade text not null check (criticidade in ('alta','media','baixa','recorrente')),
   responsavel_id uuid not null references profiles(id),
   criado_por uuid not null default auth.uid() references profiles(id),
   demanda text not null check (length(trim(demanda))>0), resumo text,
