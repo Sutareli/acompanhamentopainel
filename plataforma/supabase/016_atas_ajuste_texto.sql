@@ -3,6 +3,9 @@
 --   • se rodou uma versão antiga da 015 (com upload de arquivo), converte a tabela e remove o que era do Storage.
 do $$
 begin
+  if to_regclass('public.atas') is null then
+    raise exception 'A tabela atas ainda não existe: rode primeiro o arquivo 015_atas_importantes.sql (e, se faltar, as migrações anteriores; veja o README).';
+  end if;
   alter table public.atas add column if not exists texto text;
   update public.atas set texto = coalesce(nullif(trim(resumo), ''), '(sem texto)') where texto is null or trim(texto) = '';
   update public.atas set resumo = left(resumo, 1000) where length(resumo) > 1000;
