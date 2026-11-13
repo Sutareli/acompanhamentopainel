@@ -6,7 +6,8 @@ import { Login, SetPassword } from './auth/Login'
 import { configured } from './lib/supabase'
 import { btnG, Card, Msg } from './components/ui'
 import Painel from './pages/Painel'
-import Agenda from './pages/Agenda'
+import Atas from './pages/Atas'
+import Imprevistos from './pages/Imprevistos'
 import Ideias from './pages/Ideias'
 import Microentregas from './pages/Microentregas'
 import Historico from './pages/Historico'
@@ -21,10 +22,10 @@ import Seguranca from './pages/Seguranca'
 import { canAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
 const ITEMS: [string, string, string][] = [
-  ['painel', '🏠', 'Painel'], ['agenda', '📅', 'Agenda'], ['ideias', '💡', 'Ideias'],
-  ['micro', '📦', 'Projetos'], ['historico', '🕘', 'Histórico'], ['lixeira', '🗑️', 'Lixeira'], ['config', '⚙️', 'Configurações'],
+  ['painel', '🏠', 'Painel'], ['micro', '📦', 'Projetos'], ['ideias', '💡', 'Ideias'], ['historico', '🕘', 'Histórico'],
+  ['atas', '📝', 'Atas importantes'], ['lixeira', '🗑️', 'Lixeira'], ['config', '⚙️', 'Configurações'],
 ]
-/** Tudo que é de backlog fica sempre por último no menu (depois dos itens de equipe, quando existirem). */
+/** Ordem do menu: itens pessoais → equipe → backlog → Importar bases (só Analista Sr). O botão Segurança fica sozinho no rodapé. Imprevistos abre por um botão no Painel. */
 const IMPORT_ITEM: [string, string, string][] = [['importar', '⬆️', 'Importar bases']]   // só Analista Sr
 const BACKLOG_ITEMS: [string, string, string][] = [['backlog', '🧭', 'Backlog de Melhorias'], ['pareto', '📊', 'Pareto backlog']]
 
@@ -59,7 +60,7 @@ export default function App() {
   // Perfis com visão de equipe (somente consulta das jornadas + consolidado). A trava real está nas políticas RLS do banco.
   const viewer = canViewAll(profile.perfil)
   const items: [string, string, string][] = viewer
-    ? [...ITEMS, ['jornadas', '👀', 'Jornadas da equipe'], ['equipe', '👥', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canAdmin(profile.perfil) ? IMPORT_ITEM : []), ...BACKLOG_ITEMS]
+    ? [...ITEMS, ['equipe', '👥', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ['jornadas', '👀', 'Jornadas da equipe'], ...BACKLOG_ITEMS, ...(canAdmin(profile.perfil) ? IMPORT_ITEM : [])]
     : [...ITEMS, ...BACKLOG_ITEMS]
   const view = ((page === 'equipe' || page === 'jornadas') && !viewer) || ((page === 'importar' || page === 'seguranca') && !canAdmin(profile.perfil)) ? 'painel' : page
 
@@ -92,7 +93,8 @@ export default function App() {
 
       <main className="px-3 pb-24 pt-4 md:ml-56 md:px-8 md:pb-10 md:pt-6">
         {view === 'painel' && <Painel onNavigate={setPage} />}
-        {view === 'agenda' && <Agenda />}
+        {view === 'atas' && <Atas />}
+        {view === 'imprevistos' && <Imprevistos />}
         {view === 'ideias' && <Ideias />}
         {view === 'micro' && <Microentregas />}
         {view === 'backlog' && <Backlog onNavigate={setPage} />}

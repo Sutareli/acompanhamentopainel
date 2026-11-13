@@ -591,6 +591,27 @@ alter publication supabase_realtime add table microdelivery_history;
 -- ===== Excluir projetos e usuários — migração 011 =====
 create policy md_del on public.microdeliveries for delete to authenticated using (is_active() and (criado_por = auth.uid() or is_manager()));
 
+-- ===== Atas importantes (substitui o registro de reuniões) — migração 015 =====
+-- Cada pessoa guarda as atas das reuniões que fez: nome, data, breve resumo e o TEXTO COMPLETO da ata (colado numa caixa de texto, até 50 mil caracteres).
+-- Tudo fica na tabela (sem arquivos e sem Storage): ~10 KB por ata. Visível e editável SOMENTE pelo dono (nem gerente/diretor leem as atas dos outros).
+create table if not exists public.atas(
+  id uuid primary key default gen_random_uuid(), user_id uuid not null default auth.uid() references profiles(id) on delete cascade,
+  nome text not null check (length(trim(nome)) between 1 and 200),
+  data_reuniao date not null,
+  resumo text check (resumo is null or length(resumo) <= 1000),
+  texto text not null check (length(trim(texto)) > 0 and length(texto) <= 50000),
+  criado_em timestamptz not null default now(), atualizado_em timestamptz not null default now());
+create index if not exists atas_user_data on public.atas(user_id, data_reuniao desc);
+alter table public.atas enable row level security;
+drop policy if exists atas_sel on public.atas; drop policy if exists atas_ins on public.atas; drop policy if exists atas_upd on public.atas; drop policy if exists atas_del on public.atas;
+create policy atas_sel on public.atas for select to authenticated using ((select is_active()) and user_id = (select auth.uid()));
+create policy atas_ins on public.atas for insert to authenticated with check ((select is_active()) and user_id = (select auth.uid()));
+create policy atas_upd on public.atas for update to authenticated using ((select is_active()) and user_id = (select auth.uid())) with check ((select is_active()) and user_id = (select auth.uid()));
+create policy atas_del on public.atas for delete to authenticated using ((select is_active()) and user_id = (select auth.uid()));
+revoke all on public.atas from anon;
+drop trigger if exists touch_atas on public.atas;
+create trigger touch_atas before update on public.atas for each row execute function touch_updated();
+
 -- ===== Lixeira de 48 horas (desfazer exclusões) — migração 012 =====
 -- Tudo que é excluído em Projetos, atividades/etapas do Backlog, Ideias, Agenda (reuniões) e Imprevistos vai para a lixeira por 48 h e pode ser restaurado
 -- (quem excluiu ou o Analista Sr). Usuários excluídos ficam bloqueados por 48 h (podem ser restaurados) e só depois são removidos de vez.
@@ -623,12 +644,13 @@ begin
   elsif tg_table_name = 'ideas' then v_rot := old.titulo;
   elsif tg_table_name = 'agenda' then v_rot := old.assunto;
   elsif tg_table_name = 'imprevistos' then v_rot := old.descricao;
+  elsif tg_table_name = 'atas' then v_rot := old.nome;
   end if;
   insert into lixeira(tabela, registro_id, rotulo, dados, filhos) values (tg_table_name, old.id, left(coalesce(v_rot,''), 200), to_jsonb(old), v_filhos);
   return old;
 end $$;
 do $$ declare t text; begin
-  foreach t in array array['microdeliveries','backlog_melhorias','backlog_etapas','ideas','agenda','imprevistos'] loop
+  foreach t in array array['microdeliveries','backlog_melhorias','backlog_etapas','ideas','agenda','imprevistos','atas'] loop
     execute format('create trigger lixeira_%1$s before delete on public.%1$I for each row execute function lixeira_captura()', t);
   end loop; end $$;
 
@@ -636,7 +658,7 @@ do $$ declare t text; begin
 create function public.lixeira_inserir(p_tab text, p_dados jsonb) returns void language plpgsql security definer set search_path=public as $$
 declare v_cols text;
 begin
-  if p_tab not in ('microdeliveries','microdelivery_history','backlog_melhorias','backlog_etapas','ideas','agenda','imprevistos') then raise exception 'Tabela não restaurável.'; end if;
+  if p_tab not in ('microdeliveries','microdelivery_history','backlog_melhorias','backlog_etapas','ideas','agenda','imprevistos','atas') then raise exception 'Tabela não restaurável.'; end if;
   select string_agg(quote_ident(attname), ',' order by attnum) into v_cols from pg_attribute
    where attrelid = ('public.' || quote_ident(p_tab))::regclass and attnum > 0 and not attisdropped and attgenerated = '';
   if p_dados is null or jsonb_typeof(p_dados) = 'null' or p_dados = '[]'::jsonb then return; end if;
@@ -650,7 +672,7 @@ begin
   select * into r from lixeira where id = p_id and restaurado_em is null and expira_em > now() for update;
   if not found then raise exception 'Item não encontrado ou o prazo de 48 horas já terminou.'; end if;
   if not (is_active() and (is_manager() or r.excluido_por = auth.uid())) then raise exception 'Sem permissão para restaurar este item.'; end if;
-  if r.tabela not in ('microdeliveries','backlog_melhorias','backlog_etapas','ideas','agenda','imprevistos') then raise exception 'Tabela não restaurável.'; end if;
+  if r.tabela not in ('microdeliveries','backlog_melhorias','backlog_etapas','ideas','agenda','imprevistos','atas') then raise exception 'Tabela não restaurável.'; end if;
   perform set_config('app.sync', '1', true);   -- preserva origem/chamado_chave do Backlog na restauração
   begin
     perform lixeira_inserir(r.tabela, r.dados);

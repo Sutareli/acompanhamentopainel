@@ -18,7 +18,6 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
   const [date, setDate] = useState(todayStr())
   const [rec, setRec] = useState<any>(null)
   const [blocks, setBlocks] = useState<Block[]>([])
-  const [meetMin, setMeetMin] = useState(0)
   const [impMin, setImpMin] = useState(0)
   const [cfg, setCfg] = useState<Settings>(DEFAULT_SETTINGS)
   const [err, setErr] = useState('')
@@ -38,9 +37,8 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
         if (inc.error) throw new Error(inc.error.message)
       }
       setRec(r); setPrep(r.preparacao_proximo_dia || '')
-      const [b, a, i, s, fu] = await Promise.all([
+      const [b, i, s, fu] = await Promise.all([
         supabase.from('daily_blocks').select('*, daily_tasks(*)').eq('daily_record_id', r.id).order('numero'),
-        supabase.from('agenda').select('duracao_min').eq('user_id', uid).eq('data', date),
         supabase.from('imprevistos').select('estimativa_min').eq('user_id', uid).eq('data', date),
         loadSettings(uid),
         supabase.from('atividades_futuras').select('id,bloco_numero,data_alvo,descricao').eq('user_id', uid).is('incorporada_em', null).order('data_alvo'),
@@ -49,7 +47,6 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
       const bd = chk(b) as Block[]
       bd.forEach((x) => x.daily_tasks.sort((p, q) => p.ordem - q.ordem))
       setBlocks(bd)
-      setMeetMin(chk(a).reduce((s: number, x: any) => s + x.duracao_min, 0))
       setImpMin(chk(i).reduce((s: number, x: any) => s + x.estimativa_min, 0))
       setCfg(s); setErr(''); setVersion((v) => v + 1)
       if (bd.length === 0) setTimeout(load, 1200) // outra aba pode estar criando os blocos agora
@@ -88,7 +85,7 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
   const seg = [
     { n: 'Atuação prática', v: cfg.atuacao_min, c: '#2e1a6e', s: '' },
     { n: 'Pausa', v: cfg.pausa_min, c: '#64748b', s: '' },
-    { n: 'Reuniões', v: cfg.reunioes_min, c: '#8b3fff', s: fmtMin(meetMin) + ' registrados' },
+    { n: 'Reuniões', v: cfg.reunioes_min, c: '#8b3fff', s: '' },
     { n: 'Margem flexível', v: cfg.margem_min, c: '#f59e0b', s: fmtMin(impMin) + ' em imprevistos' },
   ]
   let acc = 0
@@ -109,6 +106,7 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {onNavigate && <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('imprevistos')}>⚡ Imprevistos</button>}
           <button className={btnS + ' ' + btnSm} onClick={() => setEnviando(true)} disabled={all.length === 0}>📦 Enviar para Projetos</button>
           <button className={btnG + ' ' + btnSm} onClick={() => setClearing(true)} disabled={all.length === 0}>🧹 Limpar lista do dia</button>
         </div>
@@ -119,12 +117,11 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
         await act(() => supabase.rpc('dia_limpar', { p_record: rec.id, p_modo: modo }))
       }} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5">
         <Kpi icon="📈" label="Execução das tarefas" value={pct + '%'} pct={pct} color="#8b3fff" />
         <Kpi icon="✅" label="Tarefas concluídas" value={done} pct={pct} color="#16a34a" />
         <Kpi icon="⏳" label="Tarefas pendentes" value={all.length - done} pct={all.length ? 100 - pct : 0} color="#f59e0b" />
         <Kpi icon="🧱" label="Blocos concluídos" value={`${blocksDone}/${blocks.length || 5}`} pct={blocks.length ? (blocksDone / blocks.length) * 100 : 0} color="#2e1a6e" sub="todas as tarefas do bloco marcadas" />
-        <Kpi icon="👥" label="Tempo em reuniões" value={fmtMin(meetMin)} pct={cfg.reunioes_min ? (meetMin / cfg.reunioes_min) * 100 : 0} color="#8b3fff" sub={`de ${fmtMin(cfg.reunioes_min)} reservados`} />
         <Kpi icon="🧭" label="Margem flexível restante" value={fmtMin(margem)} pct={cfg.margem_min ? (Math.max(0, margem) / cfg.margem_min) * 100 : 0} color={margem < 0 ? '#dc2626' : '#2e1a6e'} sub={`de ${fmtMin(cfg.margem_min)}, menos imprevistos`} />
       </div>
 

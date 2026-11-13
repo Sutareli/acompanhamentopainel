@@ -23,7 +23,7 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 | 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
 | 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
 | 007 | responsável e fase nos chamados (detalhamento “Quem é responsável” do Pareto) | uma vez, **depois** de 006, e reimporte a base de chamados |
-| 008 → 014 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** | **`008_a_014_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 011 roda só `012`, `013` e `014`; quem já rodou até a 013 roda só `014_desempenho_rls.sql`); depois reimporte a base de chamados |
+| 008 → 016 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** | **`008_a_015_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 015 roda só `016_atas_ajuste_texto.sql`, que é segura em qualquer caso); depois reimporte a base de chamados |
 | 006 | Atividades futuras (por bloco) e Projetos macro/micro (“com quem está”) | uma vez (se ainda não rodou) |
 
 **Atalho:** quem rodou só a 002 pode executar **`supabase/003_a_006_tudo_junto.sql`** (003 + 004 + 005 + 006 em um arquivo, uma única vez) em vez de rodar um por um.
@@ -305,7 +305,7 @@ Todas as confirmações de exclusão (reunião, imprevisto, ideia, atividade e e
 **Onde ver:** botão **🛡️ Segurança**, no fim do menu, só para o Analista Sr (no celular, o escudo no topo). Mostra falhas encontradas, corrigidas, pendentes, resumo da IA e histórico. Botões: *Verificar agora* (sem IA) e *Verificar com IA*.
 
 **Ativar:**
-1. Rode a migração 013 (já está no `008_a_014_tudo_junto.sql`). Se a extensão **pg_cron** estiver ativa no Supabase (Database → Extensions), ela já agenda a verificação **toda segunda, 09:00 UTC** (sem IA).
+1. Rode a migração 013 (já está no `008_a_015_tudo_junto.sql`). Se a extensão **pg_cron** estiver ativa no Supabase (Database → Extensions), ela já agenda a verificação **toda segunda, 09:00 UTC** (sem IA).
 2. Para o resumo com IA e/ou agendamento pela função:
 ```
 supabase functions deploy agente-seguranca --no-verify-jwt
@@ -339,3 +339,17 @@ select cron.schedule('agente-seguranca-ia', '0 9 * * 1', $$
 
 ## Enviar tarefas do Painel para Projetos
 Botão **📦 Enviar para Projetos** no topo do Painel. Abre a lista das tarefas do dia (por bloco); marque as desejadas e confirme. Cada tarefa vira **um microprojeto** em *Projetos* com os padrões: **criticidade Média · status A iniciar (1 unidade) · data target = dia seguinte · responsável = você** (descrição da tarefa como demanda; observação “Criado a partir do Painel”). A criação é atômica (entra tudo ou nada). Tarefas que já existem em Projetos com o mesmo nome são sinalizadas (“já existe em Projetos”) para evitar duplicidade. A opção **“Remover as tarefas enviadas do Painel”** vem **desmarcada** (copia); marque para transferir de fato. Não exige migração. Se mudar o padrão, edite `src/components/EnviarProjetos.tsx`.
+
+
+## Atas importantes (migração 015) — substitui o registro de reuniões
+- Menu **📝 Atas importantes** (no lugar de “Agenda”). Cada pessoa guarda as atas das reuniões que fez: **nome da reunião, data em que aconteceu, breve resumo (até 1.000 caracteres) e o texto completo da ata**, colado numa caixa de texto (até **50.000 caracteres**, o equivalente a umas 20 páginas).
+- **Clicar numa ata** abre a leitura completa numa janela, com botões **Copiar texto**, **Editar**, **Excluir** e **Fechar**. A lista mostra só nome, data e resumo (o texto completo é buscado ao abrir, para a tela continuar leve).
+- **Busca** por palavra: procura no nome, no resumo e **dentro do texto**; há também filtro por mês.
+- **Só o dono vê as suas atas** (nem diretor/gerente/Analista Sr leem as atas de outras pessoas).
+- **Sem arquivos e sem Storage:** tudo fica na tabela `atas`. Uma ata de texto ocupa ~3–20 KB: 10 pessoas × ~5 atas/semana ≈ 26 MB por ano (o banco do plano Free tem 500 MB, dividido com o resto do sistema). Ao colar do Word entra só o texto; tabelas, negrito e imagens não são mantidos.
+- **Excluir** manda a ata para a **Lixeira por 48 h** (volta inteira ao restaurar).
+- **Imprevistos** ganhou item próprio no menu (antes ficava na Agenda). O registro de horário de reunião foi retirado, e o cartão **“Tempo em reuniões”** saiu do Painel. O tempo reservado para reuniões continua na distribuição da jornada (Configurações). As reuniões já registradas continuam guardadas e aparecem no Histórico do dia.
+
+
+## Ordem do menu lateral
+Painel · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Backlog de Melhorias · Pareto backlog · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).

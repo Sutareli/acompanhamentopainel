@@ -5,11 +5,11 @@ import { canAdmin, fmtDateTime } from '../lib/rules'
 import { btnG, btnP, btnSm, Card, Chip, Empty, Msg } from '../components/ui'
 import { confirmar } from '../components/Confirm'
 
-/** Lixeira de 48 horas: desfaz exclusões de projetos, atividades/etapas do Backlog, ideias, reuniões e imprevistos (e usuários, para o Analista Sr). */
+/** Lixeira de 48 horas: desfaz exclusões de projetos, atividades/etapas do Backlog, ideias, atas, reuniões antigas e imprevistos (e usuários, para o Analista Sr). */
 const TIPO: Record<string, { nome: string; cor: string }> = {
   microdeliveries: { nome: 'Projeto', cor: '#7c3aed' }, backlog_melhorias: { nome: 'Atividade do Backlog', cor: '#2563eb' },
   backlog_etapas: { nome: 'Etapa do Backlog', cor: '#0891b2' }, ideas: { nome: 'Ideia', cor: '#d97706' },
-  agenda: { nome: 'Reunião', cor: '#059669' }, imprevistos: { nome: 'Imprevisto', cor: '#dc2626' },
+  agenda: { nome: 'Reunião', cor: '#059669' }, imprevistos: { nome: 'Imprevisto', cor: '#dc2626' }, atas: { nome: 'Ata', cor: '#0d9488' },
 }
 interface Item { id: string; tabela: string; rotulo: string | null; excluido_por: string | null; excluido_em: string; expira_em: string }
 interface UserDel { id: string; nome: string; email: string; excluido_em: string }
