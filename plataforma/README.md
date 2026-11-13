@@ -23,7 +23,7 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 | 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
 | 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
 | 007 | responsável e fase nos chamados (detalhamento “Quem é responsável” do Pareto) | uma vez, **depois** de 006, e reimporte a base de chamados |
-| 008 → 016 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** | **`008_a_015_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 015 roda só `016_atas_ajuste_texto.sql`, que é segura em qualquer caso); depois reimporte a base de chamados |
+| 008 → 018 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** | **`008_a_018_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 017 roda só `018_capacidade_e_arquivamento_atas.sql`; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
 | 006 | Atividades futuras (por bloco) e Projetos macro/micro (“com quem está”) | uma vez (se ainda não rodou) |
 
 **Atalho:** quem rodou só a 002 pode executar **`supabase/003_a_006_tudo_junto.sql`** (003 + 004 + 005 + 006 em um arquivo, uma única vez) em vez de rodar um por um.
@@ -305,7 +305,7 @@ Todas as confirmações de exclusão (reunião, imprevisto, ideia, atividade e e
 **Onde ver:** botão **🛡️ Segurança**, no fim do menu, só para o Analista Sr (no celular, o escudo no topo). Mostra falhas encontradas, corrigidas, pendentes, resumo da IA e histórico. Botões: *Verificar agora* (sem IA) e *Verificar com IA*.
 
 **Ativar:**
-1. Rode a migração 013 (já está no `008_a_015_tudo_junto.sql`). Se a extensão **pg_cron** estiver ativa no Supabase (Database → Extensions), ela já agenda a verificação **toda segunda, 09:00 UTC** (sem IA).
+1. Rode a migração 013 (já está no `008_a_018_tudo_junto.sql`). Se a extensão **pg_cron** estiver ativa no Supabase (Database → Extensions), ela já agenda a verificação **toda segunda, 09:00 UTC** (sem IA).
 2. Para o resumo com IA e/ou agendamento pela função:
 ```
 supabase functions deploy agente-seguranca --no-verify-jwt
@@ -341,15 +341,35 @@ select cron.schedule('agente-seguranca-ia', '0 9 * * 1', $$
 Botão **📦 Enviar para Projetos** no topo do Painel. Abre a lista das tarefas do dia (por bloco); marque as desejadas e confirme. Cada tarefa vira **um microprojeto** em *Projetos* com os padrões: **criticidade Média · status A iniciar (1 unidade) · data target = dia seguinte · responsável = você** (descrição da tarefa como demanda; observação “Criado a partir do Painel”). A criação é atômica (entra tudo ou nada). Tarefas que já existem em Projetos com o mesmo nome são sinalizadas (“já existe em Projetos”) para evitar duplicidade. A opção **“Remover as tarefas enviadas do Painel”** vem **desmarcada** (copia); marque para transferir de fato. Não exige migração. Se mudar o padrão, edite `src/components/EnviarProjetos.tsx`.
 
 
-## Atas importantes (migração 015) — substitui o registro de reuniões
-- Menu **📝 Atas importantes** (no lugar de “Agenda”). Cada pessoa guarda as atas das reuniões que fez: **nome da reunião, data em que aconteceu, breve resumo (até 1.000 caracteres) e o texto completo da ata**, colado numa caixa de texto (até **50.000 caracteres**, o equivalente a umas 20 páginas).
-- **Clicar numa ata** abre a leitura completa numa janela, com botões **Copiar texto**, **Editar**, **Excluir** e **Fechar**. A lista mostra só nome, data e resumo (o texto completo é buscado ao abrir, para a tela continuar leve).
-- **Busca** por palavra: procura no nome, no resumo e **dentro do texto**; há também filtro por mês.
-- **Só o dono vê as suas atas** (nem diretor/gerente/Analista Sr leem as atas de outras pessoas).
-- **Sem arquivos e sem Storage:** tudo fica na tabela `atas`. Uma ata de texto ocupa ~3–20 KB: 10 pessoas × ~5 atas/semana ≈ 26 MB por ano (o banco do plano Free tem 500 MB, dividido com o resto do sistema). Ao colar do Word entra só o texto; tabelas, negrito e imagens não são mantidos.
-- **Excluir** manda a ata para a **Lixeira por 48 h** (volta inteira ao restaurar).
-- **Imprevistos** ganhou item próprio no menu (antes ficava na Agenda). O registro de horário de reunião foi retirado, e o cartão **“Tempo em reuniões”** saiu do Painel. O tempo reservado para reuniões continua na distribuição da jornada (Configurações). As reuniões já registradas continuam guardadas e aparecem no Histórico do dia.
+## Atas importantes (migrações 015 e 017) — substitui o registro de reuniões
+- Menu **📝 Atas importantes**. Cada ata tem **nome da reunião, data, breve resumo (até 1.000 caracteres), texto colado (até 60.000 caracteres) e/ou o arquivo original** (Word .docx/.doc ou PDF, **até 10 MB**). É preciso ter pelo menos o texto **ou** o arquivo.
+- **Tabelas e imagens:** só o arquivo anexado preserva a formatação original. Ao colar, entra apenas o texto. Por isso: anexe o arquivo quando a ata tiver tabelas/imagens e use o texto para ler rápido na tela e para a busca.
+- **Clicar numa ata** abre a leitura completa (texto, botão **Baixar arquivo original**, **Copiar texto**, **Editar**, **Excluir**). A lista traz só nome, data, resumo e o selo 📎; o texto é buscado ao abrir.
+- **Busca** por palavra: nome, resumo, **dentro do texto** e nome do arquivo; filtro por mês.
+- **Só o dono vê as suas atas e os arquivos** (nem diretor/gerente/Analista Sr).
+- **Onde o arquivo fica:** Supabase Storage, bucket privado `atas` (10 MB, só Word/PDF), em `<id do usuário>/<id da ata>/arquivo`; download por link temporário de 60 s. O texto fica na tabela `atas`.
+- **Capacidade:** Free = 1 GB de arquivos (50 MB por arquivo), Pro = 100 GB. Uma ata em Word costuma ter 30–300 KB (1–3 MB com imagens): 10 pessoas × ~5 atas/semana ≈ 0,5 GB/ano sem imagens e ~2,6 GB/ano com imagens. Acompanhe em *Storage* no painel do Supabase.
+- **Excluir** manda a ata e o arquivo para a **Lixeira por 48 h**; depois, o arquivo órfão é apagado do Storage quando o dono abrir a página. Se um **usuário for excluído de vez**, os arquivos dele não somem sozinhos: remova a pasta dele em *Storage → atas*.
+- **Imprevistos** tem botão **⚡ Imprevistos** no topo do Painel. O registro de horário de reunião foi retirado, e o cartão “Tempo em reuniões” saiu do Painel; as reuniões antigas continuam no Histórico do dia.
 
+## Aviso de capacidade (95%) e arquivamento das atas — migração 018
+
+**Quem vê:** somente o Analista Sr (faixa vermelha no topo + cartão “📦 Espaço do plano” em Segurança). As funções do banco recusam qualquer outro perfil.
+
+**Como funciona**
+1. O sistema mede o **banco de dados** e os **arquivos (Storage)** contra os limites do plano (padrão Free: 500 MB e 1024 MB; em *Segurança → Ajustar limites* você troca por 8192 MB / 102400 MB no Pro e muda o percentual de aviso, padrão **95%**). Quando qualquer um dos dois atinge o percentual, a faixa aparece.
+2. **Gerar backup e arquivar atas** monta **um único arquivo `backup-atas_AAAA-MM-DD_HHMM.zip`** e o baixa: `atas.csv` (abre no Excel), `atas.json`, `LEIAME.txt` e a pasta `arquivos/` com os Word/PDF originais por pessoa e por ata. Contém **todas as atas de todos os usuários**.
+3. Só depois do backup o botão **Excluir todas as atas** é liberado: exige marcar “baixei e guardei” e digitar `EXCLUIR ATAS`. Ele apaga **exclusivamente a tabela de atas e seus arquivos no Storage** — nada de projetos, ideias, tarefas ou outros dados — e apenas as atas que entraram no backup e não foram editadas depois (atas novas criadas durante o processo ficam).
+4. As atas excluídas **não vão para a Lixeira** (a cópia é o seu arquivo). Os usuários podem começar uma nova carga de atas na hora.
+
+**Privacidade:** as atas são privadas de cada pessoa. Para o backup, o Analista Sr ganha leitura das atas de todos por uma “janela de manutenção” de **3 horas**, que **só abre com o limiar atingido** e é registrada na auditoria (abrir, backup, esvaziar). Fora dessa janela ele continua sem enxergar atas alheias.
+
+**Limites e cuidados**
+- O sistema não consegue confirmar que você realmente guardou o arquivo — abra o ZIP e confira antes de excluir.
+- O ZIP é montado na memória do navegador: para volumes na casa de ~1 GB, use um computador (não celular). Limite técnico de ~3,5 GB por arquivo.
+- Anexo que não puder ser baixado deixa a ata **fora** do backup e, portanto, **fora** da exclusão (aparece no LEIAME).
+- O espaço de **arquivos** é liberado na hora; o do **banco** pode demorar a cair no painel do Supabase (o Postgres só devolve o espaço no próximo *vacuum*).
+- O backup cobre só as atas. Se quiser incluir outras tabelas no futuro, é uma extensão simples.
 
 ## Ordem do menu lateral
 Painel · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Backlog de Melhorias · Pareto backlog · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).

@@ -19,6 +19,7 @@ import ParetoBacklog from './pages/ParetoBacklog'
 import ImportarBases from './pages/ImportarBases'
 import Lixeira from './pages/Lixeira'
 import Seguranca from './pages/Seguranca'
+import { AvisoCapacidade } from './components/AvisoCapacidade'
 import { canAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
 const ITEMS: [string, string, string][] = [
@@ -92,6 +93,7 @@ export default function App() {
       </header>
 
       <main className="px-3 pb-24 pt-4 md:ml-56 md:px-8 md:pb-10 md:pt-6">
+        {canAdmin(profile.perfil) && <AvisoCapacidade />}
         {view === 'painel' && <Painel onNavigate={setPage} />}
         {view === 'atas' && <Atas />}
         {view === 'imprevistos' && <Imprevistos />}

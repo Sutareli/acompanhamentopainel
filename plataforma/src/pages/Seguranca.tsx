@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { fmtDateTime } from '../lib/rules'
+import { CapacidadeCard } from '../components/AvisoCapacidade'
 import { btnG, btnP, btnSm, Card, Chip, Empty, Msg } from '../components/ui'
 
 /** Painel de segurança — somente Analista Sr. Mostra o que o agente semanal encontrou e corrigiu e o que ainda precisa de decisão humana. */
@@ -72,6 +73,7 @@ export default function Seguranca() {
           <button className={btnP} disabled={!!busy} onClick={verificar}>{busy === 'manual' ? 'Verificando…' : 'Verificar agora'}</button>
         </div>
       </div>
+      <CapacidadeCard />
       {err && <Msg kind="erro">{err}</Msg>}
       {ok && <Msg kind="ok">{ok}</Msg>}
 
