@@ -6,3 +6,11 @@ html, body, #root { min-height: 100%; }
 body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #2a1b54; }
 @keyframes pulse-live { 50% { opacity: .55; } }
 .live { animation: pulse-live 1.4s infinite; }
+
+/* Impressão / PDF do comparativo de chamados: mostra só o cartão do comparativo */
+@media print {
+  body.imprimindo-comp * { visibility: hidden !important; }
+  body.imprimindo-comp .area-comp, body.imprimindo-comp .area-comp * { visibility: visible !important; }
+  body.imprimindo-comp .area-comp { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: 0; }
+  .print\:hidden { display: none !important; }
+}

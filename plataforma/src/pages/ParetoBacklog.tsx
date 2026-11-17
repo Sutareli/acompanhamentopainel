@@ -6,7 +6,9 @@ import { btnG, btnSm, Card, Empty, HBars, Msg } from '../components/ui'
 import ParetoChart from '../components/ParetoChart'
 import { AreaDias, Rosca } from '../components/Charts2'
 import Responsaveis from '../components/Responsaveis'
-import ComparativoChamados from '../components/ComparativoChamados'
+import ComparativoChamados, { Metas } from '../components/ComparativoChamados'
+import EvolucaoSubcategorias from '../components/EvolucaoSubcategorias'
+import { podeAjustarSla } from '../lib/sla'
 import { Chamado, contar, kpis, mesAnterior, mesKey, mesLabel, noPrazo, porDia, quinzenaDe, semanaDe, semanasDoMes } from '../lib/chamados'
 
 /** "Análise de chamados" (antes "Pareto backlog") — análise qualitativa dos chamados abertos no backlog (visão da planilha "Análise de backlog"). Leitura para todos; carga só do Analista Sr. */
@@ -38,6 +40,7 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
   const [sub, setSub] = useState<string | null>(null)
   const [quinz, setQuinz] = useState<0 | 1 | 2>(0)       // 0 = mês inteiro · 1 = dias 1–15 · 2 = dia 16 em diante
   const [sem, setSem] = useState(0)                       // 0 = todas as semanas do mês · n = semana n (segunda a domingo)
+  const [metas, setMetas] = useState<Metas>({ meta_total_mes: null, meta_pct_prazo: null })
   const [carga, setCarga] = useState<{ em: string; qtd: number; nome: string } | null>(null)
 
   async function load() {
@@ -58,6 +61,12 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
     setLoading(false)
   }
   useEffect(() => { load() }, [])
+  useEffect(() => { supabase.from('chamados_metas').select('meta_total_mes,meta_pct_prazo').eq('id', 1).maybeSingle().then((r) => { if (r.data) setMetas({ meta_total_mes: r.data.meta_total_mes, meta_pct_prazo: r.data.meta_pct_prazo == null ? null : Number(r.data.meta_pct_prazo) }) }) }, [])
+  async function salvarMetas(m: Metas) {
+    const r = await supabase.from('chamados_metas').update(m).eq('id', 1)
+    if (r.error) return 'Não foi possível salvar as metas: ' + r.error.message
+    setMetas(m); return null
+  }
 
   const meses = useMemo(() => [...new Set(rows.map((r) => mesKey(r.data_ref)))].sort(), [rows])
   const mesSel = mes === null ? meses[meses.length - 1] || '' : mes
@@ -145,7 +154,8 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
           <KpiCard titulo="Tipos de chamados" valor={k.tipos}><Delta valor={temAnt ? k.tipos - kp.tipos : null} texto={Math.abs(k.tipos - kp.tipos) + ''} bomSeSobe={false} /></KpiCard>
           <KpiCard titulo="Subcategorias" valor={k.subcategorias}><Delta valor={temAnt ? k.subcategorias - kp.subcategorias : null} texto={Math.abs(k.subcategorias - kp.subcategorias) + ''} bomSeSobe={false} /></KpiCard>
         </div>
-        <ComparativoChamados key={mesSel || meses[meses.length - 1]} rows={rows.filter(filtraTipo)} meses={meses} mesInicial={mesSel || meses[meses.length - 1]} filtroTxt={tipos.length ? `Tipo: ${tipos.join(', ')}. ` : ''} />
+        <ComparativoChamados key={mesSel || meses[meses.length - 1]} rows={rows.filter(filtraTipo)} meses={meses} mesInicial={mesSel || meses[meses.length - 1]} filtroTxt={tipos.length ? `Tipo: ${tipos.join(', ')}. ` : ''} metas={metas} podeMetas={podeAjustarSla(profile!.perfil)} onSalvarMetas={salvarMetas} />
+        <EvolucaoSubcategorias rows={rows.filter(filtraTipo)} meses={meses} />
         {!mesSel && <p className="text-xs text-slate-500">Com “Todos” os meses não há comparação com o mês anterior; os filtros de quinzena e semana aparecem ao escolher um mês.</p>}
         {!!mesSel && !!sem && <p className="text-xs text-slate-500">Filtro de semana: sem comparação com o mês anterior. Semanas vão de segunda a domingo (a 1ª e a última podem ser parciais).</p>}
 

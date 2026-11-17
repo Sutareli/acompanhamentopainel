@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { fmtDateTime } from '../lib/rules'
 import { CapacidadeCard } from '../components/AvisoCapacidade'
+import BackupCard from '../components/BackupCard'
+import AvisosCard from '../components/AvisosCard'
 import { btnG, btnP, btnSm, Card, Chip, Empty, Msg } from '../components/ui'
 
 /** Painel de segurança — somente Analista Sr. Mostra o que o agente semanal encontrou e corrigiu e o que ainda precisa de decisão humana. */
@@ -65,6 +67,8 @@ export default function Seguranca() {
         </div>
       </div>
       <CapacidadeCard />
+      <BackupCard />
+      <AvisosCard />
       {err && <Msg kind="erro">{err}</Msg>}
       {ok && <Msg kind="ok">{ok}</Msg>}
 

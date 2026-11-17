@@ -204,7 +204,7 @@ export default function MelhoriasGerencial({ rows, hoje, nomeResp, onAbrir, onIr
 
       <Card>
         <h3 className="mb-1 font-bold text-navy">⏱ SLA das etapas</h3>
-        <p className="mb-2 text-xs text-slate-500">Cada melhoria tem o seu SLA (padrão: chamado aberto → desenvolvimento em 3 dias úteis; desenvolvimento → homologação em 15 dias corridos; feriados não descontados).</p>
+        <p className="mb-2 text-xs text-slate-500">Cada melhoria tem o seu SLA (padrão: chamado aberto → desenvolvimento em 3 dias úteis; desenvolvimento → homologação em 15 dias corridos; feriados cadastrados são descontados).</p>
         <div className="mb-3 grid gap-2 sm:grid-cols-2">
           {([['🎫 Chamado → Desenvolvimento', cumprCham], ['🛠️ Desenvolvimento → Homologação', cumprDev]] as [string, { n: number; ok: number }][]).map(([l, c]) => (
             <div key={l} className="rounded-xl bg-slate-50 p-3 text-sm"><div className="text-xs text-slate-500">{l} — cumprimento nas etapas já concluídas</div><div className="text-xl font-extrabold text-navy">{c.n ? `${pct(c.ok, c.n)}%` : '—'} <span className="text-xs font-normal text-slate-500">{c.n ? `(${c.ok} de ${c.n} dentro do SLA)` : '(sem dados)'}</span></div></div>

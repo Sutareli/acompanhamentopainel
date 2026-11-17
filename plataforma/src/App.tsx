@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useFeriados } from './lib/feriados'
 import { ConfirmHost } from './components/Confirm'
 import { LogoHorizontal, LogoIcone } from './components/Logo'
 import { useAuth } from './auth/AuthContext'
@@ -20,6 +21,7 @@ import ParetoBacklog from './pages/ParetoBacklog'
 import ImportarBases from './pages/ImportarBases'
 import Lixeira from './pages/Lixeira'
 import Seguranca from './pages/Seguranca'
+import Atencao from './pages/Atencao'
 import { AvisoCapacidade } from './components/AvisoCapacidade'
 import { canAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
@@ -33,7 +35,8 @@ const BACKLOG_ITEMS: [string, string, string][] = [['melhorias', '🚀', 'Melhor
 
 export default function App() {
   const { session, profile, loading, authError, needsPassword, signOut } = useAuth()
-  const [page, setPage] = useState('painel')
+  const [pg, setPage] = useState<string | null>(null)   // null = tela inicial do perfil (viewers: Atenção · demais: To do diário)
+  useFeriados(!!profile)   // carrega os feriados do SLA e re-renderiza quando chegam
 
   if (!configured) {
     return (
@@ -61,8 +64,9 @@ export default function App() {
 
   // Perfis com visão de equipe (somente consulta das jornadas + consolidado). A trava real está nas políticas RLS do banco.
   const viewer = canViewAll(profile.perfil)
+  const page = pg ?? (viewer ? 'atencao' : 'painel')
   const items: [string, string, string][] = viewer
-    ? [...ITEMS, ['equipe', '👥', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ['jornadas', '👀', 'Jornadas da equipe'], ...BACKLOG_ITEMS, ...(canAdmin(profile.perfil) ? IMPORT_ITEM : [])]
+    ? [['atencao', '🔔', 'Atenção'], ...ITEMS, ['equipe', '👥', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ['jornadas', '👀', 'Jornadas da equipe'], ...BACKLOG_ITEMS, ...(canAdmin(profile.perfil) ? IMPORT_ITEM : [])]
     : [...ITEMS, ...BACKLOG_ITEMS]
   const view = ((page === 'equipe' || page === 'jornadas') && !viewer) || ((page === 'importar' || page === 'seguranca') && !canAdmin(profile.perfil)) ? 'painel' : page
 
@@ -85,6 +89,7 @@ export default function App() {
           <div className="truncate font-semibold text-white">{profile.nome}</div>
           <div className="mb-2">{PERFIL_LABEL[profile.perfil]}</div>
           <button onClick={signOut} className="underline">Sair</button>
+          <div className="mt-2 text-[10px] opacity-60" title="Identificador da versão publicada (confira se é o último commit do GitHub)">versão {typeof __APP_VERSAO__ === 'string' ? __APP_VERSAO__ : 'dev'}</div>
         </div>
       </aside>
 
@@ -95,6 +100,7 @@ export default function App() {
 
       <main className="px-3 pb-24 pt-4 md:ml-56 md:px-8 md:pb-10 md:pt-6">
         {canAdmin(profile.perfil) && <AvisoCapacidade />}
+        {view === 'atencao' && viewer && <Atencao onNavigate={setPage} />}
         {view === 'painel' && <Painel onNavigate={setPage} />}
         {view === 'atas' && <Atas />}
         {view === 'imprevistos' && <Imprevistos />}

@@ -1,3 +1,4 @@
+import Comentarios from './Comentarios'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { confirmar } from './Confirm'
 import { supabase } from '../lib/supabase'
@@ -202,6 +203,8 @@ export default function BacklogDetalhe({ m, nomes, usuarios, podeEditar, podeExc
       </Card>
 
       {eEtapa && <EtapaForm init={eEtapa} onClose={() => setEEtapa(null)} onSave={saveEtapa} />}
+      <Comentarios entidade="melhoria" id={m.id} />
+
       {eMel && <MelhoriaForm funil={m.tipo_backlog === 'melhoria'} usuarios={usuarios} init={m} modulos={modulos} temEtapas={etapas.length > 0} onClose={() => setEMel(false)} onSave={async (p) => { const r = await onSaveMelhoria(p); if (!r) { setEMel(false); await load() } return r }} />}
     </div>
   )

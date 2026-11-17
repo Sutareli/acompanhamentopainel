@@ -1,3 +1,4 @@
+import { confirmar } from '../components/Confirm'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
@@ -47,6 +48,13 @@ function ChamadosCard({ onNavigate }: { onNavigate: (p: string) => void }) {
     const r = lerBase(await lerArquivo(f))
     setAvisos(r.avisos); if (r.erro) setErr(r.erro); else setRows(r.rows)
   }
+  async function desfazer() {
+    if (!(await confirmar({ titulo: 'Desfazer a última carga?', mensagem: 'A base volta ao que era antes da última importação (e a atual fica guardada: dá para desfazer de novo). Atividades do Backlog já criadas pela carga errada continuam existindo e precisam ser excluídas à mão.', confirmar: 'Desfazer carga', perigo: true }))) return
+    setBusy(true); setErr(''); setOk('')
+    const r = await supabase.rpc('chamados_desfazer_carga'); setBusy(false)
+    if (r.error) return setErr(r.error.message.includes('chamados_desfazer_carga') ? 'Função indisponível: a migração 025 ainda não foi aplicada.' : r.error.message)
+    setOk(`Carga desfeita: a base voltou a ter ${r.data} chamados.`); await carga()
+  }
   async function enviar() {
     if (!rows) return
     setBusy(true); setErr('')
@@ -80,7 +88,10 @@ function ChamadosCard({ onNavigate }: { onNavigate: (p: string) => void }) {
         {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}
         {avisos.map((a) => <Msg key={a} kind="aviso">{a}</Msg>)}
         {rows && <div className="rounded-xl bg-violet-50 p-3"><b>{nome}</b>: {rows.length} chamados · período {fmtDate(datas[0])} a {fmtDate(datas[datas.length - 1])} · {new Set(rows.map((x) => x.tipo?.toLowerCase()).filter(Boolean)).size} tipos · {new Set(rows.map((x) => x.subcategoria?.toLowerCase()).filter(Boolean)).size} subcategorias · <b>{rows.filter((x) => x.empresa_responsavel).length}</b> com empresa responsável · <b>{rows.filter((x) => x.responsavel_rocco).length}</b> com responsável ROCCO.</div>}
-        <button className={btnP} disabled={!rows || busy} onClick={enviar}>{busy ? 'Importando…' : rows ? `Substituir base (${rows.length})` : 'Substituir base'}</button>
+        <div className="flex flex-wrap gap-2">
+          <button className={btnP} disabled={!rows || busy} onClick={enviar}>{busy ? 'Importando…' : rows ? `Substituir base (${rows.length})` : 'Substituir base'}</button>
+          <button className={btnG} disabled={busy} onClick={desfazer} title="Devolve a base que existia antes da última importação">↩ Desfazer última carga</button>
+        </div>
       </div>
     </Card>
   )

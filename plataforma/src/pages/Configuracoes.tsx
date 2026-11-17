@@ -2,6 +2,8 @@ import { ChangeEvent, useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, Settings } from '../lib/settings'
 import { canAdmin, fmtDate, fmtMin } from '../lib/rules'
+import { podeAjustarSla } from '../lib/sla'
+import Feriados from '../components/Feriados'
 import { Legacy, parseLegacy, runImport } from '../lib/legacyImport'
 import { btnG, btnP, btnS, Card, Field, inp, Msg } from '../components/ui'
 
@@ -63,6 +65,8 @@ export default function Configuracoes() {
         </div>
         <p className="mt-3 text-xs text-slate-500">Nomes, durações e tarefas dos blocos são editados diretamente em To do diário e passam a valer nos dias seguintes.</p>
       </Card>
+
+      <Feriados pode={podeAjustarSla(profile!.perfil)} />
 
       <Card>
         <h3 className="mb-1 font-bold text-navy">Importar backup do painel antigo (JSON)</h3>

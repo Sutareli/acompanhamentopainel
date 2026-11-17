@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/run.mjs",
+    "test:sql": "echo \"Rode tests/sql/*.sql em um Postgres de teste (veja AMBIENTE_DE_TESTE.md)\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

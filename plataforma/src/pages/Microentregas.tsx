@@ -1,3 +1,4 @@
+import Comentarios from '../components/Comentarios'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
@@ -232,6 +233,8 @@ function Detail({ m, ativos, onClose, onChanged }: { m: Micro; ativos: any[]; on
         <input className={inp + ' col-span-2 md:col-span-1'} placeholder="Observação (opcional)" value={mv.obs} onChange={(e) => setMv({ ...mv, obs: e.target.value })} />
         <button className={btnS}>Mover</button>
       </form>
+
+      <div className="mb-4"><Comentarios entidade="atividade" id={m.id} /></div>
 
       <h4 className="mb-2 font-bold text-navy">Histórico</h4>
       {hist.length === 0 ? <Empty>Sem movimentações.</Empty> : (

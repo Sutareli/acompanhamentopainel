@@ -9,9 +9,12 @@ export const podeAjustarSla = (p?: string) => p === 'analista_sr' || p === 'gere
 
 const dn = (d: string) => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / 86400000
 const str = (n: number) => new Date(n * 86400000).toISOString().slice(0, 10)
-const util = (n: number) => { const w = new Date(n * 86400000).getUTCDay(); return w !== 0 && w !== 6 }
+/** Feriados (datas AAAA-MM-DD) descontados dos dias úteis. Carregados da tabela `feriados` (veja useFeriados); ficam vazios nos testes. */
+let FERIADOS = new Set<string>()
+export const setFeriados = (datas: string[]) => { FERIADOS = new Set(datas) }
+const util = (n: number) => { const w = new Date(n * 86400000).getUTCDay(); return w !== 0 && w !== 6 && !FERIADOS.has(str(n)) }
 
-/** Soma N dias úteis (segunda a sexta; feriados não são considerados). A data inicial não conta. */
+/** Soma N dias úteis (segunda a sexta, sem os feriados cadastrados). A data inicial não conta. */
 export function somaDiasUteis(ini: string, n: number): string {
   let d = dn(ini), k = 0
   while (k < n) { d += 1; if (util(d)) k++ }

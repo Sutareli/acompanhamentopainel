@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Card } from './ui'
+import { btnG, btnP, btnSm, Card, inp } from './ui'
 import { Chamado, kpis, mesAnterior, mesKey, mesLabel } from '../lib/chamados'
-import { todayStr } from '../lib/rules'
+import { download, toCSV, todayStr } from '../lib/rules'
+import { compara, fatorPeriodo, naPeriodo, Per } from '../lib/comparativo'
 
 /** Mês atual × mês anterior: veredito rápido (melhorou / piorou) + o que mais subiu e o que mais caiu. Menos chamados = melhor; mais % no prazo = melhor. */
 type Dim = 'subcategoria' | 'tipo' | 'categoria'
@@ -20,13 +21,13 @@ function Metrica({ titulo, ant, atu, delta, bom }: { titulo: string; ant: string
   )
 }
 
-type Per = 'mes' | 'q1' | 'q2' | `ate${number}`
-const dia = (c: Chamado) => +c.data_ref.slice(8, 10)
-const naPer = (c: Chamado, p: Per) => p === 'mes' || (p === 'q1' ? dia(c) <= 15 : p === 'q2' ? dia(c) >= 16 : dia(c) <= +p.slice(3))
+const naPer = (c: Chamado, p: Per) => naPeriodo(c.data_ref, p)
 const perTxt = (p: Per) => (p === 'mes' ? 'mês completo' : p === 'q1' ? '1ª quinzena (dias 1–15)' : p === 'q2' ? '2ª quinzena (dia 16 em diante)' : `dias 1 a ${p.slice(3)}`)
 const sel = 'rounded-lg border border-violet-300 bg-white px-2 py-1 text-sm text-navy'
 
-export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt }: { rows: Chamado[]; meses: string[]; mesInicial: string; filtroTxt: string }) {
+export interface Metas { meta_total_mes: number | null; meta_pct_prazo: number | null }
+
+export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt, metas, podeMetas, onSalvarMetas }: { rows: Chamado[]; meses: string[]; mesInicial: string; filtroTxt: string; metas: Metas; podeMetas: boolean; onSalvarMetas: (m: Metas) => Promise<string | null> }) {
   const hoje = todayStr()
   const correnteA = mesInicial === hoje.slice(0, 7)
   const [dim, setDim] = useState<Dim>('subcategoria')
@@ -42,6 +43,29 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
   const a = useMemo(() => kpis(atual), [atual])
   const b = useMemo(() => kpis(anterior), [anterior])
   const dHoje = +hoje.slice(8, 10)
+  const [editMeta, setEditMeta] = useState(false)
+  const [mt, setMt] = useState(''); const [mp, setMp] = useState(''); const [msgMeta, setMsgMeta] = useState('')
+  const abrirMeta = () => { setMt(metas.meta_total_mes == null ? '' : String(metas.meta_total_mes)); setMp(metas.meta_pct_prazo == null ? '' : String(metas.meta_pct_prazo)); setMsgMeta(''); setEditMeta(true) }
+  async function salvarMeta() {
+    const t = mt.trim() === '' ? null : Number(mt), p = mp.trim() === '' ? null : Number(mp.replace(',', '.'))
+    if ((t !== null && (!Number.isInteger(t) || t < 0)) || (p !== null && (isNaN(p) || p < 0 || p > 100))) return setMsgMeta('Meta de chamados: número inteiro ≥ 0. Meta de prazo: de 0 a 100.')
+    const e = await onSalvarMetas({ meta_total_mes: t, meta_pct_prazo: p }); if (e) return setMsgMeta(e); setEditMeta(false)
+  }
+  const statusMeta = (k: ReturnType<typeof kpis>, mes: string, per: Per) => {
+    const f = fatorPeriodo(mes, per), alvoT = metas.meta_total_mes == null ? null : Math.round(metas.meta_total_mes * f * 10) / 10
+    return { alvoT, okT: alvoT == null ? null : k.total <= alvoT, alvoP: metas.meta_pct_prazo, okP: metas.meta_pct_prazo == null || k.pctPrazo == null ? null : k.pctPrazo * 100 >= metas.meta_pct_prazo }
+  }
+  const mA = statusMeta(a, mesA, perA), mB = statusMeta(b, mesB, perB)
+  const temMeta = metas.meta_total_mes != null || metas.meta_pct_prazo != null
+  const exportaCsv = () => download(`comparativo-chamados-${mesA}-vs-${mesB}.csv`, toCSV([
+    ['Comparativo de chamados', '', ''], ['Atual', rotuloA, ''], ['Comparar com', rotuloB, ''], [],
+    ['Indicador', 'Comparar com', 'Atual'],
+    ['Chamados abertos', b.total, a.total], ['% dentro do prazo', b.pctPrazo === null ? '' : Math.round(b.pctPrazo * 100) + '%', a.pctPrazo === null ? '' : Math.round(a.pctPrazo * 100) + '%'],
+    ['Tipos de chamado', b.tipos, a.tipos], ['Subcategorias', b.subcategorias, a.subcategorias], [],
+    [`Variação por ${dim}`, 'Comparar com', 'Atual', 'Diferença'],
+    ...todos.map((x) => [x.nome, x.ant, x.atu, x.d]),
+  ]))
+  const imprimir = () => { document.body.classList.add('imprimindo-comp'); const f = () => { document.body.classList.remove('imprimindo-comp'); window.removeEventListener('afterprint', f) }; window.addEventListener('afterprint', f); window.print() }
   const presets: [string, () => void][] = [
     ['Mês × mês anterior', () => { setPerA('mes'); setPerB('mes'); setMesB(mesAnterior(mesA)) }],
     ['1ª quinzena × 1ª do mês anterior', () => { setPerA('q1'); setPerB('q1'); setMesB(mesAnterior(mesA)) }],
@@ -60,23 +84,20 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
     </div>
   )
 
-  const semBase = b.total === 0
-  const varTotal = b.total ? (a.total - b.total) / b.total : 0
-  const dPrazo = a.pctPrazo !== null && b.pctPrazo !== null ? (a.pctPrazo - b.pctPrazo) * 100 : null
-  const sTotal = Math.abs(varTotal) < 0.05 ? 0 : varTotal < 0 ? 1 : -1       // menos de 5% de diferença = estável
-  const sPrazo = dPrazo === null || Math.abs(dPrazo) < 2 ? 0 : dPrazo > 0 ? 1 : -1   // menos de 2 p.p. = estável
-  const score = sTotal + sPrazo
-  const v = semBase ? { ico: '⚪', t: 'Sem base de comparação', c: 'border-slate-300 bg-slate-50 text-slate-700' } : score > 0 ? { ico: '🟢', t: 'Melhorou', c: 'border-green-300 bg-green-50 text-green-800' }
-    : score < 0 ? { ico: '🔴', t: 'Piorou', c: 'border-red-300 bg-red-50 text-red-800' }
-    : sTotal !== 0 ? { ico: '🟡', t: 'Cenário misto', c: 'border-amber-300 bg-amber-50 text-amber-800' }
-    : { ico: '⚪', t: 'Estável', c: 'border-slate-300 bg-slate-50 text-slate-700' }
+  const { veredito, varTotal, dPrazo, sTotal, sPrazo } = compara(a, b)
+  const semBase = veredito === 'sem_base'
+  const v = { sem_base: { ico: '⚪', t: 'Sem base de comparação', c: 'border-slate-300 bg-slate-50 text-slate-700' },
+    melhorou: { ico: '🟢', t: 'Melhorou', c: 'border-green-300 bg-green-50 text-green-800' },
+    piorou: { ico: '🔴', t: 'Piorou', c: 'border-red-300 bg-red-50 text-red-800' },
+    misto: { ico: '🟡', t: 'Cenário misto', c: 'border-amber-300 bg-amber-50 text-amber-800' },
+    estavel: { ico: '⚪', t: 'Estável', c: 'border-slate-300 bg-slate-50 text-slate-700' } }[veredito]
   const pctTxt = (x: number) => (x > 0 ? '▲ +' : x < 0 ? '▼ −' : '') + Math.abs(Math.round(x * 100)) + '%'
   const ppTxt = (x: number) => (x > 0 ? '▲ +' : x < 0 ? '▼ −' : '') + Math.abs(x).toFixed(1).replace('.', ',') + ' p.p.'
   const frase = a.total === b.total ? `O volume de chamados ficou igual (${a.total}).`
     : `${a.total} chamado(s) em ${mesAtual} contra ${b.total} em ${mesAnt} (${pctTxt(varTotal)}).`
   const fraseP = dPrazo === null ? '' : ` O percentual dentro do prazo foi de ${Math.round((b.pctPrazo ?? 0) * 100)}% para ${Math.round((a.pctPrazo ?? 0) * 100)}%.`
 
-  const { sobem, caem } = useMemo(() => {
+  const { sobem, caem, todos } = useMemo(() => {
     const m = new Map<string, { nome: string; ant: number; atu: number }>()
     const add = (items: Chamado[], campo: 'ant' | 'atu') => items.forEach((c) => {
       const nome = (c[dim] ?? '').trim(); if (!nome) return
@@ -84,7 +105,7 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
     })
     add(anterior, 'ant'); add(atual, 'atu')
     const l = [...m.values()].map((x) => ({ ...x, d: x.atu - x.ant })).filter((x) => x.d !== 0)
-    return { sobem: l.filter((x) => x.d > 0).sort((p, q) => q.d - p.d || q.atu - p.atu).slice(0, 7), caem: l.filter((x) => x.d < 0).sort((p, q) => p.d - q.d || q.ant - p.ant).slice(0, 7) }
+    return { todos: [...l].sort((p, q) => q.d - p.d), sobem: l.filter((x) => x.d > 0).sort((p, q) => q.d - p.d || q.atu - p.atu).slice(0, 7), caem: l.filter((x) => x.d < 0).sort((p, q) => p.d - q.d || q.ant - p.ant).slice(0, 7) }
   }, [atual, anterior, dim])
 
   const Lista = ({ itens, tit, cor }: { itens: typeof sobem; tit: string; cor: string }) => (
@@ -104,11 +125,12 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
   )
 
   return (
-    <Card>
+    <Card className="area-comp">
       <div className="mb-3 rounded-2xl border border-violet-100 bg-violet-50/40 p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="font-bold text-navy">Comparativo de períodos</h3>
           <span className="text-xs text-slate-500">Escolha atalhos ou monte o seu: cada lado tem mês e período próprios.</span>
+          <span className="ml-auto flex gap-2 print:hidden"><button className={btnG + ' ' + btnSm} onClick={exportaCsv}>⬇ CSV</button><button className={btnG + ' ' + btnSm} onClick={imprimir} title="Abre a impressão; escolha “Salvar como PDF”">🖨 PDF / imprimir</button></span>
         </div>
         <div className="mb-2 flex flex-wrap gap-2">{presets.map(([l, f]) => <button key={l} className={chip(false)} onClick={f}>{l}</button>)}</div>
         <div className="grid gap-2 lg:grid-cols-2">
@@ -131,6 +153,32 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
           <Metrica titulo="Subcategorias" ant={String(b.subcategorias)} atu={String(a.subcategorias)} delta={a.subcategorias === b.subcategorias ? 'igual' : (a.subcategorias > b.subcategorias ? '▲ +' : '▼ −') + Math.abs(a.subcategorias - b.subcategorias)} bom={a.subcategorias === b.subcategorias ? null : a.subcategorias < b.subcategorias} />
         </div>
         <p className="mt-2 text-[11px] opacity-80">{filtroTxt} Menos chamados e mais % no prazo = melhor. Diferenças pequenas (menos de 5% no volume e 2 p.p. no prazo) contam como estável.</p>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h4 className="text-sm font-bold text-navy">🎯 Metas {temMeta ? <span className="font-normal text-slate-500">(a meta de volume é mensal e proporcional ao período escolhido)</span> : ''}</h4>
+          {podeMetas && !editMeta && <button className={btnG + ' ' + btnSm + ' print:hidden'} onClick={abrirMeta}>{temMeta ? 'Editar metas' : 'Definir metas'}</button>}
+        </div>
+        {editMeta && (
+          <div className="mt-2 flex flex-wrap items-end gap-2 print:hidden">
+            <label className="text-xs font-semibold text-slate-600">Máx. de chamados por mês<input className={inp + ' mt-1 w-40'} inputMode="numeric" value={mt} onChange={(e) => setMt(e.target.value)} placeholder="ex.: 150" /></label>
+            <label className="text-xs font-semibold text-slate-600">Mín. % dentro do prazo<input className={inp + ' mt-1 w-40'} inputMode="decimal" value={mp} onChange={(e) => setMp(e.target.value)} placeholder="ex.: 90" /></label>
+            <button className={btnP + ' ' + btnSm} onClick={salvarMeta}>Salvar</button><button className={btnG + ' ' + btnSm} onClick={() => setEditMeta(false)}>Cancelar</button>
+            {msgMeta && <span className="text-xs text-red-600">{msgMeta}</span>}
+          </div>
+        )}
+        {!temMeta ? <p className="mt-1 text-xs text-slate-500">{podeMetas ? 'Defina uma meta de volume e/ou de % no prazo para ver se o período está dentro ou fora dela.' : 'Nenhuma meta definida (Analista Sr e Gerente podem definir).'}</p> : (
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {[['Atual', rotuloA, a, mA], ['Comparar com', rotuloB, b, mB]].map(([t, r, k, m]: any) => (
+              <div key={t} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
+                <div className="text-[11px] font-bold uppercase text-slate-500">{t} · {r}</div>
+                {m.alvoT != null && <div>Volume: <b>{k.total}</b> (meta ≤ {String(m.alvoT).replace('.', ',')}) <b className={m.okT ? 'text-green-700' : 'text-red-600'}>{m.okT ? '✅ dentro' : '❌ acima da meta'}</b></div>}
+                {m.alvoP != null && <div>No prazo: <b>{k.pctPrazo == null ? '—' : Math.round(k.pctPrazo * 100) + '%'}</b> (meta ≥ {m.alvoP}%) {m.okP == null ? '' : <b className={m.okP ? 'text-green-700' : 'text-red-600'}>{m.okP ? '✅ dentro' : '❌ abaixo da meta'}</b>}</div>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">

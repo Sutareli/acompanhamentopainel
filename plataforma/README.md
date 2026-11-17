@@ -23,7 +23,7 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 | 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
 | 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
 | 007 | responsável e fase nos chamados (detalhamento “Quem é responsável” do Pareto) | uma vez, **depois** de 006, e reimporte a base de chamados |
-| 008 → 023 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_023_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
+| 008 → 025 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_025_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
 | 006 | Atividades futuras (por bloco) e Projetos macro/micro (“com quem está”) | uma vez (se ainda não rodou) |
 
 **Atalho:** quem rodou só a 002 pode executar **`supabase/003_a_006_tudo_junto.sql`** (003 + 004 + 005 + 006 em um arquivo, uma única vez) em vez de rodar um por um.
@@ -96,7 +96,7 @@ O antigo backlog foi dividido em dois menus (mesma tabela, coluna `tipo_backlog`
 
 **Importar a base de melhorias** (só Analista Sr): Importar bases → "3 · Base de melhorias" (CSV com ID;Módulo;Melhoria;Descrição;…;Prioridade;Status;10 PRIMEIRAS). Colunas **opcionais**: `RESPONSÁVEL` (nome igual ao de um usuário ativo da plataforma; sem correspondência, defina na tela), `DATA DE ABERTURA`, `Nº DO CHAMADO`, `DATA DA IDEIA`. Etapa inicial: Concluído → Produção · Em andamento → Desenvolvimento · A iniciar com chamado/data de abertura → Chamado aberto · A iniciar na lista "10 primeiras" → Priorização · demais → Ideia. Linhas "Cancelado" não entram; "VOLTAR À CAPA" é ignorada. **Reimportar** atualiza textos, prioridade e posição, mas **não desfaz** etapa, datas, prazo, % nem responsável definidos no sistema (a base só faz a melhoria avançar de status).
 
-**Migração:** quem já rodou até a 019 executa `020_melhorias_e_correcao.sql` e depois `021_melhorias_data_abertura.sql` (a 021 pode ser rodada de novo sem problema, mesmo que uma versão anterior já tenha sido aplicada (as etapas antigas "Aplicada" viram "Produção")). O arquivo `008_a_023_tudo_junto.sql` reúne tudo.
+**Migração:** quem já rodou até a 019 executa `020_melhorias_e_correcao.sql` e depois `021_melhorias_data_abertura.sql` (a 021 pode ser rodada de novo sem problema, mesmo que uma versão anterior já tenha sido aplicada (as etapas antigas "Aplicada" viram "Produção")). O arquivo `008_a_025_tudo_junto.sql` reúne tudo.
 
 **Sem etapas “COMO?” nas Melhorias (migração 023):** o andamento (%) agora acompanha a etapa do funil — Ideia 0% · Priorização 17% · Especificação 33% · Chamado aberto 50% · Desenvolvimento 67% · Homologação 83% · Produção 100% — e não é mais digitado. A tela de detalhe das melhorias não mostra mais as etapas “COMO?” (as já cadastradas ficam guardadas no banco, sem efeito no status/%). A **Correção/manutenção** continua com etapas e % calculado por elas. Quem já rodou até a 022 executa apenas `023_melhorias_andamento_pela_etapa.sql`.
 
@@ -331,16 +331,10 @@ Todas as confirmações de exclusão (reunião, imprevisto, ideia, atividade e e
 - A limpeza do que venceu acontece ao abrir a Lixeira e na verificação semanal de segurança.
 - Ao restaurar uma etapa cuja atividade também foi excluída, restaure primeiro a atividade.
 
-## Agente de segurança semanal (migração 013 + função `agente-seguranca`)
-**Como funciona** (duas camadas, de propósito):
-1. **Verificação fixa no banco** (`seguranca_verificar`): confere RLS ligado, views com `security_invoker`, permissões de visitante (anon), funções abertas, `search_path` e políticas de escrita “abertas”. O que está numa **lista segura** é **corrigido sozinho**; o resto vira “pendente” para você decidir. Tudo é registrado.
+## Verificação de segurança (migração 013)
+**Como funciona:** a função do banco `seguranca_verificar` confere RLS ligado, views com `security_invoker`, permissões de visitante (anon), funções abertas, etc., corrige sozinha o que é seguro corrigir e lista o que precisa da sua decisão. Roda no botão **Verificar agora** e (opcional) por agendamento semanal.
 
-**Onde ver:** botão **🛡️ Segurança**, no fim do menu, só para o Analista Sr (no celular, o escudo no topo). Mostra falhas encontradas, corrigidas, pendentes e histórico. Botão: *Verificar agora*.
-
-**Sem IA:** o botão *Verificar agora* roda as regras fixas do banco. (A função `agente-seguranca` ainda existe na pasta, mas a tela não a chama; pode ficar sem publicar.)
-
-**Limites:** a correção automática cobre só os casos da lista segura; políticas abertas e regras de negócio ficam como pendência para você. Confirme também, no Supabase, que o **cadastro público (signup) está desativado**. A função e a conexão com a API da Anthropic não foram testadas contra um projeto Supabase real; a prévia só simula a tela.
-
+**Onde ver:** botão **🛡️ Segurança**, no fim do menu, só para o Analista Sr (no celular, o escudo no topo). Mostra falhas encontradas, corrigidas, pendentes e histórico. **Não usa IA** (a função antiga `agente-seguranca` foi removida do projeto).
 
 ## Teste de carga (10 usuários simultâneos) e desempenho — migração 014
 **O que foi medido** (Postgres local com o `001_schema.sql`, as mesmas regras de acesso (RLS) e views; 10 usuários com 1 ano de uso cada: 75 mil tarefas, 2,5 mil registros de agenda, 1.226 chamados → ~1.180 atividades de Backlog, 600 etapas):
@@ -401,5 +395,18 @@ A importação de Projetos lê o CSV da aba **Microprojetos** exatamente como a 
 - **Projetos**: o CSV da aba Macroprojetos (com a coluna **Responsável** adicionada) é reconhecido pela ausência de Criticidade e Quantidade: entra como **Projeto**, criticidade **média**, **1 unidade** no status da coluna Status (Concluído, Em andamento, A iniciar; Cancelado/Suspenso → cancelado). Data Target inválida (“A definir”) vira erro na lista.
 - **Responsável** aceita e-mail, nome completo, **primeiro nome/sobrenome** (ex.: “Higor”) ou **iniciais** (ex.: “MA”), desde que resolva para uma única pessoa ativa.
 
+## Novidades da migração 025 (feriados, metas, comentários, backup, avisos)
+Aplique `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_025_tudo_junto.sql`). É idempotente e **não apaga dados**.
+
+- **🔔 Atenção** (Diretor, Gerente, Analista Sr; é a tela inicial deles): cartões clicáveis com melhorias de prazo vencido, SLA vencido, sem responsável, correções vencidas e atividades com data target vencida, mais suas **menções**.
+- **Feriados no SLA:** *Configurações → Feriados*. Os nacionais já vêm até 2028; Analista Sr e Gerente incluem/removem. O SLA em dias úteis pula fim de semana **e** feriados (tela e banco usam a mesma regra).
+- **Análise de chamados:** comparativo com **período livre** (mês × mês, quinzena × quinzena, mesmos dias…), **metas** (máx. de chamados/mês, proporcional ao período, e mín. % no prazo; Analista Sr e Gerente definem), **evolução mês a mês** das principais subcategorias/tipos/categorias e exportação **CSV / PDF (imprimir)** do comparativo.
+- **💬 Comentários e @menções** em ideias, correções, projetos e atividades. Quem é mencionado vê o aviso em Atenção ou no To do diário por 14 dias. Apagar: o autor ou o Analista Sr.
+- **💾 Backup** (*Segurança*): cópia interna automática toda segunda, 03:00 (guarda as 8 últimas), botão *Gerar agora* e *Baixar JSON* para guardar fora do Supabase. Jornadas pessoais e atas não entram (privadas).
+- **↩ Desfazer última carga** (*Importar bases*): devolve a base de chamados anterior. Atividades do Backlog já criadas pela carga errada não são apagadas.
+- **✉️ Aviso semanal por e-mail** (*Segurança*): resumo toda segunda, 08:00, para `jsilas@almavivadobrasil.com.br` (editável). Exige passos manuais: **AVISOS_POR_EMAIL.md**.
+- **Versão no menu:** o rodapé do menu mostra o identificador do commit publicado (ajuda a confirmar que o deploy terminou).
+- **Testes automáticos:** `npm test` (regras) e `tests/sql/025_testes.sql` (banco), rodados a cada envio ao GitHub (`.github/workflows/ci.yml`). Para mudar com segurança: **AMBIENTE_DE_TESTE.md**.
+
 ## Ordem do menu lateral
-To do diário · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Melhorias · Correção/manutenção · Análise de chamados · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).
+Atenção (só Diretor, Gerente e Analista Sr) · To do diário · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Melhorias · Correção/manutenção · Análise de chamados · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).

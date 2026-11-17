@@ -1,3 +1,4 @@
+import MencoesCard from '../components/MencoesCard'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
@@ -96,6 +97,7 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
   return (
     <div className="space-y-4">
       {err && <Msg kind="erro">{err} <button className="underline" onClick={load}>Tentar novamente</button></Msg>}
+      <MencoesCard onNavigate={onNavigate} />
       {date !== todayStr() && <Msg kind="aviso">O dia em exibição é {fmtDate(date)}.</Msg>}
 
       <div className="flex flex-wrap items-center justify-between gap-2">

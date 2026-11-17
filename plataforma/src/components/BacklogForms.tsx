@@ -103,7 +103,7 @@ export function MelhoriaForm({ init, modulos, temEtapas, funil = false, usuarios
         {funil && (<>
           <Field label="⏱ SLA: chamado aberto → desenvolvimento (dias úteis)"><input className={inp} type="number" min={1} max={60} disabled={!podeSla} value={f.sla_chamado_dias_uteis ?? SLA_PADRAO.chamado_dias_uteis} onChange={(e) => set('sla_chamado_dias_uteis', e.target.value as any)} /></Field>
           <Field label="⏱ SLA: desenvolvimento → homologação (dias corridos)"><input className={inp} type="number" min={1} max={365} disabled={!podeSla} value={f.sla_dev_dias_corridos ?? SLA_PADRAO.dev_dias_corridos} onChange={(e) => set('sla_dev_dias_corridos', e.target.value as any)} /></Field>
-          <p className="-mt-1 text-xs text-slate-500 sm:col-span-2">{podeSla ? 'SLA próprio desta melhoria (padrão 3 dias úteis e 15 dias corridos). Só Analista Sr e Gerente alteram; feriados não são descontados.' : '🔒 O SLA desta melhoria só pode ser alterado por Analista Sr e Gerente.'}</p>
+          <p className="-mt-1 text-xs text-slate-500 sm:col-span-2">{podeSla ? 'SLA próprio desta melhoria (padrão 3 dias úteis e 15 dias corridos). Só Analista Sr e Gerente alteram; os feriados cadastrados em Configurações são descontados.' : '🔒 O SLA desta melhoria só pode ser alterado por Analista Sr e Gerente.'}</p>
         </>)}
         {(funil ? f.fase === 'producao' : f.status === 'Concluído' || f.data_conclusao) && <Field label={funil ? '✅ Em produção desde' : 'Data de finalização (conclusão real)'}><input className={inp} type="date" value={f.data_conclusao || ''} onChange={(e) => set('data_conclusao', e.target.value)} /></Field>}
         {txt('observacoes', 'Observações')}
