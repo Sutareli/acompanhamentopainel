@@ -24,7 +24,7 @@ import { AvisoCapacidade } from './components/AvisoCapacidade'
 import { canAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
 const ITEMS: [string, string, string][] = [
-  ['painel', '🏠', 'Atividades diárias'], ['micro', '📦', 'Projetos'], ['ideias', '💡', 'Ideias'], ['historico', '🕘', 'Histórico'],
+  ['painel', '🏠', 'To do diário'], ['micro', '📦', 'Projetos e atividades'], ['ideias', '💡', 'Ideias'], ['historico', '🕘', 'Histórico'],
   ['atas', '📝', 'Atas importantes'], ['lixeira', '🗑️', 'Lixeira'], ['config', '⚙️', 'Configurações'],
 ]
 /** Ordem do menu: itens pessoais → equipe → backlog → Importar bases (só Analista Sr). O botão Segurança fica sozinho no rodapé. Imprevistos abre por um botão no Painel. */

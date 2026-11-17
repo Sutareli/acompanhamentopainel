@@ -7,7 +7,7 @@ export interface TarefaPainel { id: string; descricao: string; concluida: boolea
 export interface BlocoPainel { id: string; numero: number; nome: string; daily_tasks: TarefaPainel[] }
 
 /**
- * Transfere tarefas de Atividades diárias para Projetos (microprojetos). Cada tarefa vira UM microprojeto com os padrões:
+ * Transfere tarefas de To do diário para Projetos (atividades). Cada tarefa vira UM atividade com os padrões:
  * criticidade média · data target = dia seguinte · status A iniciar (1 unidade) · responsável = quem está logado.
  */
 export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onNavigate }: {
@@ -38,13 +38,13 @@ export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onN
     const linhas = escolhidas.map((t) => ({
       criticidade: 'media', responsavel_id: uid, criado_por: uid, demanda: t.descricao.trim().slice(0, 300), data_target: alvo,
       quantidade: 1, a_iniciar: 1, em_andamento: 0, concluido: 0, cancelado: 0, tipo_projeto: 'micro',
-      observacoes: `Criado a partir de Atividades diárias (${t.bloco.nome}, ${fmtDate(data)}).`,
+      observacoes: `Criado a partir de To do diário (${t.bloco.nome}, ${fmtDate(data)}).`,
     }))
     const r = await supabase.from('microdeliveries').insert(linhas).select('id')   // uma requisição: entra tudo ou nada
     if (r.error) { setBusy(false); return setErr('Não foi possível criar os projetos: ' + r.error.message) }
     if (remover) {
       const d = await supabase.from('daily_tasks').delete().in('id', escolhidas.map((t) => t.id))
-      if (d.error) setErr('Os projetos foram criados, mas não consegui remover as tarefas de Atividades diárias: ' + d.error.message)
+      if (d.error) setErr('Os projetos foram criados, mas não consegui remover as tarefas de To do diário: ' + d.error.message)
     }
     setBusy(false); setOk(escolhidas.length); onDone()
   }
@@ -54,7 +54,7 @@ export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onN
       <div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         {ok !== null ? (<>
           <h3 className="mb-2 text-lg font-bold text-navy">✅ {ok} projeto(s) criado(s)</h3>
-          <p className="mb-4 text-sm text-slate-600">Eles já estão em <b>Projetos</b> como <b>microprojeto</b>, criticidade <b>Média</b>, status <b>A iniciar</b> e data target <b>{fmtDate(alvo)}</b>.</p>
+          <p className="mb-4 text-sm text-slate-600">Eles já estão em <b>Projetos</b> como <b>atividade</b>, criticidade <b>Média</b>, status <b>A iniciar</b> e data target <b>{fmtDate(alvo)}</b>.</p>
           {err && <Msg kind="aviso">{err}</Msg>}
           <div className="flex justify-end gap-2">
             <button className={btnG} onClick={onClose}>Fechar</button>
@@ -62,7 +62,7 @@ export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onN
           </div>
         </>) : (<>
           <h3 className="mb-1 text-lg font-bold text-navy">📦 Enviar tarefas para Projetos</h3>
-          <p className="mb-3 text-sm text-slate-600">Marque as tarefas de {fmtDate(data)}. Cada uma vira um <b>microprojeto</b> com: criticidade <b>Média</b> · status <b>A iniciar</b> · data target <b>{fmtDate(alvo)}</b> (dia seguinte) · você como responsável.</p>
+          <p className="mb-3 text-sm text-slate-600">Marque as tarefas de {fmtDate(data)}. Cada uma vira um <b>atividade</b> com: criticidade <b>Média</b> · status <b>A iniciar</b> · data target <b>{fmtDate(alvo)}</b> (dia seguinte) · você como responsável.</p>
           {todas.length === 0 ? <p className="py-6 text-center text-sm text-slate-400">Não há tarefas neste dia.</p> : (
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
               <div className="flex gap-2">
@@ -89,7 +89,7 @@ export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onN
           )}
           <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm text-slate-600">
             <input type="checkbox" className="mt-1" checked={remover} onChange={(e) => setRemover(e.target.checked)} />
-            <span>Remover as tarefas enviadas de Atividades diárias (transferir). Desmarcado, elas ficam lá também (copiar).</span>
+            <span>Remover as tarefas enviadas de To do diário (transferir). Desmarcado, elas ficam lá também (copiar).</span>
           </label>
           {err && <div className="mt-2"><Msg kind="erro">{err}</Msg></div>}
           <div className="mt-4 flex justify-end gap-2">

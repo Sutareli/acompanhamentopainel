@@ -100,7 +100,7 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Atividades diárias</h1>
+          <h1 className="text-2xl font-bold text-navy">To do diário</h1>
           <p className="text-sm text-slate-500">
             {saud}, {profile!.nome.split(' ')[0]}! {new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'UTC' })}, {fmtDate(date)}
           </p>

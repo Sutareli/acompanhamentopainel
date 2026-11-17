@@ -52,13 +52,24 @@ Calculado a partir da distribuição numérica (a iniciar `a`, em andamento `e`,
 
 ---
 
-## Atividades diárias (antigo “Painel”)
-- A página **Painel** agora se chama **Atividades diárias** (menu e título).
+## Nomes dos painéis (atualizado)
+| Menu | Antes |
+|---|---|
+| **To do diário** | Atividades diárias |
+| **Projetos e atividades** (lista com filtro Todos · **Projetos** · **Atividades**) | Projetos (com MacroProjetos e MicroProjetos) |
+Dentro de “Projetos e atividades”, *Projeto* = antigo MacroProjeto e *Atividade* = antigo MicroProjeto. Nada muda no banco (`tipo_projeto` continua `macro`/`micro`). A importação por CSV aceita as palavras antigas e as novas na coluna de tipo.
+
+## Gestão da equipe — filtro de período e tendência das atividades
+- **Filtro de período** (De / Até, com atalhos *Este mês*, *Mês passado*, *Últimos 90 dias*): vale para **todos** os números, gráficos, contagens das abas, comparativo e CSV da tela. Você escolhe se o filtro usa o **prazo (data target)** ou a **data de cadastro**.
+- **📈 Tendência das atividades**: mostra as demandas **mais registradas**, os registros por mês e um **resumo automático** calculado direto dos registros (sem IA e sem custo), conforme o período filtrado.
+
+## To do diário (antigo “Painel”)
+- A página **Painel** agora se chama **To do diário** (menu e título).
 - Cada bloco tem **rolagem lateral** própria para a lista de tarefas (também nas atividades futuras e na transferência para amanhã): o card não estica mais com muitas tarefas.
 - O texto de cada tarefa **quebra linha e aparece inteiro** dentro do card (Enter confirma a edição).
 - O nome de cada bloco pode ser trocado pelo **✏️ ao lado do título** (ou por “Editar nome e duração”); vale também para os dias seguintes. Nomes longos quebram linha no título.
 
-## Atividades futuras (Atividades diárias)
+## Atividades futuras (To do diário)
 
 Cada bloco do Painel tem o quadro **📅 Atividades futuras**: escreva a atividade e escolha uma data (a partir de amanhã). Ela fica guardada e **continua visível no bloco** (com a data / “amanhã”) mesmo depois de **Limpar lista do dia**. Quando a data chega, ao abrir o Painel ela entra **uma única vez** na lista do bloco, no fim, como uma tarefa normal (se a data passou com o sistema fechado, entra no próximo acesso). Depois de incorporada, limpar o dia a remove como qualquer tarefa, e ela **não é copiada** para o dia seguinte. Cada pessoa vê e altera só as suas; Diretor/Gerente/Analista Sr podem ler. A tabela é `atividades_futuras` (migração 006).
 
@@ -68,7 +79,7 @@ No lugar da caixa de observações, cada bloco tem o botão **➡️ Alterar par
 
 ## Projetos (antes “Microentregas”)
 
-O menu **Microentregas** agora se chama **Projetos** (a tabela no banco continua `microdeliveries`). No cadastro há o seletor **MacroProjeto / MicroProjeto**; MacroProjeto tem ainda **Com quem está agora**. A lista tem filtro Todos · MacroProjetos · MicroProjetos. Projetos já existentes viram MicroProjeto automaticamente. Em **Gestão da equipe** há a alternância **Consolidado · MacroProjetos · MicroProjetos**: consolidado traz o comparativo macro × micro e as contagens por pessoa; MacroProjetos traz o quadro (projeto, responsável, com quem está, status, progresso, target) e “com quem estão os projetos em aberto”; MicroProjetos mantém os gráficos anteriores.
+O menu **Microentregas** agora se chama **Projetos** (a tabela no banco continua `microdeliveries`). No cadastro há o seletor **Projeto / Atividade**; Projeto tem ainda **Com quem está agora**. A lista tem filtro Todos · Projetos · Atividades. Projetos já existentes viram Atividade automaticamente. Em **Gestão da equipe** há a alternância **Consolidado · Projetos · Atividades**: consolidado traz o comparativo macro × micro e as contagens por pessoa; Projetos traz o quadro (projeto, responsável, com quem está, status, progresso, target) e “com quem estão os projetos em aberto”; Atividades mantém os gráficos anteriores.
 
 ### Chamados da base alimentam o Backlog (painel único) — migração 008
 
@@ -263,7 +274,7 @@ Cada pessoa, em **Configurações**, importa o JSON de backup do painel antigo. 
 - (Versão atual) Prévia no Chromium com banco simulado: Backlog (painel, detalhe, etapas, histórico), Pareto (números conferidos contra a planilha de origem: 133 chamados/109 no prazo em outubro), Importar bases (modelo CSV, arquivo com erros bloqueado, importação, reimportação sem duplicar, chamados via nova janela), menus por perfil e celular.
 - O leitor de CSV (aspas, quebras de linha, `;`/`,`, datas dd/mm/aaaa e número de série do Excel) foi exercitado com a base real de 1.226 linhas.
 
-- (Versão atual) Migração 006: cadeia `001 antigo → 002 → 003_a_006` e `001` novo produzem catálogos **idênticos** (472 linhas). Testado no Postgres: `futuras_incorporar` (incorpora vencidas e de hoje uma única vez, 2ª chamada devolve 0, data futura recusada), limpar dia não apaga futuras pendentes, RLS (não cria em nome de terceiro, outro usuário não apaga nem altera), MacroProjeto com “com quem”, “com quem” inativo e tipo inválido recusados, histórico das mudanças de tipo/com quem, `com_quem_nome` na visão.
+- (Versão atual) Migração 006: cadeia `001 antigo → 002 → 003_a_006` e `001` novo produzem catálogos **idênticos** (472 linhas). Testado no Postgres: `futuras_incorporar` (incorpora vencidas e de hoje uma única vez, 2ª chamada devolve 0, data futura recusada), limpar dia não apaga futuras pendentes, RLS (não cria em nome de terceiro, outro usuário não apaga nem altera), Projeto com “com quem”, “com quem” inativo e tipo inválido recusados, histórico das mudanças de tipo/com quem, `com_quem_nome` na visão.
 - (Versão atual) Prévia no Chromium: quadro de atividades futuras por bloco (permanece após limpar; incorporação de vencida), Projetos (filtro, seletor de tipo, “com quem”), Gestão da equipe nas 3 visões, painel de status executivo, Pareto com “Tipo de chamado” em largura total. Sem erros de console.
 
 - (Versão atual) Prévia no Chromium: “Alterar para dia seguinte” (seleção de 2 tarefas, bloco de 7 para 5 tarefas, aparecem como “amanhã” nas futuras do bloco).
@@ -327,24 +338,7 @@ Todas as confirmações de exclusão (reunião, imprevisto, ideia, atividade e e
 
 **Onde ver:** botão **🛡️ Segurança**, no fim do menu, só para o Analista Sr (no celular, o escudo no topo). Mostra falhas encontradas, corrigidas, pendentes, resumo da IA e histórico. Botões: *Verificar agora* (sem IA) e *Verificar com IA*.
 
-**Ativar:**
-1. Rode a migração 013 (já está no `008_a_023_tudo_junto.sql`). Se a extensão **pg_cron** estiver ativa no Supabase (Database → Extensions), ela já agenda a verificação **toda segunda, 09:00 UTC** (sem IA).
-2. Para o resumo com IA e/ou agendamento pela função:
-```
-supabase functions deploy agente-seguranca --no-verify-jwt
-supabase secrets set CRON_SECRET=UM-TEXTO-ALEATORIO-COM-MAIS-DE-24-CARACTERES
-supabase secrets set ANTHROPIC_API_KEY=sua-chave
-supabase secrets set ANTHROPIC_MODEL=claude-sonnet-5-5
-```
-3. Agendar a função toda semana (SQL Editor; requer pg_cron + pg_net; troque URL e segredo):
-```
-select cron.schedule('agente-seguranca-ia', '0 9 * * 1', $$
-  select net.http_post(
-    url := 'https://SEU-REF.supabase.co/functions/v1/agente-seguranca',
-    headers := jsonb_build_object('x-cron-secret', 'O-MESMO-CRON_SECRET', 'content-type', 'application/json'),
-    body := '{}'::jsonb) $$);
-```
-(Sem pg_cron/pg_net, qualquer agendador externo que faça um POST nessa URL com o cabeçalho `x-cron-secret` serve.) Se usar este passo, remova o agendamento simples: `select cron.unschedule('seguranca-semanal');`.
+**Ativar (opcional):** o botão *Verificar agora* funciona sem IA. A parte com IA exige publicar a função `agente-seguranca` e cadastrar `ANTHROPIC_API_KEY` nos Secrets do Supabase (serviço pago); se não quiser, ignore.
 
 **Limites:** a correção automática cobre só os casos da lista segura; políticas abertas e regras de negócio ficam como pendência para você. Confirme também, no Supabase, que o **cadastro público (signup) está desativado**. A função e a conexão com a API da Anthropic não foram testadas contra um projeto Supabase real; a prévia só simula a tela.
 
@@ -405,8 +399,8 @@ A importação de Projetos lê o CSV da aba **Microprojetos** exatamente como a 
 - **Linhas com erro não travam mais a importação**: as válidas entram e as com problema (responsável vazio, data inválida como “A definir” ou “12/11/206”, quantidade zero) aparecem na lista com o número da linha. Depois de corrigir, reenvie o arquivo: o que já entrou é pulado.
 - O responsável precisa existir como **usuário ativo** (nome idêntico ou e-mail); acento e maiúscula não importam.
 - Linhas **não recorrentes** idênticas (mesma demanda, responsável e data) continuam sendo puladas como repetidas.
-- **MacroProjetos**: o CSV da aba Macroprojetos (com a coluna **Responsável** adicionada) é reconhecido pela ausência de Criticidade e Quantidade: entra como **MacroProjeto**, criticidade **média**, **1 unidade** no status da coluna Status (Concluído, Em andamento, A iniciar; Cancelado/Suspenso → cancelado). Data Target inválida (“A definir”) vira erro na lista.
+- **Projetos**: o CSV da aba Macroprojetos (com a coluna **Responsável** adicionada) é reconhecido pela ausência de Criticidade e Quantidade: entra como **Projeto**, criticidade **média**, **1 unidade** no status da coluna Status (Concluído, Em andamento, A iniciar; Cancelado/Suspenso → cancelado). Data Target inválida (“A definir”) vira erro na lista.
 - **Responsável** aceita e-mail, nome completo, **primeiro nome/sobrenome** (ex.: “Higor”) ou **iniciais** (ex.: “MA”), desde que resolva para uma única pessoa ativa.
 
 ## Ordem do menu lateral
-Atividades diárias · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Melhorias · Correção/manutenção · Pareto backlog · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).
+To do diário · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Melhorias · Correção/manutenção · Pareto backlog · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).

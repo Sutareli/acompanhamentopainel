@@ -45,7 +45,7 @@ export const STATUS_LABEL: Record<StatusGeral, string> = { a_iniciar: 'A iniciar
 export const STATUS_COLOR: Record<StatusGeral, string> = { a_iniciar: '#94a3b8', em_andamento: '#2563eb', concluido: '#16a34a', concluido_parcial: '#0d9488', cancelado: '#f87171' }
 
 export type TipoProjeto = 'macro' | 'micro'
-export const TIPO_LABEL: Record<TipoProjeto, string> = { macro: 'MacroProjeto', micro: 'MicroProjeto' }
+export const TIPO_LABEL: Record<TipoProjeto, string> = { macro: 'Projeto', micro: 'Atividade' }
 export const TIPO_COLOR: Record<TipoProjeto, string> = { macro: '#2e1a6e', micro: '#0e7490' }
 
 export interface Micro {

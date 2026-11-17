@@ -118,7 +118,7 @@ function MicroCard({ onNavigate }: { onNavigate: (p: string) => void }) {
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="text-lg font-bold text-navy">2 · Projetos (macro e micro)</h2>
+          <h2 className="text-lg font-bold text-navy">2 · Projetos e atividades</h2>
           <p className="text-sm text-slate-600">Adiciona projetos em lote (não apaga as existentes; linhas iguais — mesma demanda, responsável e data target — são puladas). O histórico de criação é gravado como no cadastro manual.</p>
         </div>
         <div className="flex gap-2">
@@ -126,7 +126,7 @@ function MicroCard({ onNavigate }: { onNavigate: (p: string) => void }) {
           <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('micro')}>Abrir Projetos →</button>
         </div>
       </div>
-      <p className="mt-2 text-xs text-slate-500">Colunas: DEMANDA, RESPONSÁVEL (e-mail ou nome exato de um usuário ativo), CRITICIDADE (alta/média/baixa/recorrente), DATA TARGET (dd/mm/aaaa; “Recorrente” usa o último dia do mês da coluna MÊS_REF), QUANTIDADE, A INICIAR, EM ANDAMENTO, CONCLUÍDO, CANCELADO, RESUMO, OBSERVAÇÕES, TIPO (macro ou micro; vazio = micro) e COM QUEM ESTÁ (só para macro; opcional). Sem distribuição informada, tudo entra como “a iniciar”. Planilha de MacroProjetos (sem as colunas CRITICIDADE e QUANTIDADE): entra como MacroProjeto, criticidade média, 1 unidade no status da coluna STATUS; RESPONSÁVEL pode ser nome completo, primeiro nome ou iniciais (se for único). A soma dos status deve igualar a quantidade.</p>
+      <p className="mt-2 text-xs text-slate-500">Colunas: DEMANDA, RESPONSÁVEL (e-mail ou nome exato de um usuário ativo), CRITICIDADE (alta/média/baixa/recorrente), DATA TARGET (dd/mm/aaaa; “Recorrente” usa o último dia do mês da coluna MÊS_REF), QUANTIDADE, A INICIAR, EM ANDAMENTO, CONCLUÍDO, CANCELADO, RESUMO, OBSERVAÇÕES, TIPO (macro ou micro; vazio = micro) e COM QUEM ESTÁ (só para macro; opcional). Sem distribuição informada, tudo entra como “a iniciar”. Planilha de Projetos (sem as colunas CRITICIDADE e QUANTIDADE): entra como Projeto, criticidade média, 1 unidade no status da coluna STATUS; RESPONSÁVEL pode ser nome completo, primeiro nome ou iniciais (se for único). A soma dos status deve igualar a quantidade.</p>
       <div className="mt-3 space-y-3 text-sm">
         <input key={key} type="file" accept=".csv,text/csv" aria-label="CSV de projetos" onChange={(e) => escolher(e.target.files?.[0])} />
         {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}

@@ -22,11 +22,11 @@ export default function Microentregas({ presetResp, presetTipo }: { presetResp?:
   const [errDel, setErrDel] = useState('')
   async function excluir(r: Micro) {
     setErrDel('')
-    if (!(await confirmar({ titulo: 'Excluir projeto?', mensagem: <>Excluir <b>“{r.demanda}”</b> com o histórico de alterações? Fica na <b>Lixeira por 48 horas</b> e pode ser restaurado; depois disso some de vez. Para só encerrar o projeto sem apagar, use <b>Editar</b> e marque as unidades como canceladas.</>, confirmar: 'Excluir projeto', perigo: true }))) return
+    if (!(await confirmar({ titulo: 'Excluir item?', mensagem: <>Excluir <b>“{r.demanda}”</b> com o histórico de alterações? Fica na <b>Lixeira por 48 horas</b> e pode ser restaurado; depois disso some de vez. Para só encerrar o projeto sem apagar, use <b>Editar</b> e marque as unidades como canceladas.</>, confirmar: 'Excluir projeto', perigo: true }))) return
     const x = await supabase.from('microdeliveries').delete().eq('id', r.id).select('id')
     if (x.error) return setErrDel('Não foi possível excluir: ' + x.error.message)
-    if (!x.data?.length) return setErrDel('Você não tem permissão para excluir este projeto (somente quem o criou ou o Analista Sr).')
-    setMsg('Projeto excluído.'); reload()
+    if (!x.data?.length) return setErrDel('Você não tem permissão para excluir este item (somente quem o criou ou o Analista Sr).')
+    setMsg('Item excluído.'); reload()
   }
 
   const ativos = profiles.filter((p) => p.ativo)
@@ -50,14 +50,14 @@ export default function Microentregas({ presetResp, presetTipo }: { presetResp?:
     ]))
   }
 
-  if (loading) return <p className="py-10 text-center text-slate-500">Carregando projetos…</p>
+  if (loading) return <p className="py-10 text-center text-slate-500">Carregando projetos e atividades…</p>
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-navy">Projetos</h1>
+        <h1 className="text-2xl font-bold text-navy">Projetos e atividades</h1>
         <div className="flex gap-2">
           <button className={btnG} onClick={exportCSV} disabled={!list.length}>⬇ Exportar CSV ({list.length})</button>
-          <button className={btnS} onClick={() => setForm({ v: { ...EMPTY, tipo_projeto: fl.tipo || 'micro', responsavel_id: profile!.id } })}>+ Novo Projeto</button>
+          <button className={btnS} onClick={() => setForm({ v: { ...EMPTY, tipo_projeto: fl.tipo || 'micro', responsavel_id: profile!.id } })}>+ Novo (projeto ou atividade)</button>
         </div>
       </div>
       {errDel && <Msg kind="erro">{errDel}</Msg>}
@@ -89,7 +89,7 @@ export default function Microentregas({ presetResp, presetTipo }: { presetResp?:
       </Card>
 
       <Card className="!p-0">
-        {list.length === 0 ? <div className="p-5"><Empty>{rows.length ? 'Nenhum projeto corresponde aos filtros.' : 'Nenhum projeto cadastrado. Use “Novo Projeto”.'}</Empty></div> : (
+        {list.length === 0 ? <div className="p-5"><Empty>{rows.length ? 'Nenhum item corresponde aos filtros.' : 'Nada cadastrado ainda. Use “Novo”.'}</Empty></div> : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1000px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -146,14 +146,14 @@ function FormModal({ init, ativos, uid, onClose, onSaved }: { init: { id?: strin
     const r = init.id ? await supabase.from('microdeliveries').update(payload).eq('id', init.id) : await supabase.from('microdeliveries').insert({ ...payload, criado_por: uid })
     setBusy(false)
     if (r.error) return setErr(r.error.message.includes('soma_confere') ? 'A soma dos status deve ser igual à quantidade total.' : r.error.message)
-    onSaved(init.id ? 'Projeto atualizado.' : 'Projeto cadastrado.')
+    onSaved(init.id ? 'Registro atualizado.' : 'Registro cadastrado.')
   }
 
   return (
-    <Modal title={init.id ? 'Editar projeto' : 'Novo projeto'} onClose={onClose} wide>
+    <Modal title={init.id ? 'Editar registro' : 'Novo registro'} onClose={onClose} wide>
       {err && <Msg kind="erro">{err}</Msg>}
       <form onSubmit={save} className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="col-span-2 text-sm md:col-span-4"><span className="mb-1 block font-medium text-slate-600">Tipo de projeto *</span>
+        <div className="col-span-2 text-sm md:col-span-4"><span className="mb-1 block font-medium text-slate-600">Tipo *</span>
           <div className="inline-flex overflow-hidden rounded-lg border border-slate-300" role="radiogroup" aria-label="Tipo de projeto">
             {(['macro', 'micro'] as TipoProjeto[]).map((t) => (
               <button key={t} type="button" role="radio" aria-checked={v.tipo_projeto === t} onClick={() => setV({ ...v, tipo_projeto: t })}
@@ -239,7 +239,7 @@ function Detail({ m, ativos, onClose, onChanged }: { m: Micro; ativos: any[]; on
           {hist.map((h) => (
             <li key={h.id}>
               <div className="text-xs text-slate-500">{fmtDateTime(h.data_hora)} · {h.usuario?.nome || 'sistema'}</div>
-              {h.campo_alterado === 'criacao' ? <div>Projeto criado.</div> : <div><b>{LABEL[h.campo_alterado] || h.campo_alterado}:</b> {show(h.campo_alterado, h.valor_anterior)} → {show(h.campo_alterado, h.valor_novo)}</div>}
+              {h.campo_alterado === 'criacao' ? <div>Registro criado.</div> : <div><b>{LABEL[h.campo_alterado] || h.campo_alterado}:</b> {show(h.campo_alterado, h.valor_anterior)} → {show(h.campo_alterado, h.valor_novo)}</div>}
             </li>
           ))}
         </ol>
@@ -248,9 +248,9 @@ function Detail({ m, ativos, onClose, onChanged }: { m: Micro; ativos: any[]; on
   )
 }
 
-/** Alternância Todos · MacroProjetos · MicroProjetos (usada no cadastro e na Gestão da equipe). */
+/** Alternância Todos · Projetos · Atividades (usada no cadastro e na Gestão da equipe). */
 export function Seg({ value, onChange, contagem }: { value: '' | TipoProjeto; onChange: (t: '' | TipoProjeto) => void; contagem?: Record<string, number> }) {
-  const opts: ['' | TipoProjeto, string][] = [['', 'Todos'], ['macro', 'MacroProjetos'], ['micro', 'MicroProjetos']]
+  const opts: ['' | TipoProjeto, string][] = [['', 'Todos'], ['macro', 'Projetos'], ['micro', 'Atividades']]
   return (
     <div className="inline-flex flex-wrap overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" role="tablist" aria-label="Tipo de projeto">
       {opts.map(([k, l]) => (

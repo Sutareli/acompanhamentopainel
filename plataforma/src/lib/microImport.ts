@@ -31,7 +31,7 @@ export function lerMicro(text: string, pessoas: PessoaRef[], existentes: Set<str
   const vazio = (e: string): LeituraMicro => ({ rows: [], nomes: [], erros: [], duplicadas: 0, agrupadas: 0, vazias: 0, erroGeral: e })
   if (t.length < 2) return vazio('O arquivo está vazio ou sem linhas de dados.')
   const idx: Record<string, number> = {}; t[0].forEach((h, i) => { const k = hnorm(h); if (k && !(k in idx)) idx[k] = i })
-  const arqMacro = !('criticidade' in idx) && !('quantidade' in idx)   // planilha de MacroProjetos: sem criticidade/quantidade → macro, média, 1 unidade com o status da linha
+  const arqMacro = !('criticidade' in idx) && !('quantidade' in idx)   // planilha de Projetos: sem criticidade/quantidade → macro, média, 1 unidade com o status da linha
   const faltam = ['demanda', 'responsavel', 'datatarget', ...(arqMacro ? [] : ['criticidade'])].filter((k) => !(k in idx))
   if (faltam.length) return vazio('Colunas obrigatórias não encontradas: ' + faltam.join(', ') + '. Use o modelo padrão.')
   const g = (r: string[], k: string) => (k in idx ? r[idx[k]] : undefined)
@@ -69,12 +69,12 @@ export function lerMicro(text: string, pessoas: PessoaRef[], existentes: Set<str
     }
     if (!dt) return err('Data target inválida (use dd/mm/aaaa).')
     const tipoTxt = hnorm(g(r, 'tipo') || '')
-    const tipo: TipoProjeto | null = arqMacro ? 'macro' : tipoTxt === '' || tipoTxt === 'micro' || tipoTxt === 'microprojeto' ? 'micro' : tipoTxt === 'macro' || tipoTxt === 'macroprojeto' ? 'macro' : null
+    const tipo: TipoProjeto | null = arqMacro ? 'macro' : tipoTxt === '' || tipoTxt === 'micro' || tipoTxt === 'microprojeto' || tipoTxt === 'atividade' ? 'micro' : tipoTxt === 'macro' || tipoTxt === 'macroprojeto' || tipoTxt === 'projeto' ? 'macro' : null
     if (!tipo) return err('Tipo inválido (use macro ou micro; vazio = micro).')
     const cq = (g(r, 'comquemesta') || '').trim()
     let comQuem: string | null = null
     if (cq) {
-      if (tipo !== 'macro') return err('"Com quem está" só se aplica a MacroProjetos.')
+      if (tipo !== 'macro') return err('"Com quem está" só se aplica a Projetos.')
       const pc = achar(cq)
       if (!pc || pc === 'ambiguo') return err(`"Com quem está" "${cq}" não encontrado entre os usuários ativos (use o e-mail ou o nome exato).`)
       comQuem = pc.id

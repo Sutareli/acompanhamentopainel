@@ -6,10 +6,24 @@ import { canAdmin, CRIT_COLOR, CRIT_LABEL, download, fmtDate, Perfil, PERFIL_LAB
 import { Bar, btnG, btnP, Card, Chip, Empty, Field, HBars, inp, Kpi, Msg, StackBar, VBars } from '../components/ui'
 import Microentregas, { Seg } from './Microentregas'
 import { confirmar } from '../components/Confirm'
+import TendenciaAtividades from '../components/TendenciaAtividades'
 
 export default function Equipe() {
   const { profile } = useAuth()
-  const { rows: todas, profiles, loading, error, reload } = useMicros()
+  const { rows: todasBrutas, profiles, loading, error, reload } = useMicros()
+  // filtro de período (vale para tudo nesta tela): por data target (prazo) ou data de cadastro
+  const [campo, setCampo] = useState<'data_target' | 'criado_em'>('data_target')
+  const [de, setDe] = useState(''); const [ate, setAte] = useState('')
+  const diaDe = (r: Micro) => campo === 'criado_em' ? new Date(r.criado_em).toLocaleDateString('en-CA', { timeZone: TZ }) : r.data_target
+  const todas = useMemo(() => todasBrutas.filter((r) => { const d = diaDe(r); return (!de || d >= de) && (!ate || d <= ate) }), [todasBrutas, campo, de, ate])  // eslint-disable-line react-hooks/exhaustive-deps
+  const temPeriodo = !!(de || ate)
+  const preset = (k: 'mes' | 'mesPassado' | '90') => {
+    const h = todayStr(); const y = +h.slice(0, 4), m = +h.slice(5, 7)
+    const f = (yy: number, mm: number, dd: number) => `${yy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
+    if (k === 'mes') { setDe(f(y, m, 1)); setAte(f(y, m, new Date(y, m, 0).getDate())) }
+    else if (k === 'mesPassado') { const yy = m === 1 ? y - 1 : y, mm = m === 1 ? 12 : m - 1; setDe(f(yy, mm, 1)); setAte(f(yy, mm, new Date(yy, mm, 0).getDate())) }
+    else { const d = new Date(Date.now() - 90 * 86400000).toLocaleDateString('en-CA', { timeZone: TZ }); setDe(d); setAte(h) }
+  }
   const [tipo, setTipo] = useState<'' | TipoProjeto>('')   // '' = consolidado
   const rows = useMemo(() => todas.filter((r) => !tipo || r.tipo_projeto === tipo), [todas, tipo])
   const isGestor = canAdmin(profile!.perfil) // administração de usuários: só Analista Sr (e o banco também exige)
@@ -21,8 +35,8 @@ export default function Equipe() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    supabase.from('microdelivery_history').select('valor_anterior,valor_novo,data_hora').eq('campo_alterado', 'concluido').order('data_hora').limit(10000)
-      .then(({ data }) => setHist(data || []))
+    supabase.from('microdelivery_history').select('valor_anterior,valor_novo,data_hora,microdelivery_id').eq('campo_alterado', 'concluido').order('data_hora').limit(10000)
+      .then(({ data }) => { const ids = new Set(rows.map((r) => r.id)); setHist((data || []).filter((h: any) => ids.has(h.microdelivery_id))) })
   }, [rows])
 
   const sum = (f: (r: any) => number) => rows.reduce((a, r) => a + f(r), 0)
@@ -81,7 +95,7 @@ export default function Equipe() {
 
   function exportResumo() {
     download(`acompanhamento-equipe-${tipo || 'consolidado'}-${todayStr()}.csv`, toCSV([
-      ['Analista', 'MacroProjetos', 'MicroProjetos', 'Total', 'A iniciar', 'Em andamento', 'Concluídas', 'Concl. c/ cancelamentos', 'Atrasadas', '% conclusão (unidades)'],
+      ['Analista', 'Projetos', 'Atividades', 'Total', 'A iniciar', 'Em andamento', 'Concluídas', 'Concl. c/ cancelamentos', 'Atrasadas', '% conclusão (unidades)'],
       ...porResp.map((a) => [a.nome, todas.filter((r) => r.responsavel_id === a.id && r.tipo_projeto === 'macro').length, todas.filter((r) => r.responsavel_id === a.id && r.tipo_projeto === 'micro').length, a.total, a.ini, a.and, a.con, a.par, a.atr, a.pct ?? '—']),
     ]))
   }
@@ -92,21 +106,35 @@ export default function Equipe() {
       <h1 className="text-2xl font-bold text-navy">{isGestor ? 'Gestão da equipe' : 'Visão consolidada da equipe'}</h1>
       <div className="flex flex-wrap items-center gap-3">
         <div className="inline-flex flex-wrap overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" role="tablist" aria-label="Visão dos projetos">
-          {([['', 'Consolidado'], ['macro', 'MacroProjetos'], ['micro', 'MicroProjetos']] as ['' | TipoProjeto, string][]).map(([k, l]) => (
+          {([['', 'Consolidado'], ['macro', 'Projetos'], ['micro', 'Atividades']] as ['' | TipoProjeto, string][]).map(([k, l]) => (
             <button key={k || 'cons'} role="tab" aria-selected={tipo === k} onClick={() => { setTipo(k); setSel(null) }}
               className={'px-4 py-2 text-sm font-semibold transition ' + (tipo === k ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-50')}>
               {l}<span className={'ml-1.5 rounded-full px-1.5 text-xs ' + (tipo === k ? 'bg-white/20' : 'bg-slate-100')}>{k ? todas.filter((r) => r.tipo_projeto === k).length : todas.length}</span>
             </button>
           ))}
         </div>
-        <span className="text-xs text-slate-500">{tipo === 'macro' ? 'Projetos maiores: quem é o responsável e com quem cada um está agora.' : tipo === 'micro' ? 'Projetos menores, acompanhados por unidades.' : 'MacroProjetos e MicroProjetos somados, com o comparativo entre os dois.'}</span>
+        <span className="text-xs text-slate-500">{tipo === 'macro' ? 'Projetos maiores: quem é o responsável e com quem cada um está agora.' : tipo === 'micro' ? 'Projetos menores, acompanhados por unidades.' : 'Projetos e Atividades somados, com o comparativo entre os dois.'}</span>
       </div>
+      <Card className="!p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <Field label="Filtrar por" className="min-w-[190px]"><select className={inp} value={campo} onChange={(e) => setCampo(e.target.value as 'data_target' | 'criado_em')}><option value="data_target">Prazo (data target)</option><option value="criado_em">Data de cadastro</option></select></Field>
+          <Field label="De"><input type="date" className={inp} value={de} max={ate || undefined} onChange={(e) => setDe(e.target.value)} /></Field>
+          <Field label="Até"><input type="date" className={inp} value={ate} min={de || undefined} onChange={(e) => setAte(e.target.value)} /></Field>
+          <div className="flex flex-wrap gap-2 pb-0.5">
+            <button className={btnG + ' !px-3 !py-1.5 !text-xs'} onClick={() => preset('mes')}>Este mês</button>
+            <button className={btnG + ' !px-3 !py-1.5 !text-xs'} onClick={() => preset('mesPassado')}>Mês passado</button>
+            <button className={btnG + ' !px-3 !py-1.5 !text-xs'} onClick={() => preset('90')}>Últimos 90 dias</button>
+            {temPeriodo && <button className={btnG + ' !px-3 !py-1.5 !text-xs'} onClick={() => { setDe(''); setAte('') }}>Limpar período</button>}
+          </div>
+          <span className="pb-1 text-xs text-slate-500">{temPeriodo ? <>Período aplicado a todos os números e gráficos desta tela: <b>{todas.length}</b> de {todasBrutas.length} registros.</> : 'Mostrando todo o período.'}</span>
+        </div>
+      </Card>
       {error && <Msg kind="erro">{error}</Msg>}
       {err && <Msg kind="erro">{err}</Msg>}
       {msg && <Msg kind="ok">{msg}</Msg>}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-8">
-        <Kpi icon="📦" label={tipo === 'macro' ? 'MacroProjetos' : tipo === 'micro' ? 'MicroProjetos' : 'Projetos cadastrados'} value={rows.length} />
+        <Kpi icon="📦" label={tipo === 'macro' ? 'Projetos' : tipo === 'micro' ? 'Atividades' : 'Registros cadastrados'} value={rows.length} />
         <Kpi icon="✅" label="Concluídas" value={cnt('concluido')} color="#16a34a" />
         <Kpi icon="☑️" label="Concl. c/ cancelamentos" value={cnt('concluido_parcial')} color="#0d9488" />
         <Kpi icon="🔵" label="Em andamento" value={cnt('em_andamento')} color="#2563eb" />
@@ -116,6 +144,7 @@ export default function Equipe() {
         <Kpi icon="📈" label="% geral de conclusão" value={pctGeral + '%'} pct={pctGeral} color="#8b3fff" sub="unidades concluídas ÷ (total − canceladas)" />
       </div>
 
+      {tipo !== 'macro' && <TendenciaAtividades rows={todas} campo={campo} de={de} ate={ate} />}
       {tipo === '' && todas.length > 0 && <Comparativo todas={todas} />}
       {tipo === 'macro' && <QuadroMacro rows={rows} profiles={profiles} />}
 
@@ -134,7 +163,7 @@ export default function Equipe() {
         <div className="flex items-center justify-between p-4"><h3 className="font-bold text-navy">Acompanhamento individual</h3><button className={btnG} onClick={exportResumo}>⬇ CSV</button></div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-2">Analista</th>{[...(tipo === '' ? ['Macro', 'Micro'] : []), 'Total', 'A iniciar', 'Em andamento', 'Concluídas', 'Concl. c/ cancel.', 'Atrasadas', '% conclusão'].map((h) => <th key={h} className="px-4 py-2 text-right">{h}</th>)}</tr></thead>
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-2">Analista</th>{[...(tipo === '' ? ['Projetos', 'Atividades'] : []), 'Total', 'A iniciar', 'Em andamento', 'Concluídas', 'Concl. c/ cancel.', 'Atrasadas', '% conclusão'].map((h) => <th key={h} className="px-4 py-2 text-right">{h}</th>)}</tr></thead>
             <tbody>
               {porResp.map((a) => (
                 <tr key={a.id} className="border-t border-slate-100">
@@ -177,7 +206,7 @@ export default function Equipe() {
   )
 }
 
-/** Comparativo lado a lado: MacroProjetos × MicroProjetos (e consolidado). */
+/** Comparativo lado a lado: Projetos × Atividades (e consolidado). */
 function Comparativo({ todas }: { todas: Micro[] }) {
   const calc = (rs: Micro[]) => {
     const u = rs.reduce((a, r) => a + r.quantidade, 0), c = rs.reduce((a, r) => a + r.concluido, 0), x = rs.reduce((a, r) => a + r.cancelado, 0)
@@ -185,14 +214,14 @@ function Comparativo({ todas }: { todas: Micro[] }) {
       con: rs.filter((r) => r.status_geral === 'concluido' || r.status_geral === 'concluido_parcial').length, atr: rs.filter((r) => r.atrasada).length, pct: u - x > 0 ? Math.round((c / (u - x)) * 100) : 0 }
   }
   const cols: [string, string, ReturnType<typeof calc>][] = [
-    ['MacroProjetos', TIPO_COLOR.macro, calc(todas.filter((r) => r.tipo_projeto === 'macro'))],
-    ['MicroProjetos', TIPO_COLOR.micro, calc(todas.filter((r) => r.tipo_projeto === 'micro'))],
+    ['Projetos', TIPO_COLOR.macro, calc(todas.filter((r) => r.tipo_projeto === 'macro'))],
+    ['Atividades', TIPO_COLOR.micro, calc(todas.filter((r) => r.tipo_projeto === 'micro'))],
     ['Consolidado', '#8b3fff', calc(todas)],
   ]
-  const linhas: [string, (c: ReturnType<typeof calc>) => string | number][] = [['Projetos', (c) => c.n], ['A iniciar', (c) => c.ini], ['Em andamento', (c) => c.and], ['Concluídos', (c) => c.con], ['Atrasados', (c) => c.atr]]
+  const linhas: [string, (c: ReturnType<typeof calc>) => string | number][] = [['Registros', (c) => c.n], ['A iniciar', (c) => c.ini], ['Em andamento', (c) => c.and], ['Concluídos', (c) => c.con], ['Atrasados', (c) => c.atr]]
   return (
     <Card>
-      <h3 className="mb-3 font-bold text-navy">Comparativo: MacroProjetos × MicroProjetos</h3>
+      <h3 className="mb-3 font-bold text-navy">Comparativo: Projetos × Atividades</h3>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {cols.map(([nome, cor, c]) => (
           <div key={nome} className="rounded-2xl border border-slate-200 p-4" style={{ borderTop: `4px solid ${cor}` }}>
@@ -209,17 +238,17 @@ function Comparativo({ todas }: { todas: Micro[] }) {
   )
 }
 
-/** MacroProjetos: quadro com responsável e "com quem está", mais a carga atual de cada pessoa. */
+/** Projetos: quadro com responsável e "com quem está", mais a carga atual de cada pessoa. */
 function QuadroMacro({ rows, profiles }: { rows: Micro[]; profiles: { id: string; nome: string; ativo: boolean }[] }) {
   const nome = (id: string | null) => (id ? profiles.find((p) => p.id === id)?.nome || '—' : '')
   const comQuem = (r: Micro) => r.com_quem_id || r.responsavel_id        // sem "com quem está" definido, o projeto está com o próprio responsável
   const pessoas = [...new Set(rows.map(comQuem))].map((id) => ({ id, itens: rows.filter((r) => comQuem(r) === id && r.status_geral !== 'concluido' && r.status_geral !== 'cancelado' && r.status_geral !== 'concluido_parcial') }))
     .sort((a, b) => b.itens.length - a.itens.length)
-  if (rows.length === 0) return <Card><Empty>Nenhum MacroProjeto cadastrado. Em “Projetos”, use Novo Projeto e escolha MacroProjeto.</Empty></Card>
+  if (rows.length === 0) return <Card><Empty>Nenhum projeto cadastrado no período. Em “Projetos e atividades”, use “Novo” e escolha Projeto.</Empty></Card>
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
       <Card className="!p-0 xl:col-span-2">
-        <h3 className="p-4 pb-2 font-bold text-navy">Quadro de MacroProjetos</h3>
+        <h3 className="p-4 pb-2 font-bold text-navy">Quadro de Projetos</h3>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr>{['Projeto', 'Responsável', 'Com quem está', 'Status', 'Progresso', 'Target'].map((h) => <th key={h} className="px-3 py-2">{h}</th>)}</tr></thead>
