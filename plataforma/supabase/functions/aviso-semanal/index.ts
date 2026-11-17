@@ -1,17 +1,15 @@
 // Edge Function (Supabase): envia o RESUMO SEMANAL por e-mail (prazos vencidos, SLA estourado, itens sem responsável).
-// Quem pode chamar: (1) o agendamento (pg_cron) com o cabeçalho x-cron-secret igual ao segredo CRON_SECRET; ou
+// Quem pode chamar: (1) o agendamento (pg_cron), com o cabeçalho x-cron-secret conferido no banco (função cron_secret_ok); ou
 //                   (2) um Analista Sr logado (botão "Enviar agora" em Segurança), para testar.
 // O e-mail sai pelo Resend (https://resend.com). Passo a passo: AVISOS_POR_EMAIL.md.
 //
 // Secrets (Supabase → Edge Functions → Secrets):
 //   RESEND_API_KEY   chave do Resend (obrigatória para enviar)
-//   CRON_SECRET      texto aleatório; o mesmo valor está no Vault do banco (veja 026_agendar_aviso_semanal.sql)
 //   AVISO_REMETENTE  opcional. Ex.: "Gestão de atividades <avisos@seudominio.com.br>" (padrão: onboarding@resend.dev)
 //   SITE_URL         endereço do sistema, usado no link do e-mail
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4'
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
-const igual = (a: string, b: string) => { if (a.length !== b.length) return false; let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0 }
 
 function corsFor(req: Request) {
   const allowed = (Deno.env.get('ALLOWED_ORIGINS') || '').split(',').map((s) => s.trim()).filter(Boolean)
@@ -54,10 +52,10 @@ Deno.serve(async (req) => {
     const admin = createClient(url, service)
 
     // autorização: segredo do agendamento OU Analista Sr logado
-    const segredo = Deno.env.get('CRON_SECRET') || ''
     const enviado = req.headers.get('x-cron-secret') || ''
     let teste = false
-    if (segredo && enviado && igual(segredo, enviado)) { /* agendamento */ } else {
+    const agendado = enviado ? (await admin.rpc('cron_secret_ok', { p: enviado })).data === true : false
+    if (agendado) { /* agendamento */ } else {
       const auth = req.headers.get('Authorization') || ''
       const caller = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: auth } } })
       const { data: { user } } = await caller.auth.getUser()

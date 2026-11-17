@@ -20,7 +20,6 @@ Rode `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_02
 | Nome | Valor |
 |---|---|
 | `RESEND_API_KEY` | a chave do passo 2 |
-| `CRON_SECRET` | um texto aleatório longo (ex.: 40 letras e números); guarde, será usado no passo 5 |
 | `SITE_URL` | endereço do sistema, ex.: `https://seu-app.pages.dev` |
 | `AVISO_REMETENTE` | *(opcional)* ex.: `Gestão de atividades <avisos@seudominio.com.br>` |
 
@@ -33,7 +32,6 @@ Rode `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_02
 No sistema: **🛡️ Segurança → Aviso semanal por e-mail → ✉ Enviar agora (teste)**. O e-mail chega em segundos (olhe o spam). A tela mostra “Último envio” e o resultado.
 
 ## 6. Agendar
-Abra `supabase/026_agendar_aviso_semanal.sql`, troque `<URL_DO_PROJETO>` e `<MESMO_VALOR_DO_CRON_SECRET>` e rode no **SQL Editor**. Pronto: toda segunda, 08:00.
 
 ## Problemas comuns
 | Mensagem em “Último envio” | O que fazer |
@@ -41,4 +39,3 @@ Abra `supabase/026_agendar_aviso_semanal.sql`, troque `<URL_DO_PROJETO>` e `<MES
 | `RESEND_API_KEY não configurada` | Passo 3 |
 | `FALHOU (403)` / `only send testing emails to your own email` | O destinatário não é o dono da conta Resend: use o mesmo e-mail da conta ou verifique um domínio |
 | `FALHOU (401)` | Chave do Resend errada ou revogada: gere outra |
-| Nada acontece na segunda | Confira se o passo 6 foi rodado e se o `CRON_SECRET` do Secret é idêntico ao do SQL |
