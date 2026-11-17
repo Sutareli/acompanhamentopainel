@@ -15,7 +15,6 @@ import Microentregas from './pages/Microentregas'
 import Historico from './pages/Historico'
 import Configuracoes from './pages/Configuracoes'
 import Equipe from './pages/Equipe'
-import Jornadas from './pages/Jornadas'
 import Backlog from './pages/Backlog'
 import ParetoBacklog from './pages/ParetoBacklog'
 import ImportarBases from './pages/ImportarBases'
@@ -66,9 +65,10 @@ export default function App() {
   const viewer = canViewAll(profile.perfil)
   const page = pg ?? (viewer ? 'atencao' : 'painel')
   const items: [string, string, string][] = viewer
-    ? [['atencao', '🔔', 'Atenção'], ...ITEMS, ['equipe', '👥', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ['jornadas', '👀', 'Jornadas da equipe'], ...BACKLOG_ITEMS, ...(canAdmin(profile.perfil) ? IMPORT_ITEM : [])]
+    ? [['atencao', '🔔', 'Atenção'], ...ITEMS, ['equipe', '👥', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...BACKLOG_ITEMS, ...(canAdmin(profile.perfil) ? IMPORT_ITEM : [])]
     : [...ITEMS, ...BACKLOG_ITEMS]
-  const view = ((page === 'equipe' || page === 'jornadas') && !viewer) || ((page === 'importar' || page === 'seguranca') && !canAdmin(profile.perfil)) ? 'painel' : page
+  const pag = page === 'jornadas' ? 'equipe' : page   // 'Jornadas da equipe' agora é um gatilho de análise dentro de Equipe
+  const view = (pag === 'equipe' && !viewer) || ((pag === 'importar' || pag === 'seguranca') && !canAdmin(profile.perfil)) ? 'painel' : pag
 
   return (
     <div className="min-h-screen">
@@ -114,14 +114,13 @@ export default function App() {
         {view === 'lixeira' && <Lixeira />}
         {view === 'seguranca' && canAdmin(profile.perfil) && <Seguranca />}
         {view === 'config' && <Configuracoes />}
-        {view === 'jornadas' && viewer && <Jornadas />}
         {view === 'equipe' && viewer && <Equipe />}
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
         {items.map(([k, i, l]) => (
           <button key={k} onClick={() => setPage(k)} className={'flex min-w-[76px] flex-1 flex-col items-center py-2 text-[11px] ' + (view === k ? 'font-bold text-navy' : 'text-slate-500')}>
-            <span className="text-lg">{i}</span>{l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Jornadas da equipe', 'Jornadas').replace('Backlog de Melhorias', 'Backlog').replace('Análise de chamados', 'Análise').replace('Importar bases', 'Importar')}
+            <span className="text-lg">{i}</span>{l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Backlog de Melhorias', 'Backlog').replace('Análise de chamados', 'Análise').replace('Importar bases', 'Importar')}
           </button>
         ))}
       </nav>

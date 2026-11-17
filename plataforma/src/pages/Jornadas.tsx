@@ -11,7 +11,7 @@ import DiaDetalhe from '../components/DiaDetalhe'
  * Disponível a Diretor, Gerente e Analista Sr. O banco (RLS) só permite SELECT nas jornadas de terceiros;
  * esta tela não contém nenhum botão de gravação.
  */
-export default function Jornadas() {
+export default function Jornadas({ embedded = false }: { embedded?: boolean }) {
   const { profile } = useAuth()
   const [people, setPeople] = useState<any[]>([])
   const [rows, setRows] = useState<any[]>([])
@@ -42,7 +42,7 @@ export default function Jornadas() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-navy">Jornadas da equipe</h1>
+      {embedded ? <h2 className="text-lg font-bold text-navy">👀 Análise: Jornadas da equipe</h2> : <h1 className="text-2xl font-bold text-navy">Jornadas da equipe</h1>}
       <Msg kind="aviso">Modo somente consulta: as jornadas de outras pessoas podem ser vistas, mas nunca alteradas.</Msg>
       {err && <Msg kind="erro">{err}</Msg>}
 

@@ -7,6 +7,7 @@ import { Bar, btnG, btnP, Card, Chip, Empty, Field, HBars, inp, Kpi, Msg, StackB
 import Microentregas, { Seg } from './Microentregas'
 import { confirmar } from '../components/Confirm'
 import TendenciaAtividades from '../components/TendenciaAtividades'
+import Jornadas from './Jornadas'
 
 export default function Equipe() {
   const { profile } = useAuth()
@@ -33,6 +34,7 @@ export default function Equipe() {
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [jornadas, setJornadas] = useState(false)   // gatilho de análise: abre as Jornadas da equipe (somente consulta) dentro desta tela
 
   useEffect(() => {
     supabase.from('microdelivery_history').select('valor_anterior,valor_novo,data_hora,microdelivery_id').eq('campo_alterado', 'concluido').order('data_hora').limit(10000)
@@ -101,6 +103,16 @@ export default function Equipe() {
   }
 
   if (loading) return <p className="py-10 text-center text-slate-500">Carregando painel gerencial…</p>
+  const titulo = isGestor ? 'Gestão da equipe' : 'Visão consolidada da equipe'
+  if (jornadas) return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold text-navy">{titulo}</h1>
+        <button className={btnG + ' !px-3 !py-1.5 !text-xs'} onClick={() => setJornadas(false)}>← Voltar à {isGestor ? 'gestão' : 'visão consolidada'}</button>
+      </div>
+      <Jornadas embedded />
+    </div>
+  )
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-navy">{isGestor ? 'Gestão da equipe' : 'Visão consolidada da equipe'}</h1>
@@ -113,6 +125,7 @@ export default function Equipe() {
             </button>
           ))}
         </div>
+        <button className={btnG + ' !px-3 !py-2 !text-sm'} onClick={() => setJornadas(true)} title="Análise: jornada de trabalho de cada pessoa da equipe (somente consulta)">👀 Análise: Jornadas da equipe</button>
         <span className="text-xs text-slate-500">{tipo === 'macro' ? 'Projetos maiores: quem é o responsável e com quem cada um está agora.' : tipo === 'micro' ? 'Projetos menores, acompanhados por unidades.' : 'Projetos e Atividades somados, com o comparativo entre os dois.'}</span>
       </div>
       <Card className="!p-4">
