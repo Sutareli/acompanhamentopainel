@@ -334,11 +334,10 @@ Todas as confirmações de exclusão (reunião, imprevisto, ideia, atividade e e
 ## Agente de segurança semanal (migração 013 + função `agente-seguranca`)
 **Como funciona** (duas camadas, de propósito):
 1. **Verificação fixa no banco** (`seguranca_verificar`): confere RLS ligado, views com `security_invoker`, permissões de visitante (anon), funções abertas, `search_path` e políticas de escrita “abertas”. O que está numa **lista segura** é **corrigido sozinho**; o resto vira “pendente” para você decidir. Tudo é registrado.
-2. **IA (opcional)**: a função `agente-seguranca` pega o relatório e pede à API da Anthropic um **resumo em português**. A IA **só explica — não executa SQL nem altera nada**.
 
-**Onde ver:** botão **🛡️ Segurança**, no fim do menu, só para o Analista Sr (no celular, o escudo no topo). Mostra falhas encontradas, corrigidas, pendentes, resumo da IA e histórico. Botões: *Verificar agora* (sem IA) e *Verificar com IA*.
+**Onde ver:** botão **🛡️ Segurança**, no fim do menu, só para o Analista Sr (no celular, o escudo no topo). Mostra falhas encontradas, corrigidas, pendentes e histórico. Botão: *Verificar agora*.
 
-**Ativar (opcional):** o botão *Verificar agora* funciona sem IA. A parte com IA exige publicar a função `agente-seguranca` e cadastrar `ANTHROPIC_API_KEY` nos Secrets do Supabase (serviço pago); se não quiser, ignore.
+**Sem IA:** o botão *Verificar agora* roda as regras fixas do banco. (A função `agente-seguranca` ainda existe na pasta, mas a tela não a chama; pode ficar sem publicar.)
 
 **Limites:** a correção automática cobre só os casos da lista segura; políticas abertas e regras de negócio ficam como pendência para você. Confirme também, no Supabase, que o **cadastro público (signup) está desativado**. A função e a conexão com a API da Anthropic não foram testadas contra um projeto Supabase real; a prévia só simula a tela.
 

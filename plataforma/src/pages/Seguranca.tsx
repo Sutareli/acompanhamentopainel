@@ -17,7 +17,7 @@ export default function Seguranca() {
   const [sel, setSel] = useState<string | null>(null)
   const [achados, setAchados] = useState<Achado[]>([])
   const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState<'' | 'manual' | 'ia'>('')
+  const [busy, setBusy] = useState<'' | 'manual'>('')
   const [err, setErr] = useState(''); const [ok, setOk] = useState('')
   const [filtro, setFiltro] = useState<'todos' | 'corrigido' | 'pendente'>('todos')
 
@@ -43,14 +43,6 @@ export default function Seguranca() {
     if (r.error) return setErr(r.error.message)
     setOk('Verificação concluída.'); load(String(r.data))
   }
-  async function verificarIA() {
-    setBusy('ia'); setErr(''); setOk('')
-    const r = await supabase.functions.invoke('agente-seguranca', { body: {} })
-    setBusy('')
-    const e = (r.data as any)?.error || r.error?.message
-    if (e) return setErr('Agente de IA indisponível: ' + e + ' — veja “Como ativar a IA” no README. A verificação automática (sem IA) continua disponível no botão ao lado.')
-    setOk('Verificação com IA concluída.'); load((r.data as any)?.execucao_id)
-  }
   async function abrir(id: string) {
     setSel(id)
     const a = await supabase.from('seguranca_achados').select('*').eq('execucao_id', id).order('id')
@@ -69,7 +61,6 @@ export default function Seguranca() {
           <p className="text-sm text-slate-500">Agente semanal: verifica o banco, corrige sozinho o que é seguro corrigir e lista o que precisa da sua decisão. Visível só para o Analista Sr.</p>
         </div>
         <div className="flex gap-2">
-          <button className={btnG} disabled={!!busy} onClick={verificarIA}>{busy === 'ia' ? 'Analisando…' : '✨ Verificar com IA'}</button>
           <button className={btnP} disabled={!!busy} onClick={verificar}>{busy === 'manual' ? 'Verificando…' : 'Verificar agora'}</button>
         </div>
       </div>
@@ -87,13 +78,6 @@ export default function Seguranca() {
           <Card className="!p-4"><div className="text-xs font-semibold uppercase text-slate-500">Pendentes (sua decisão)</div><div className={'mt-1 text-3xl font-bold ' + ((atual?.pendentes ?? 0) > 0 ? 'text-red-600' : 'text-green-600')}>{atual?.pendentes ?? 0}</div><div className="text-xs text-slate-500">{(atual?.pendentes ?? 0) > 0 ? 'ver abaixo' : 'nada a fazer'}</div></Card>
         </div>
 
-        {atual?.resumo_ia && (
-          <Card className="!border-violet-200 !bg-violet-50/60">
-            <h3 className="mb-1 font-bold text-navy">✨ Resumo do agente de IA <span className="text-xs font-normal text-slate-500">{atual.modelo_ia ? `· ${atual.modelo_ia}` : ''}</span></h3>
-            <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{atual.resumo_ia}</p>
-            <p className="mt-2 text-xs text-slate-500">A IA apenas explica o relatório; as correções automáticas vêm de regras fixas e seguras do banco — ela não executa comandos.</p>
-          </Card>
-        )}
 
         <Card>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
