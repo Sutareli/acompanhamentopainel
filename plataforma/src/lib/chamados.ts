@@ -144,10 +144,11 @@ export function porDia(items: Chamado[], mes: string): number[] {
   return a
 }
 export interface KpiMes { total: number; noPrazo: number; pctPrazo: number | null; tipos: number; subcategorias: number; improcedentes: number }
-/** Regras da planilha (aba "Resumo Mês"): Improcedente não é caso; Cancelado conta como concluído; prazo em branco conta como dentro do prazo. */
-export const improcedente = (c: Chamado) => /improced/i.test(c.status || '')
-export const concluido = (c: Chamado) => /conclu|cancel/i.test(c.status || '')
-export const noPrazoPlan = (c: Chamado) => concluido(c) && (c.prazo || '').trim().toLowerCase() !== 'fora do prazo'
+/** Regras da planilha (Resumo_BackLog.xlsm): só entram os status A iniciar, Em andamento, Concluído e Suspenso (Cancelado e Improcedente ficam fora);
+ *  concluídos = Concluído + Suspenso; "no prazo" = Concluído com Status_Prazo exatamente "Dentro do prazo"; pendentes = demais status. */
+export const improcedente = (c: Chamado) => /improced|cancel/i.test(c.status || '')
+export const concluido = (c: Chamado) => /conclu|suspens/i.test(c.status || '')
+export const noPrazoPlan = (c: Chamado) => /conclu/i.test(c.status || '') && (c.prazo || '').trim().toLowerCase() === 'dentro do prazo'
 export function kpis(todos: Chamado[]): KpiMes {
   const items = todos.filter((c) => !improcedente(c))
   const total = items.length, conc = items.filter(concluido).length, np = items.filter(noPrazoPlan).length
@@ -160,7 +161,7 @@ export function resumoMes(rows: Chamado[], meses: string[]): ResumoMes[] {
   return meses.map((mes) => {
     const todos = rows.filter((r) => mesKey(r.data_ref) === mes)
     const x = todos.filter((c) => !improcedente(c)), conc = x.filter(concluido), pend = x.filter((c) => !concluido(c))
-    const np = conc.filter(noPrazoPlan).length, pnp = pend.filter((c) => (c.prazo || '').trim().toLowerCase() !== 'fora do prazo').length, re = x.filter((c) => c.reincidente === true).length
+    const np = conc.filter(noPrazoPlan).length, pnp = pend.filter((c) => (c.prazo || '').trim().toLowerCase() === 'dentro do prazo').length, re = x.filter((c) => c.reincidente === true).length
     const f = (a: number, b: number) => (b ? a / b : null)
     return { mes, casos: x.length, concluidos: conc.length, pctConcluidos: f(conc.length, x.length), noPrazo: np, pctNoPrazo: f(np, conc.length), pendentes: pend.length, pendNoPrazo: pnp, pctPendNoPrazo: f(pnp, pend.length), reincidentes: re, pctReincidentes: f(re, conc.length), improcedentes: todos.length - x.length }
   })

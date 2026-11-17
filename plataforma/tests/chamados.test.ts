@@ -22,18 +22,18 @@ test('contagem ignora maiúsculas/minúsculas e separa vazios', () => {
   assert.equal(r.vazios, 1); assert.equal(r.barras[0].qtd, 2); assert.equal(r.barras.length, 2)
 })
 
-test('KPIs seguem a planilha: Improcedente não é caso; prazo em branco = dentro; % no prazo sobre os concluídos', () => {
+test('KPIs seguem a planilha: Improcedente e Cancelado não são casos; prazo em branco não é "dentro"; % no prazo sobre os concluídos', () => {
   const C = { status: '3 - Concluído' }
-  const k = kpis([ch(C), ch({ ...C, prazo: 'Fora do prazo' }), ch({ ...C, tipo: 'Melhoria', subcategoria: 'B' }), ch({ ...C, prazo: null }), ch({ status: '6 - Improcedente' }), ch({ status: '1 - A iniciar', prazo: null })])
-  assert.equal(k.total, 5); assert.equal(k.improcedentes, 1)          // 6 linhas − 1 improcedente
-  assert.equal(k.noPrazo, 3); assert.equal(k.pctPrazo, 0.75)          // 3 de 4 concluídos (o pendente não entra na base)
+  const k = kpis([ch(C), ch({ ...C, prazo: 'Fora do prazo' }), ch({ ...C, tipo: 'Melhoria', subcategoria: 'B' }), ch({ ...C, prazo: null }), ch({ status: '6 - Improcedente' }), ch({ status: '5 - Cancelado' }), ch({ status: '1 - A iniciar', prazo: null })])
+  assert.equal(k.total, 5); assert.equal(k.improcedentes, 2)          // 7 linhas − improcedente − cancelado
+  assert.equal(k.noPrazo, 2); assert.equal(k.pctPrazo, 0.5)          // 3 de 4 concluídos (o pendente não entra na base)
   assert.equal(k.tipos, 2); assert.equal(k.subcategorias, 2)
   assert.equal(kpis([]).pctPrazo, null)
 })
 
 test('Resumo do mês reproduz a planilha (Set: 211 linhas → 204 casos, 201 no prazo, 4 reincidentes)', () => {
   const C = { status: '3 - Concluído', data_ref: '2026-09-10' }
-  const set = [...Array(201).fill(0).map((_, i) => ch({ ...C, prazo: i < 173 ? 'Dentro do prazo' : null, reincidente: i < 4 })), ...Array(3).fill(0).map(() => ch({ ...C, prazo: 'Fora do prazo' })), ...Array(7).fill(0).map(() => ch({ status: '6 - Improcedente', data_ref: '2026-09-11' }))]
+  const set = [...Array(201).fill(0).map((_, i) => ch({ ...C, prazo: 'Dentro do prazo', reincidente: i < 4 })), ...Array(3).fill(0).map(() => ch({ ...C, prazo: 'Fora do prazo' })), ...Array(7).fill(0).map(() => ch({ status: '6 - Improcedente', data_ref: '2026-09-11' }))]
   const [r] = resumoMes(set, ['2026-09'])
   assert.equal(set.length, 211); assert.equal(r.casos, 204); assert.equal(r.concluidos, 204); assert.equal(r.noPrazo, 201)
   assert.equal(Math.round((r.pctNoPrazo as number) * 1000) / 10, 98.5); assert.equal(r.reincidentes, 4); assert.equal(Math.round((r.pctReincidentes as number) * 1000) / 10, 2); assert.equal(r.improcedentes, 7)
