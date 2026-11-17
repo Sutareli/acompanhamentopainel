@@ -12,14 +12,14 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 4. Paleta roxa e nova tela de login.
 5. **Melhorias** (em curso, a iniciar, prazos e resumo) e **Correção/manutenção** (antigo Backlog, com painel de status, visão detalhada, etapas, histórico e cálculo automático; resumo dos chamados da base).
 6. **Análise de chamados** (análise dos chamados).
-7. **Importar bases** (somente Analista Sr): chamados do backlog (alimenta Pareto e Backlog) e projetos.
+7. **Importar bases** (somente Analista Sr): chamados (alimenta Análise de chamados e Correção/manutenção) e projetos.
 8. Menu: itens de backlog sempre por último (`… Jornadas da equipe · Melhorias · Correção/manutenção · Análise de chamados · Importar bases`).
 
 | Migração | O que faz | Rodar se o banco já está no ar |
 |---|---|---|
 | 001 | instalação completa | **nunca** em banco existente |
 | 002 | perfis novos, arquivo de atividades, limpar dia | uma vez (se ainda não rodou) |
-| 003 | Backlog de Melhorias | uma vez (se ainda não rodou) |
+| 003 | Melhorias e Correção/manutenção (backlog) | uma vez (se ainda não rodou) |
 | 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
 | 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
 | 007 | responsável e fase nos chamados (detalhamento “Quem é responsável” do Pareto) | uma vez, **depois** de 006, e reimporte a base de chamados |
@@ -127,7 +127,7 @@ Regras: `Concluído` exige 100%; término não pode ser anterior ao início; nov
 
 
 ### Filtros de data no Backlog — migração 009
-Na tela **Backlog de Melhorias** há dois filtros de período (de/até): **Criação/início** (campo *data de início* da atividade; nos chamados, a data do **mês de referência** — MÊS_REF + DIA + ANO_REF —, o que corrige datas digitadas com o mês errado) e **Finalização** (data em que a atividade foi concluída). Os filtros ficam no **topo da página** e, ao abrir, já vêm com o **mês vigente** em Criação/início (botões “Mês atual” e “Todo o período”). Os filtros de data valem para o painel “Status das Atividades” e para a tabela.
+Nas telas **Melhorias** e **Correção/manutenção** há dois filtros de período (de/até): **Criação/início** (campo *data de início* da atividade; nos chamados, a data do **mês de referência** — MÊS_REF + DIA + ANO_REF —, o que corrige datas digitadas com o mês errado) e **Finalização** (data em que a atividade foi concluída). Os filtros ficam no **topo da página** e, ao abrir, já vêm com o **mês vigente** em Criação/início (botões “Mês atual” e “Todo o período”). Os filtros de data valem para o painel “Status das Atividades” e para a tabela.
 - A migração `009_data_conclusao.sql` cria a coluna `data_conclusao`: ela é preenchida sozinha quando a atividade passa a *Concluído* e limpa se for reaberta; também pode ser editada no formulário. As atividades já concluídas são preenchidas pelo histórico (ou pela data da última atualização).
 - **Chamados da base não têm data de finalização** (a planilha não traz essa coluna), então não aparecem quando o filtro de finalização está ativo, a menos que a data seja informada na atividade.
 - Ordem: execute a 009 depois da 008. Instalação nova: apenas o `001_schema.sql`.
@@ -136,7 +136,8 @@ Na tela **Backlog de Melhorias** há dois filtros de período (de/até): **Cria�
 
 Menu **Análise de chamados** (os itens de backlog ficam sempre por último no menu), com a visão da planilha "Análise de backlog": filtros de **mês** e **tipo**; KPIs (total de chamados, no prazo e %, tipos, subcategorias) com comparação ao mês anterior; **Pareto por tipo** e **por subcategoria** (barras + % acumulado + linha de 80%); chamados por dia; rosquinhas de categoria e de tipo; lista dos chamados (clique numa barra de subcategoria para listar só os dela) e exportação CSV.
 
-- **Quem vê:** todos os usuários ativos. **Quem importa:** somente o Analista Sr, na janela **Importar bases** (ver abaixo). A mesma base alimenta o Pareto e o card "Chamados da base do backlog" dentro do Backlog de Melhorias.
+- **Quem vê:** todos os usuários ativos. **Quem importa:** somente o Analista Sr, na janela **Importar bases** (ver abaixo). A mesma base alimenta a Análise de chamados e o card "Chamados da base" dentro de Correção/manutenção.
+- **Cards clicáveis:** Total, No prazo, Fora do prazo (atrasados) e Pendentes abrem a lista dos chamados (com busca e CSV); as barras do Resumo do mês também.
 - **Regras iguais às da planilha:** o mês e o dia vêm de MÊS_REF/DIA/ANO_REF; "no prazo" = `TRATADO DENTRO DO PRAZO?` = "Dentro do prazo"; tipos que só mudam de maiúsculas/minúsculas (CONFIGURAÇÃO × Configuração) são somados; chamados sem subcategoria não entram no Pareto de subcategoria (a página avisa quantos são).
 - **Filtro de tipo:** vale para tudo, exceto o Pareto de tipo (que é onde se escolhe). Na planilha o tipo só afetava a subcategoria; aqui também afeta KPIs e rosquinhas.
 

@@ -41,7 +41,7 @@ export default function Atencao({ onNavigate }: { onNavigate: (p: string) => voi
         itens: ideias.filter((m) => slaAtrasado(m, hoje)).map((m) => ({ id: m.id, txt: m.melhoria, sub: `${resp(m)} · etapa ${m.fase === 'chamado_aberto' ? 'Chamado aberto' : 'Desenvolvimento'}` })) },
       { chave: 'sr', icone: '🙋', titulo: 'Melhorias sem responsável', dica: 'Nenhum usuário definido como responsável.', pagina: 'melhorias',
         itens: ideias.filter((m) => !m.responsavel_id && m.fase !== 'producao').map((m) => ({ id: m.id, txt: m.melhoria, sub: `${m.modulo} · criada em ${fmtDate(m.criado_em.slice(0, 10))}` })) },
-      { chave: 'cv', icone: '🛠️', titulo: 'Correção/manutenção com prazo vencido', dica: 'Atividades do backlog de correção que passaram do prazo e não foram concluídas.', pagina: 'backlog',
+      { chave: 'cv', icone: '🛠️', titulo: 'Correção/manutenção com prazo vencido', dica: 'Atividades de correção/manutenção que passaram do prazo e não foram concluídas.', pagina: 'backlog',
         itens: corr.filter((m) => melhoriaVencida(m, hoje)).sort((a, b) => (a.data_termino! < b.data_termino! ? -1 : 1)).map((m) => ({ id: m.id, txt: m.melhoria, sub: `${resp(m)} · atrasada há ${dias(m.data_termino)} dia(s)` })) },
       { chave: 'at', icone: '📦', titulo: 'Projetos e atividades com data target vencida', dica: 'Ainda há unidades a iniciar ou em andamento depois da data target.', pagina: 'micro',
         itens: mic.sort((a, b) => (a.data_target < b.data_target ? -1 : 1)).map((m) => ({ id: m.id, txt: m.demanda, sub: `${nomes[m.responsavel_id] || '—'} · ${m.tipo_projeto === 'macro' ? 'Projeto' : 'Atividade'} · venceu em ${fmtDate(m.data_target)}` })) },

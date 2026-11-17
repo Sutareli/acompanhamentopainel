@@ -1,4 +1,4 @@
-/** Gráficos simples em SVG usados no Pareto backlog: rosca com legenda e área por dia. */
+/** Gráficos simples em SVG usados na Análise de chamados: rosca com legenda e área por dia. */
 export const PALETA = ['#8b3fff', '#2e1a6e', '#0e7490', '#f59e0b', '#ec4899', '#16a34a', '#2563eb', '#ea580c']
 const CINZA = '#94a3b8'
 

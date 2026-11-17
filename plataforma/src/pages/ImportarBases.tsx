@@ -49,7 +49,7 @@ function ChamadosCard({ onNavigate }: { onNavigate: (p: string) => void }) {
     setAvisos(r.avisos); if (r.erro) setErr(r.erro); else setRows(r.rows)
   }
   async function desfazer() {
-    if (!(await confirmar({ titulo: 'Desfazer a última carga?', mensagem: 'A base volta ao que era antes da última importação (e a atual fica guardada: dá para desfazer de novo). Atividades do Backlog já criadas pela carga errada continuam existindo e precisam ser excluídas à mão.', confirmar: 'Desfazer carga', perigo: true }))) return
+    if (!(await confirmar({ titulo: 'Desfazer a última carga?', mensagem: 'A base volta ao que era antes da última importação (e a atual fica guardada: dá para desfazer de novo). Atividades de Correção/manutenção já criadas pela carga errada continuam existindo e precisam ser excluídas à mão.', confirmar: 'Desfazer carga', perigo: true }))) return
     setBusy(true); setErr(''); setOk('')
     const r = await supabase.rpc('chamados_desfazer_carga'); setBusy(false)
     if (r.error) return setErr(r.error.message.includes('chamados_desfazer_carga') ? 'Função indisponível: a migração 025 ainda não foi aplicada.' : r.error.message)
@@ -77,12 +77,12 @@ function ChamadosCard({ onNavigate }: { onNavigate: (p: string) => void }) {
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="text-lg font-bold text-navy">1 · Base de chamados do backlog</h2>
+          <h2 className="text-lg font-bold text-navy">1 · Base de chamados (Correção/manutenção)</h2>
           <p className="text-sm text-slate-600">Alimenta o <b>Análise de chamados</b> e o resumo de chamados dentro de <b>Correção/manutenção</b> (as duas telas leem esta mesma base). Use a aba <b>base</b> da planilha de análise.</p>
         </div>
         <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('pareto')}>Abrir Análise de chamados →</button>
       </div>
-      <p className="mt-2 text-xs text-slate-500">{atual ? `Base atual: ${atual.qtd} chamados, carregada em ${fmtDateTime(atual.em)}.` : 'Nenhuma carga registrada ainda.'} A importação <b>substitui a base de chamados</b> e <b>alimenta o Backlog de Melhorias</b>: chamados válidos viram atividades (sem apagar nem duplicar o que já existe).</p>
+      <p className="mt-2 text-xs text-slate-500">{atual ? `Base atual: ${atual.qtd} chamados, carregada em ${fmtDateTime(atual.em)}.` : 'Nenhuma carga registrada ainda.'} A importação <b>substitui a base de chamados</b> e <b>alimenta Correção/manutenção</b>: chamados válidos viram atividades (sem apagar nem duplicar o que já existe).</p>
       <div className="mt-3 space-y-3 text-sm">
         <input key={key} type="file" accept=".csv,text/csv" aria-label="CSV da base de chamados" onChange={(e) => escolher(e.target.files?.[0])} />
         {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}

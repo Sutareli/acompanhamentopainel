@@ -10,9 +10,10 @@ import ComparativoChamados, { Metas } from '../components/ComparativoChamados'
 import ResumoMes from '../components/ResumoMes'
 import EvolucaoSubcategorias from '../components/EvolucaoSubcategorias'
 import { podeAjustarSla } from '../lib/sla'
-import { Chamado, contar, kpis, mesAnterior, mesKey, mesLabel, noPrazo, porDia, quinzenaDe, semanaDe, semanasDoMes } from '../lib/chamados'
+import ListaChamadosModal from '../components/ListaChamadosModal'
+import { Chamado, contar, foraPrazo, improcedente, kpis, noPrazoPlan, pendente, mesAnterior, mesKey, mesLabel, noPrazo, porDia, quinzenaDe, semanaDe, semanasDoMes } from '../lib/chamados'
 
-/** "Análise de chamados" (antes "Pareto backlog") — análise qualitativa dos chamados abertos no backlog (visão da planilha "Análise de backlog"). Leitura para todos; carga só do Analista Sr. */
+/** "Análise de chamados" (antes "Pareto backlog") — análise qualitativa dos chamados de correção/manutenção (visão da planilha "Análise de backlog"). Leitura para todos; carga só do Analista Sr. */
 const lc = (s: string | null) => (s ?? '').trim().toLowerCase()
 
 function Delta({ valor, texto, bomSeSobe }: { valor: number | null; texto: string; bomSeSobe: boolean }) {
@@ -20,12 +21,13 @@ function Delta({ valor, texto, bomSeSobe }: { valor: number | null; texto: strin
   const bom = valor === 0 ? null : bomSeSobe ? valor > 0 : valor < 0
   return <span className="text-xs text-slate-500">vs mês anterior <b className={bom === null ? 'text-slate-500' : bom ? 'text-green-600' : 'text-red-600'}>{(valor > 0 ? '▲ ' : valor < 0 ? '▼ ' : '') + texto}</b></span>
 }
-function KpiCard({ titulo, valor, sub, children }: { titulo: string; valor: string | number; sub?: string; children?: ReactNode }) {
+function KpiCard({ titulo, valor, sub, children, onClick }: { titulo: string; valor: string | number; sub?: string; children?: ReactNode; onClick?: () => void }) {
   return (
-    <div className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm">
+    <div className={'rounded-2xl border border-violet-100 bg-white p-4 shadow-sm' + (onClick ? ' cursor-pointer transition hover:border-violet-400 hover:shadow-md' : '')} {...(onClick ? { role: 'button', tabIndex: 0, onClick, onKeyDown: (e: { key: string; preventDefault: () => void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }, title: 'Clique para ver os chamados' } : {})}>
       <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{titulo}</div>
       <div className="mt-1 text-3xl font-bold text-navy">{valor}{sub && <span className="ml-2 text-base font-semibold text-violet-600">{sub}</span>}</div>
       <div className="mt-1">{children}</div>
+      {onClick && <div className="mt-1 text-[11px] font-semibold text-violet-600">Ver chamados →</div>}
     </div>
   )
 }
@@ -42,6 +44,7 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
   const [quinz, setQuinz] = useState<0 | 1 | 2>(0)       // 0 = mês inteiro · 1 = dias 1–15 · 2 = dia 16 em diante
   const [sem, setSem] = useState(0)                       // 0 = todas as semanas do mês · n = semana n (segunda a domingo)
   const [metas, setMetas] = useState<Metas>({ meta_total_mes: null, meta_pct_prazo: null })
+  const [det, setDet] = useState<{ titulo: string; itens: Chamado[] } | null>(null)   // lista aberta ao clicar num card
   const [carga, setCarga] = useState<{ em: string; qtd: number; nome: string } | null>(null)
 
   async function load() {
@@ -108,7 +111,7 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold uppercase tracking-wide sm:text-2xl">Análise de chamados</h1>
-            <p className="mt-1 text-sm text-violet-200">Análise qualitativa · abertura dos chamados backlog ROCCO — principais motivos e ofensores, comparados ao mês anterior</p>
+            <p className="mt-1 text-sm text-violet-200">Análise qualitativa · chamados de correção e manutenção — principais motivos e ofensores, comparados ao mês anterior</p>
           </div>
           <div className="text-right text-xs text-violet-200">
             {carga ? <>Base carregada em {fmtDateTime(carga.em)}{carga.nome ? ` por ${carga.nome}` : ''} · {carga.qtd} chamados</> : 'Nenhuma carga registrada'}
@@ -119,7 +122,7 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
       {err && <Msg kind="erro">{err}</Msg>}
 
       {loading ? <p className="py-10 text-center text-slate-500">Carregando…</p> : rows.length === 0 ? (
-        <Empty>{canAdmin(profile!.perfil) ? 'Ainda não há chamados na base. Use a janela “Importar bases” com a aba "base" da sua planilha de análise.' : 'Ainda não há chamados na base. Peça ao Analista Sr para importar a planilha.'}</Empty>
+        <Empty>{canAdmin(profile!.perfil) ? 'Ainda não há chamados na base. Use a tela “Importar bases” com o CSV da base de chamados.' : 'Ainda não há chamados na base. Peça ao Analista Sr para importar a base de chamados.'}</Empty>
       ) : (<>
         {/* ===== filtros (equivalem às segmentações de MÊS_REF e TIPO da planilha) ===== */}
         <Card className="!p-4">
@@ -149,12 +152,15 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
         </Card>
 
         {/* ===== indicadores ===== */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard titulo="Total de chamados" valor={k.total} sub={k.improcedentes ? `(+${k.improcedentes} improc.)` : undefined}><Delta valor={temAnt && kp.total ? k.total / kp.total - 1 : null} texto={temAnt && kp.total ? Math.abs(Math.round((k.total / kp.total - 1) * 100)) + '%' : ''} bomSeSobe={false} /></KpiCard>
-          <KpiCard titulo="Chamados no prazo" valor={k.noPrazo} sub={pct(k.pctPrazo)}><Delta valor={temAnt && k.pctPrazo !== null && kp.pctPrazo !== null ? (k.pctPrazo - kp.pctPrazo) * 100 : null} texto={temAnt && k.pctPrazo !== null && kp.pctPrazo !== null ? Math.abs((k.pctPrazo - kp.pctPrazo) * 100).toFixed(1).replace('.', ',') + ' p.p.' : ''} bomSeSobe /></KpiCard>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          <KpiCard titulo="Total de chamados" valor={k.total} onClick={() => setDet({ titulo: 'Total de chamados', itens: filtrado.filter((c) => !improcedente(c)) })} sub={k.improcedentes ? `(+${k.improcedentes} improc.)` : undefined}><Delta valor={temAnt && kp.total ? k.total / kp.total - 1 : null} texto={temAnt && kp.total ? Math.abs(Math.round((k.total / kp.total - 1) * 100)) + '%' : ''} bomSeSobe={false} /></KpiCard>
+          <KpiCard titulo="Chamados no prazo" valor={k.noPrazo} sub={pct(k.pctPrazo)} onClick={() => setDet({ titulo: 'Chamados no prazo', itens: filtrado.filter(noPrazoPlan) })}><Delta valor={temAnt && k.pctPrazo !== null && kp.pctPrazo !== null ? (k.pctPrazo - kp.pctPrazo) * 100 : null} texto={temAnt && k.pctPrazo !== null && kp.pctPrazo !== null ? Math.abs((k.pctPrazo - kp.pctPrazo) * 100).toFixed(1).replace('.', ',') + ' p.p.' : ''} bomSeSobe /></KpiCard>
+          <KpiCard titulo="Fora do prazo" valor={filtrado.filter(foraPrazo).length} onClick={() => setDet({ titulo: 'Chamados fora do prazo (atrasados)', itens: filtrado.filter(foraPrazo) })} />
+          <KpiCard titulo="Pendentes" valor={filtrado.filter(pendente).length} onClick={() => setDet({ titulo: 'Chamados pendentes', itens: filtrado.filter(pendente) })} />
           <KpiCard titulo="Tipos de chamados" valor={k.tipos}><Delta valor={temAnt ? k.tipos - kp.tipos : null} texto={Math.abs(k.tipos - kp.tipos) + ''} bomSeSobe={false} /></KpiCard>
           <KpiCard titulo="Subcategorias" valor={k.subcategorias}><Delta valor={temAnt ? k.subcategorias - kp.subcategorias : null} texto={Math.abs(k.subcategorias - kp.subcategorias) + ''} bomSeSobe={false} /></KpiCard>
         </div>
+        {det && <ListaChamadosModal titulo={det.titulo} itens={det.itens} onClose={() => setDet(null)} />}
         <ResumoMes key={'rm' + (mesSel || meses[meses.length - 1])} rows={rows} meses={meses} mesInicial={mesSel || meses[meses.length - 1]} />
         <ComparativoChamados key={mesSel || meses[meses.length - 1]} rows={rows.filter(filtraTipo)} meses={meses} mesInicial={mesSel || meses[meses.length - 1]} filtroTxt={tipos.length ? `Tipo: ${tipos.join(', ')}. ` : ''} metas={metas} podeMetas={podeAjustarSla(profile!.perfil)} onSalvarMetas={salvarMetas} />
         <EvolucaoSubcategorias rows={rows.filter(filtraTipo)} meses={meses} />

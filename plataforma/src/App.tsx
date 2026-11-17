@@ -120,7 +120,7 @@ export default function App() {
       <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
         {items.map(([k, i, l]) => (
           <button key={k} onClick={() => setPage(k)} className={'flex min-w-[76px] flex-1 flex-col items-center py-2 text-[11px] ' + (view === k ? 'font-bold text-navy' : 'text-slate-500')}>
-            <span className="text-lg">{i}</span>{l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Backlog de Melhorias', 'Backlog').replace('Análise de chamados', 'Análise').replace('Importar bases', 'Importar')}
+            <span className="text-lg">{i}</span>{l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Correção/manutenção', 'Correção').replace('Análise de chamados', 'Análise').replace('Importar bases', 'Importar')}
           </button>
         ))}
       </nav>

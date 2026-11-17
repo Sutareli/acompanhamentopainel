@@ -1,4 +1,4 @@
-/** Base de chamados do "Pareto backlog": leitura do CSV da planilha, normalização e agregações (funções puras). */
+/** Base de chamados da "Análise de chamados": leitura do CSV da planilha, normalização e agregações (funções puras). */
 export interface Chamado {
   id: string; id_chamado: string | null; data_identificacao: string | null; data_ref: string
   categoria: string | null; subcategoria: string | null; tipo: string | null; item_sintoma: string | null
@@ -149,6 +149,9 @@ export interface KpiMes { total: number; noPrazo: number; pctPrazo: number | nul
 export const improcedente = (c: Chamado) => /improced|cancel/i.test(c.status || '')
 export const concluido = (c: Chamado) => /conclu|suspens/i.test(c.status || '')
 export const noPrazoPlan = (c: Chamado) => /conclu/i.test(c.status || '') && (c.prazo || '').trim().toLowerCase() === 'dentro do prazo'
+/** Fora do prazo e pendentes (mesmas regras da planilha; Cancelado/Improcedente nunca entram). */
+export const foraPrazo = (c: Chamado) => !improcedente(c) && (c.prazo || '').trim().toLowerCase() === 'fora do prazo'
+export const pendente = (c: Chamado) => !improcedente(c) && !/conclu/i.test(c.status || '')
 export function kpis(todos: Chamado[]): KpiMes {
   const items = todos.filter((c) => !improcedente(c))
   const total = items.length, conc = items.filter(concluido).length, np = items.filter(noPrazoPlan).length

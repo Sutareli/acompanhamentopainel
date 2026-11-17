@@ -186,7 +186,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
           <button className={btnG + ' ' + btnSm} onClick={() => { setIDe(''); setIAte(''); setCDe(''); setCAte('') }}>Todo o período</button>
         </div>
         <p className="mt-2 text-xs text-slate-500">{temData ? 'Período aplicado ao painel, à tabela e à exportação.' : 'Mostrando todo o período.'} <b>Criação/início</b>: data de início da atividade (nos chamados, o mês de referência). <b>Finalização</b>: data de conclusão.</p>
-        {(cDe || cAte) && <p className="mt-1 text-xs text-amber-700">Filtro de finalização: só entram atividades concluídas com data de conclusão. Os chamados da base não trazem essa data na planilha; informe-a na atividade, se quiser que apareçam.</p>}
+        {(cDe || cAte) && <p className="mt-1 text-xs text-amber-700">Filtro de finalização: só entram atividades concluídas com data de conclusão. Os chamados da base não trazem essa data; informe-a na atividade, se quiser que apareçam.</p>}
       </Card>
 
       {/* ===== Painel de status (estilo planilha de acompanhamento) ===== */}
