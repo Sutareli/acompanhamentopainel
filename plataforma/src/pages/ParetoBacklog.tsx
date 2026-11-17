@@ -1,14 +1,15 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
-import { canAdmin, download, fmtDate, fmtDateTime, toCSV } from '../lib/rules'
+import { canAdmin, download, fmtDate, fmtDateTime, toCSV, TZ } from '../lib/rules'
 import { btnG, btnSm, Card, Empty, HBars, Msg } from '../components/ui'
 import ParetoChart from '../components/ParetoChart'
 import { AreaDias, Rosca } from '../components/Charts2'
 import Responsaveis from '../components/Responsaveis'
+import ComparativoChamados from '../components/ComparativoChamados'
 import { Chamado, contar, kpis, mesAnterior, mesKey, mesLabel, noPrazo, porDia, quinzenaDe, semanaDe, semanasDoMes } from '../lib/chamados'
 
-/** "Pareto backlog" — análise qualitativa dos chamados abertos no backlog (visão da planilha "Análise de backlog"). Leitura para todos; carga só do Analista Sr. */
+/** "Análise de chamados" (antes "Pareto backlog") — análise qualitativa dos chamados abertos no backlog (visão da planilha "Análise de backlog"). Leitura para todos; carga só do Analista Sr. */
 const lc = (s: string | null) => (s ?? '').trim().toLowerCase()
 
 function Delta({ valor, texto, bomSeSobe }: { valor: number | null; texto: string; bomSeSobe: boolean }) {
@@ -66,7 +67,10 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
   const noPeriodo = (c: Chamado) => (!quinz || quinzenaDe(c.data_ref) === quinz) && (!sem || semanaDe(c.data_ref) === sem)
   const doMes = useMemo(() => rows.filter((r) => (!mesSel || mesKey(r.data_ref) === mesSel) && (!mesSel || noPeriodo(r))), [rows, mesSel, quinz, sem]) // eslint-disable-line react-hooks/exhaustive-deps
   const filtrado = useMemo(() => doMes.filter(filtraTipo), [doMes, tipos])  // eslint-disable-line react-hooks/exhaustive-deps
-  const anterior = useMemo(() => (mesSel ? rows.filter((r) => mesKey(r.data_ref) === mesAnterior(mesSel) && (!quinz || quinzenaDe(r.data_ref) === quinz)).filter(filtraTipo) : []), [rows, mesSel, tipos, quinz]) // eslint-disable-line react-hooks/exhaustive-deps
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: TZ })
+  const emAndamento = !!mesSel && mesSel === hoje.slice(0, 7)      // mês corrente: compara o mesmo intervalo de dias do mês anterior (evita comparar mês parcial com mês cheio)
+  const diaCorte = emAndamento ? +hoje.slice(8, 10) : 31
+  const anterior = useMemo(() => (mesSel ? rows.filter((r) => mesKey(r.data_ref) === mesAnterior(mesSel) && (!quinz || quinzenaDe(r.data_ref) === quinz) && +r.data_ref.slice(8, 10) <= diaCorte).filter(filtraTipo) : []), [rows, mesSel, tipos, quinz, diaCorte]) // eslint-disable-line react-hooks/exhaustive-deps
   const k = useMemo(() => kpis(filtrado), [filtrado])
   const kp = useMemo(() => kpis(anterior), [anterior])
   const temAnt = !!mesSel && !sem && anterior.length > 0
@@ -93,8 +97,8 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
       <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-navy to-violet-700 px-6 py-5 text-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold uppercase tracking-wide sm:text-2xl">Análise qualitativa · abertura dos chamados backlog ROCCO</h1>
-            <p className="mt-1 text-sm text-violet-200">Principais motivos e ofensores das aberturas de chamados</p>
+            <h1 className="text-xl font-bold uppercase tracking-wide sm:text-2xl">Análise de chamados</h1>
+            <p className="mt-1 text-sm text-violet-200">Análise qualitativa · abertura dos chamados backlog ROCCO — principais motivos e ofensores, comparados ao mês anterior</p>
           </div>
           <div className="text-right text-xs text-violet-200">
             {carga ? <>Base carregada em {fmtDateTime(carga.em)}{carga.nome ? ` por ${carga.nome}` : ''} · {carga.qtd} chamados</> : 'Nenhuma carga registrada'}
@@ -141,6 +145,9 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
           <KpiCard titulo="Tipos de chamados" valor={k.tipos}><Delta valor={temAnt ? k.tipos - kp.tipos : null} texto={Math.abs(k.tipos - kp.tipos) + ''} bomSeSobe={false} /></KpiCard>
           <KpiCard titulo="Subcategorias" valor={k.subcategorias}><Delta valor={temAnt ? k.subcategorias - kp.subcategorias : null} texto={Math.abs(k.subcategorias - kp.subcategorias) + ''} bomSeSobe={false} /></KpiCard>
         </div>
+        {temAnt && <ComparativoChamados atual={filtrado} anterior={anterior} mesAtual={mesLabel(mesSel)} mesAnt={mesLabel(mesAnterior(mesSel))}
+          recorte={(emAndamento ? `Comparando os dias 1 a ${diaCorte} dos dois meses (mês em andamento). ` : '') + (quinz ? `${quinz}ª quinzena. ` : '') + (tipos.length ? `Tipo: ${tipos.join(', ')}. ` : '')} />}
+        {!!mesSel && !sem && !temAnt && <p className="text-xs text-slate-500">Não há chamados em {mesLabel(mesAnterior(mesSel))} para comparar com {mesLabel(mesSel)}.</p>}
         {!mesSel && <p className="text-xs text-slate-500">Com “Todos” os meses não há comparação com o mês anterior; os filtros de quinzena e semana aparecem ao escolher um mês.</p>}
         {!!mesSel && !!sem && <p className="text-xs text-slate-500">Filtro de semana: sem comparação com o mês anterior. Semanas vão de segunda a domingo (a 1ª e a última podem ser parciais).</p>}
 

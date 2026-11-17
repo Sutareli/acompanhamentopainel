@@ -70,9 +70,9 @@ function ChamadosCard({ onNavigate }: { onNavigate: (p: string) => void }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-lg font-bold text-navy">1 · Base de chamados do backlog</h2>
-          <p className="text-sm text-slate-600">Alimenta o <b>Pareto backlog</b> e o resumo de chamados dentro de <b>Correção/manutenção</b> (as duas telas leem esta mesma base). Use a aba <b>base</b> da planilha de análise.</p>
+          <p className="text-sm text-slate-600">Alimenta o <b>Análise de chamados</b> e o resumo de chamados dentro de <b>Correção/manutenção</b> (as duas telas leem esta mesma base). Use a aba <b>base</b> da planilha de análise.</p>
         </div>
-        <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('pareto')}>Abrir Pareto backlog →</button>
+        <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('pareto')}>Abrir Análise de chamados →</button>
       </div>
       <p className="mt-2 text-xs text-slate-500">{atual ? `Base atual: ${atual.qtd} chamados, carregada em ${fmtDateTime(atual.em)}.` : 'Nenhuma carga registrada ainda.'} A importação <b>substitui a base de chamados</b> e <b>alimenta o Backlog de Melhorias</b>: chamados válidos viram atividades (sem apagar nem duplicar o que já existe).</p>
       <div className="mt-3 space-y-3 text-sm">

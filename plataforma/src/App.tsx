@@ -29,7 +29,7 @@ const ITEMS: [string, string, string][] = [
 ]
 /** Ordem do menu: itens pessoais → equipe → backlog → Importar bases (só Analista Sr). O botão Segurança fica sozinho no rodapé. Imprevistos abre por um botão no Painel. */
 const IMPORT_ITEM: [string, string, string][] = [['importar', '⬆️', 'Importar bases']]   // só Analista Sr
-const BACKLOG_ITEMS: [string, string, string][] = [['melhorias', '🚀', 'Melhorias'], ['backlog', '🛠️', 'Correção/manutenção'], ['pareto', '📊', 'Pareto backlog']]
+const BACKLOG_ITEMS: [string, string, string][] = [['melhorias', '🚀', 'Melhorias'], ['backlog', '🛠️', 'Correção/manutenção'], ['pareto', '📊', 'Análise de chamados']]
 
 export default function App() {
   const { session, profile, loading, authError, needsPassword, signOut } = useAuth()
@@ -115,7 +115,7 @@ export default function App() {
       <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
         {items.map(([k, i, l]) => (
           <button key={k} onClick={() => setPage(k)} className={'flex min-w-[76px] flex-1 flex-col items-center py-2 text-[11px] ' + (view === k ? 'font-bold text-navy' : 'text-slate-500')}>
-            <span className="text-lg">{i}</span>{l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Jornadas da equipe', 'Jornadas').replace('Backlog de Melhorias', 'Backlog').replace('Pareto backlog', 'Pareto').replace('Importar bases', 'Importar')}
+            <span className="text-lg">{i}</span>{l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Jornadas da equipe', 'Jornadas').replace('Backlog de Melhorias', 'Backlog').replace('Análise de chamados', 'Análise').replace('Importar bases', 'Importar')}
           </button>
         ))}
       </nav>

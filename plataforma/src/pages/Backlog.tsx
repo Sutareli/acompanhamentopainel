@@ -218,9 +218,9 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-bold text-navy">Chamados da base do backlog {mesCh && <span className="text-sm font-normal text-slate-500">· {mesLabel(mesCh)}</span>}</h3>
-          <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('pareto')}>Abrir Pareto backlog →</button>
+          <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('pareto')}>Abrir Análise de chamados →</button>
         </div>
-        {chamados.length === 0 ? <p className="mt-2 text-sm text-slate-500">Ainda não há chamados importados. A mesma base alimenta o Pareto backlog.</p> : (
+        {chamados.length === 0 ? <p className="mt-2 text-sm text-slate-500">Ainda não há chamados importados. A mesma base alimenta a Análise de chamados.</p> : (
           <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-[auto_1fr]">
             <div className="flex flex-wrap items-start gap-3 text-sm">
               {([[chMes.length, 'chamados no mês'], [(chMes.length ? Math.round((chMes.filter((c) => noPrazo(c as Chamado)).length / chMes.length) * 100) : 0) + '%', 'no prazo'], [chamados.length, 'na base']] as [string | number, string][]).map(([v, l]) => (

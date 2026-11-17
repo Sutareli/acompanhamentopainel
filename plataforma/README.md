@@ -11,9 +11,9 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 3. **Sem cronômetro**; usuários novos começam **sem atividades** (o dia seguinte herda o último dia com tarefas).
 4. Paleta roxa e nova tela de login.
 5. **Melhorias** (em curso, a iniciar, prazos e resumo) e **Correção/manutenção** (antigo Backlog, com painel de status, visão detalhada, etapas, histórico e cálculo automático; resumo dos chamados da base).
-6. **Pareto backlog** (análise dos chamados).
+6. **Análise de chamados** (análise dos chamados).
 7. **Importar bases** (somente Analista Sr): chamados do backlog (alimenta Pareto e Backlog) e projetos.
-8. Menu: itens de backlog sempre por último (`… Jornadas da equipe · Melhorias · Correção/manutenção · Pareto backlog · Importar bases`).
+8. Menu: itens de backlog sempre por último (`… Jornadas da equipe · Melhorias · Correção/manutenção · Análise de chamados · Importar bases`).
 
 | Migração | O que faz | Rodar se o banco já está no ar |
 |---|---|---|
@@ -132,9 +132,9 @@ Na tela **Backlog de Melhorias** há dois filtros de período (de/até): **Cria�
 - **Chamados da base não têm data de finalização** (a planilha não traz essa coluna), então não aparecem quando o filtro de finalização está ativo, a menos que a data seja informada na atividade.
 - Ordem: execute a 009 depois da 008. Instalação nova: apenas o `001_schema.sql`.
 
-## Pareto backlog (análise dos chamados)
+## Análise de chamados (análise dos chamados)
 
-Menu **Pareto backlog** (os itens de backlog ficam sempre por último no menu), com a visão da planilha "Análise de backlog": filtros de **mês** e **tipo**; KPIs (total de chamados, no prazo e %, tipos, subcategorias) com comparação ao mês anterior; **Pareto por tipo** e **por subcategoria** (barras + % acumulado + linha de 80%); chamados por dia; rosquinhas de categoria e de tipo; lista dos chamados (clique numa barra de subcategoria para listar só os dela) e exportação CSV.
+Menu **Análise de chamados** (os itens de backlog ficam sempre por último no menu), com a visão da planilha "Análise de backlog": filtros de **mês** e **tipo**; KPIs (total de chamados, no prazo e %, tipos, subcategorias) com comparação ao mês anterior; **Pareto por tipo** e **por subcategoria** (barras + % acumulado + linha de 80%); chamados por dia; rosquinhas de categoria e de tipo; lista dos chamados (clique numa barra de subcategoria para listar só os dela) e exportação CSV.
 
 - **Quem vê:** todos os usuários ativos. **Quem importa:** somente o Analista Sr, na janela **Importar bases** (ver abaixo). A mesma base alimenta o Pareto e o card "Chamados da base do backlog" dentro do Backlog de Melhorias.
 - **Regras iguais às da planilha:** o mês e o dia vêm de MÊS_REF/DIA/ANO_REF; "no prazo" = `TRATADO DENTRO DO PRAZO?` = "Dentro do prazo"; tipos que só mudam de maiúsculas/minúsculas (CONFIGURAÇÃO × Configuração) são somados; chamados sem subcategoria não entram no Pareto de subcategoria (a página avisa quantos são).
@@ -144,7 +144,7 @@ Menu **Pareto backlog** (os itens de backlog ficam sempre por último no menu), 
 
 ---
 
-### Quem é responsável pelos chamados (Pareto backlog)
+### Quem é responsável pelos chamados (Análise de chamados)
 
 Cartão com Almawave / Almaviva / Outros (empresa responsável). **Os números acompanham os filtros do Pareto** (mês, tipo e subcategoria selecionada): total de chamados e **abertos** (A iniciar + Em andamento + Suspenso; Concluído, Cancelado e Improcedente ficam fora). Clique no cartão (ou em “Ver detalhamento”) para abrir a janela, com abas Abertos · Todos do filtro, filtro por empresa, indicadores (chamados, abertos, % no prazo, idade média e mais antigo) e gráficos correlacionados: **Categoria × empresa**, **Responsável ROCCO × status**, **Pareto de subcategoria**, **idade dos abertos** e **fase**. Os gráficos se filtram entre si (clique em uma categoria, pessoa ou subcategoria) e a lista de chamados abaixo acompanha, com exportação CSV. Requer a migração 007 e reimportar a base (o CSV `modelos/chamados_backlog_import.csv` já vem com as colunas novas). A empresa vem da coluna “Empresa Responsável” da planilha; não é recalculada. **Se aparecer o aviso “base não traz as colunas de responsável”:** quase sempre a migração 007 não foi executada (sem ela o banco descarta os campos em silêncio). A tela de importação agora confere isso ao terminar e mostra a mensagem certa; a pré-visualização do arquivo informa quantos chamados têm empresa e responsável ROCCO.
 
@@ -295,7 +295,7 @@ Criar projetos Supabase/GitHub/Cloudflare; executar o SQL; definir variáveis; c
 ## Identidade visual (logo)
 O logo (anel de progresso com “check”) aparece no menu lateral, no cabeçalho do celular, na tela de login e como ícone da aba (`public/favicon.svg`). O componente é `src/components/Logo.tsx`; os arquivos PNG/SVG para outros usos (apresentações, e-mail) estão em `public/logo/`.
 
-## Filtros de quinzena e semana no Pareto backlog
+## Filtros de quinzena e semana no Análise de chamados
 Ao escolher um mês, aparecem os filtros **Quinzena** (1ª = dias 1–15; 2ª = dia 16 até o fim) e **Semana** (S1, S2… de segunda a domingo; a primeira e a última podem ser parciais). Os dois se combinam com Mês e Tipo e valem para os indicadores, gráficos, detalhamento “Quem é responsável”, lista e CSV. A comparação com o mês anterior usa a mesma quinzena; com semana filtrada, não há comparação.
 
 ## Segurança — checkup e boas práticas
@@ -402,4 +402,4 @@ A importação de Projetos lê o CSV da aba **Microprojetos** exatamente como a 
 - **Responsável** aceita e-mail, nome completo, **primeiro nome/sobrenome** (ex.: “Higor”) ou **iniciais** (ex.: “MA”), desde que resolva para uma única pessoa ativa.
 
 ## Ordem do menu lateral
-To do diário · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Melhorias · Correção/manutenção · Pareto backlog · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).
+To do diário · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Melhorias · Correção/manutenção · Análise de chamados · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).
