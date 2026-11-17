@@ -11,6 +11,9 @@ export interface Melhoria {
   data_inicio: string | null; data_termino: string | null; data_conclusao?: string | null; observacoes: string | null
   criado_por: string | null; criado_em: string; atualizado_em: string
   origem?: 'manual' | 'chamado'; chamado_chave?: string | null; chamado_status?: string | null
+  tipo_backlog?: 'melhoria' | 'correcao'; codigo_base?: number | null; ordem_top?: number | null
+  fase?: Fase; data_ideia?: string | null; data_priorizacao?: string | null; data_especificacao?: string | null; data_abertura?: string | null
+  data_homologacao?: string | null; numero_chamado?: string | null; responsavel_id?: string | null; sla_chamado_dias_uteis?: number | null; sla_dev_dias_corridos?: number | null
 }
 export interface Etapa {
   id: string; melhoria_id: string; ordem: number; como: string; responsavel: string | null
@@ -50,3 +53,30 @@ export function resumo(items: ItemStat[]) {
   return { total, counts, realizado, planejado, desempenho, basePlano: comPlano.length }
 }
 export const fmtDesempenho = (d: number | null) => (d === null ? '—' : d.toFixed(2).replace('.', ','))
+
+
+/** Funil do processo de MELHORIAS (7 etapas): Ideia → Priorização → Especificação → Chamado aberto → Desenvolvimento → Homologação → Produção. */
+export const FASES = ['ideia', 'priorizada', 'especificacao', 'chamado_aberto', 'em_desenvolvimento', 'homologacao', 'producao'] as const
+export type Fase = (typeof FASES)[number]
+export interface FaseInfo { k: Fase; label: string; curto: string; icon: string; cor: string; campo: 'data_ideia' | 'data_priorizacao' | 'data_especificacao' | 'data_abertura' | 'data_inicio' | 'data_homologacao' | 'data_conclusao'; dataLabel: string; ajuda: string }
+export const FASE_INFO: FaseInfo[] = [
+  { k: 'ideia', label: 'Ideia', curto: 'Ideia', icon: '💡', cor: '#64748b', campo: 'data_ideia', dataLabel: 'Ideia registrada em', ajuda: 'Ideia pensada e alocada no painel, aguardando a reunião semanal.' },
+  { k: 'priorizada', label: 'Priorização', curto: 'Priorização', icon: '🗳️', cor: '#7c3aed', campo: 'data_priorizacao', dataLabel: 'Priorizada em reunião em', ajuda: 'Debatida na reunião semanal: criticidade e prioridade definidas.' },
+  { k: 'especificacao', label: 'Especificação', curto: 'Especif.', icon: '📝', cor: '#db2777', campo: 'data_especificacao', dataLabel: 'Especificação concluída em', ajuda: 'Escopo e regras da melhoria sendo especificados para o chamado.' },
+  { k: 'chamado_aberto', label: 'Chamado aberto', curto: 'Chamado', icon: '🎫', cor: '#0891b2', campo: 'data_abertura', dataLabel: 'Chamado aberto em', ajuda: 'Chamado aberto conforme a criticidade, aguardando o desenvolvimento.' },
+  { k: 'em_desenvolvimento', label: 'Desenvolvimento', curto: 'Desenv.', icon: '🛠️', cor: '#2563eb', campo: 'data_inicio', dataLabel: 'Desenvolvimento iniciado em', ajuda: 'Em desenvolvimento: acompanhar prazo, andamento e etapas.' },
+  { k: 'homologacao', label: 'Homologação', curto: 'Homolog.', icon: '🧪', cor: '#d97706', campo: 'data_homologacao', dataLabel: 'Entrou em homologação em', ajuda: 'Desenvolvimento entregue: validação (homologação) antes de ir para produção.' },
+  { k: 'producao', label: 'Produção', curto: 'Produção', icon: '✅', cor: '#16a34a', campo: 'data_conclusao', dataLabel: 'Entrou em produção em', ajuda: 'Melhoria em produção (concluída).' },
+]
+export const faseInfo = (k?: string | null) => FASE_INFO.find((f) => f.k === k) || FASE_INFO[0]
+export const faseIdx = (k?: string | null) => Math.max(0, FASES.indexOf((k || 'ideia') as Fase))
+/** Andamento da melhoria = posição na etapa do funil: Ideia 0% · Priorização 17% · Especificação 33% · Chamado aberto 50% · Desenvolvimento 67% · Homologação 83% · Produção 100%. */
+export const pctDaFase = (k?: string | null) => Math.round((faseIdx(k) * 100) / (FASES.length - 1))
+export const faseDe = (m: Pick<Melhoria, 'fase' | 'status'>): Fase => (m.fase as Fase) || (m.status === 'Concluído' ? 'producao' : m.status === 'A Iniciar' ? 'ideia' : 'em_desenvolvimento')
+/** Etapas em que a melhoria está "em andamento" do lado do desenvolvimento. */
+export const emDev = (k: Fase) => k === 'em_desenvolvimento' || k === 'homologacao'
+/** Prazo de entrega vencido (a melhoria ainda não está em produção). */
+export const vencida = (m: Melhoria, hoje: string) => !!m.data_termino && m.data_termino < hoje && faseDe(m) !== 'producao'
+export const dataDaFase = (m: Melhoria, k: Fase): string | null => (k === 'producao' && faseDe(m) !== 'producao' ? null : (m[faseInfo(k).campo] as string | null | undefined) || null)
+/** Quantos dias (corridos) entre duas datas aaaa-mm-dd. */
+export const diasEntre = (a: string, b: string) => Math.round(dayNum(b) - dayNum(a))

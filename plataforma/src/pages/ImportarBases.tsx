@@ -5,6 +5,7 @@ import { canAdmin, download, fmtDate, fmtDateTime } from '../lib/rules'
 import { btnG, btnP, btnSm, Card, Msg } from '../components/ui'
 import { ChamadoImport, lerBase } from '../lib/chamados'
 import { LeituraMicro, lerMicro, modeloMicroCsv, PessoaRef } from '../lib/microImport'
+import { LeituraMelhorias, lerMelhorias } from '../lib/melhoriasImport'
 
 /** Janela exclusiva do Analista Sr: importação das bases (chamados do backlog/Pareto e projetos). A trava real está no banco (RLS e função chamados_substituir). */
 async function lerArquivo(f: File): Promise<string> {
@@ -25,6 +26,7 @@ export default function ImportarBases({ onNavigate }: { onNavigate: (p: string) 
       </div>
       <ChamadosCard onNavigate={onNavigate} />
       <MicroCard onNavigate={onNavigate} />
+      <MelhoriasCard onNavigate={onNavigate} />
     </div>
   )
 }
@@ -68,7 +70,7 @@ function ChamadosCard({ onNavigate }: { onNavigate: (p: string) => void }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-lg font-bold text-navy">1 · Base de chamados do backlog</h2>
-          <p className="text-sm text-slate-600">Alimenta o <b>Pareto backlog</b> e o resumo de chamados dentro do <b>Backlog de Melhorias</b> (as duas telas leem esta mesma base). Use a aba <b>base</b> da planilha de análise.</p>
+          <p className="text-sm text-slate-600">Alimenta o <b>Pareto backlog</b> e o resumo de chamados dentro de <b>Correção/manutenção</b> (as duas telas leem esta mesma base). Use a aba <b>base</b> da planilha de análise.</p>
         </div>
         <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('pareto')}>Abrir Pareto backlog →</button>
       </div>
@@ -142,6 +144,56 @@ function MicroCard({ onNavigate }: { onNavigate: (p: string) => void }) {
           </div>
         )}
         <button className={btnP} disabled={!podeImportar || busy} onClick={enviar}>{busy ? 'Importando…' : podeImportar ? `Importar ${lei!.rows.length} projeto(s)` : 'Importar'}</button>
+      </div>
+    </Card>
+  )
+}
+
+function MelhoriasCard({ onNavigate }: { onNavigate: (p: string) => void }) {
+  const [lei, setLei] = useState<LeituraMelhorias | null>(null)
+  const [nome, setNome] = useState(''); const [err, setErr] = useState(''); const [ok, setOk] = useState(''); const [busy, setBusy] = useState(false); const [key, setKey] = useState(0)
+  async function escolher(f: File | undefined) {
+    setLei(null); setErr(''); setOk(''); if (!f) return
+    if (f.size > MAX_ARQ) return setErr('Arquivo muito grande (máximo de 15 MB). Confira se é o CSV correto.')
+    setNome(f.name); setLei(lerMelhorias(await lerArquivo(f)))
+  }
+  async function enviar() {
+    if (!lei?.itens.length) return
+    setBusy(true); setErr('')
+    const r = await supabase.rpc('melhorias_importar', { p_itens: lei.itens })   // uma única transação: ou entra tudo ou nada
+    setBusy(false)
+    if (r.error) return setErr('Falha na importação (nada foi gravado): ' + r.error.message + ' (a migração 021 foi executada?)')
+    const d = r.data as { novas: number; atualizadas: number; sem_responsavel?: number }
+    setOk(`${d.novas} melhoria(s) nova(s) e ${d.atualizadas} atualizada(s).` + (d.sem_responsavel ? ` ${d.sem_responsavel} nome(s) de responsável não correspondem a usuários da plataforma: defina na tela Melhorias.` : '')); setLei(null); setKey((k) => k + 1)
+  }
+  const pode = !!lei && !lei.erroGeral && lei.itens.length > 0
+  return (
+    <Card>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-bold text-navy">3 · Base de melhorias</h2>
+          <p className="text-sm text-slate-600">Alimenta o módulo <b>Melhorias</b>. Pode reenviar a base atualizada: melhorias novas entram e as existentes (mesmo ID) têm textos, prioridade e posição atualizados; <b>etapa, datas, prazo, % e responsável que você definiu no sistema não são desfeitos</b> (a base só faz a melhoria avançar de status, nunca voltar). Melhorias com status “Cancelado” não são importadas.</p>
+        </div>
+        <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('melhorias')}>Abrir Melhorias →</button>
+      </div>
+      <p className="mt-2 text-xs text-slate-500">Colunas: ID, MÓDULO, MELHORIA, DESCRIÇÃO (resumo), DESCRIÇÃO DETALHADA, OBJETIVO, OBJETIVO DETALHADO, AS IS, TO BE, PRIORIDADE, STATUS (A Iniciar, Em andamento, Concluído), 10 PRIMEIRAS. Colunas opcionais: RESPONSÁVEL (nome de um usuário da plataforma, igual ao cadastrado; sem ele, defina na tela Melhorias), DATA DE ABERTURA (dd/mm/aaaa — habilita o filtro por data), Nº DO CHAMADO e DATA DA IDEIA. A etapa inicial vem do status (Concluído → Produção, Em andamento → Desenvolvimento), de ter chamado aberto ou de estar na lista “10 primeiras” (Priorização); as demais entram como Ideia. A planilha não traz prazo: defina nos cartões do módulo.</p>
+      <div className="mt-3 space-y-3 text-sm">
+        <input key={key} type="file" accept=".csv,text/csv" aria-label="CSV de melhorias" onChange={(e) => escolher(e.target.files?.[0])} />
+        {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}
+        {lei?.erroGeral && <Msg kind="erro">{lei.erroGeral}</Msg>}
+        {lei && !lei.erroGeral && (
+          <div className="rounded-xl bg-violet-50 p-3">
+            <b>{nome}</b>: {lei.itens.length} para importar ({lei.itens.filter((i) => i.status === 'A Iniciar').length} a iniciar · {lei.itens.filter((i) => i.status === 'Em andamento').length} em andamento · {lei.itens.filter((i) => i.status === 'Concluído').length} concluídas) · {lei.canceladas} cancelada(s) ignorada(s){lei.vazias ? ` · ${lei.vazias} linha(s) em branco` : ''} · {lei.erros.length} com erro.
+          </div>
+        )}
+        {lei && lei.erros.length > 0 && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <b>{lei.erros.length} linha(s) com problema NÃO serão importadas:</b>
+            <ul className="mt-1 list-disc pl-5">{lei.erros.slice(0, 15).map((e) => <li key={e.linha}>Linha {e.linha}: {e.msg}</li>)}</ul>
+            {lei.erros.length > 15 && <p>…e mais {lei.erros.length - 15}.</p>}
+          </div>
+        )}
+        <button className={btnP} disabled={!pode || busy} onClick={enviar}>{busy ? 'Importando…' : 'Importar melhorias'}</button>
       </div>
     </Card>
   )

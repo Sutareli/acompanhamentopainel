@@ -61,7 +61,7 @@ export default function Configuracoes() {
           <button className={btnG} onClick={() => setS(DEFAULT_SETTINGS)}>Restaurar valores originais</button>
           {canAdmin(profile!.perfil) && <button className={btnG} onClick={() => save(true)}>Salvar como padrão global da equipe</button>}
         </div>
-        <p className="mt-3 text-xs text-slate-500">Nomes, durações e tarefas dos blocos são editados diretamente no Painel e passam a valer nos dias seguintes.</p>
+        <p className="mt-3 text-xs text-slate-500">Nomes, durações e tarefas dos blocos são editados diretamente em Atividades diárias e passam a valer nos dias seguintes.</p>
       </Card>
 
       <Card>

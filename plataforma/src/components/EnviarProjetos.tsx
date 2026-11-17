@@ -7,7 +7,7 @@ export interface TarefaPainel { id: string; descricao: string; concluida: boolea
 export interface BlocoPainel { id: string; numero: number; nome: string; daily_tasks: TarefaPainel[] }
 
 /**
- * Transfere tarefas do Painel para Projetos (microprojetos). Cada tarefa vira UM microprojeto com os padrões:
+ * Transfere tarefas de Atividades diárias para Projetos (microprojetos). Cada tarefa vira UM microprojeto com os padrões:
  * criticidade média · data target = dia seguinte · status A iniciar (1 unidade) · responsável = quem está logado.
  */
 export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onNavigate }: {
@@ -38,13 +38,13 @@ export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onN
     const linhas = escolhidas.map((t) => ({
       criticidade: 'media', responsavel_id: uid, criado_por: uid, demanda: t.descricao.trim().slice(0, 300), data_target: alvo,
       quantidade: 1, a_iniciar: 1, em_andamento: 0, concluido: 0, cancelado: 0, tipo_projeto: 'micro',
-      observacoes: `Criado a partir do Painel (${t.bloco.nome}, ${fmtDate(data)}).`,
+      observacoes: `Criado a partir de Atividades diárias (${t.bloco.nome}, ${fmtDate(data)}).`,
     }))
     const r = await supabase.from('microdeliveries').insert(linhas).select('id')   // uma requisição: entra tudo ou nada
     if (r.error) { setBusy(false); return setErr('Não foi possível criar os projetos: ' + r.error.message) }
     if (remover) {
       const d = await supabase.from('daily_tasks').delete().in('id', escolhidas.map((t) => t.id))
-      if (d.error) setErr('Os projetos foram criados, mas não consegui remover as tarefas do Painel: ' + d.error.message)
+      if (d.error) setErr('Os projetos foram criados, mas não consegui remover as tarefas de Atividades diárias: ' + d.error.message)
     }
     setBusy(false); setOk(escolhidas.length); onDone()
   }
@@ -89,7 +89,7 @@ export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onN
           )}
           <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm text-slate-600">
             <input type="checkbox" className="mt-1" checked={remover} onChange={(e) => setRemover(e.target.checked)} />
-            <span>Remover as tarefas enviadas do Painel (transferir). Desmarcado, elas ficam no Painel também (copiar).</span>
+            <span>Remover as tarefas enviadas de Atividades diárias (transferir). Desmarcado, elas ficam lá também (copiar).</span>
           </label>
           {err && <div className="mt-2"><Msg kind="erro">{err}</Msg></div>}
           <div className="mt-4 flex justify-end gap-2">

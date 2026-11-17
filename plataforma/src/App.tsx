@@ -6,6 +6,7 @@ import { Login, SetPassword } from './auth/Login'
 import { configured } from './lib/supabase'
 import { btnG, Card, Msg } from './components/ui'
 import Painel from './pages/Painel'
+import Melhorias from './pages/Melhorias'
 import Atas from './pages/Atas'
 import Imprevistos from './pages/Imprevistos'
 import Ideias from './pages/Ideias'
@@ -23,12 +24,12 @@ import { AvisoCapacidade } from './components/AvisoCapacidade'
 import { canAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
 const ITEMS: [string, string, string][] = [
-  ['painel', '🏠', 'Painel'], ['micro', '📦', 'Projetos'], ['ideias', '💡', 'Ideias'], ['historico', '🕘', 'Histórico'],
+  ['painel', '🏠', 'Atividades diárias'], ['micro', '📦', 'Projetos'], ['ideias', '💡', 'Ideias'], ['historico', '🕘', 'Histórico'],
   ['atas', '📝', 'Atas importantes'], ['lixeira', '🗑️', 'Lixeira'], ['config', '⚙️', 'Configurações'],
 ]
 /** Ordem do menu: itens pessoais → equipe → backlog → Importar bases (só Analista Sr). O botão Segurança fica sozinho no rodapé. Imprevistos abre por um botão no Painel. */
 const IMPORT_ITEM: [string, string, string][] = [['importar', '⬆️', 'Importar bases']]   // só Analista Sr
-const BACKLOG_ITEMS: [string, string, string][] = [['backlog', '🧭', 'Backlog de Melhorias'], ['pareto', '📊', 'Pareto backlog']]
+const BACKLOG_ITEMS: [string, string, string][] = [['melhorias', '🚀', 'Melhorias'], ['backlog', '🛠️', 'Correção/manutenção'], ['pareto', '📊', 'Pareto backlog']]
 
 export default function App() {
   const { session, profile, loading, authError, needsPassword, signOut } = useAuth()
@@ -99,6 +100,7 @@ export default function App() {
         {view === 'imprevistos' && <Imprevistos />}
         {view === 'ideias' && <Ideias />}
         {view === 'micro' && <Microentregas />}
+        {view === 'melhorias' && <Melhorias />}
         {view === 'backlog' && <Backlog onNavigate={setPage} />}
         {view === 'pareto' && <ParetoBacklog onNavigate={setPage} />}
         {view === 'importar' && canAdmin(profile.perfil) && <ImportarBases onNavigate={setPage} />}

@@ -5,28 +5,32 @@ import { fmtDate, fmtDateTime, todayStr } from '../lib/rules'
 import { Bar, btnD, btnG, btnP, btnSm, Card, Chip, Empty, inp, Msg } from './ui'
 import PainelStatus from './PainelStatus'
 import { EtapaForm, MelhoriaForm } from './BacklogForms'
-import { Etapa, etapaVencida, fimEtapa, Hist, ItemStat, Melhoria, planejadoEtapa, planejadoPct, Status, STATUS_COLOR } from '../lib/backlog'
+import FunilLinha from './FunilLinha'
+import { Etapa, pctDaFase, faseDe, faseInfo, etapaVencida, fimEtapa, Hist, ItemStat, Melhoria, planejadoEtapa, planejadoPct, Status, STATUS_COLOR } from '../lib/backlog'
 
 const CAMPOS: Record<string, string> = {
   status: 'Status', percentual_concluido: '% concluído', prioridade: 'Prioridade', responsavel: 'Responsável',
+  fase: 'Etapa do processo', data_ideia: 'Ideia em', data_priorizacao: 'Priorização em', data_especificacao: 'Especificação em', data_homologacao: 'Homologação em', data_abertura: 'Chamado aberto em', numero_chamado: 'Nº do chamado',
   data_inicio: 'Início', data_termino: 'Término', novo_prazo: 'Novo prazo', prazo_realizado: 'Prazo realizado',
 }
 const GRUPOS: { k: string; label: string; campos: string[] }[] = [
   { k: '', label: 'Todos', campos: [] },
+  { k: 'fase', label: 'Etapa do processo', campos: ['fase', 'data_ideia', 'data_priorizacao', 'data_especificacao', 'data_abertura', 'numero_chamado', 'data_homologacao'] },
   { k: 'status', label: 'Status', campos: ['status'] },
   { k: 'pct', label: 'Percentual', campos: ['percentual_concluido'] },
   { k: 'prazo', label: 'Prazos', campos: ['data_inicio', 'data_termino', 'novo_prazo', 'prazo_realizado'] },
   { k: 'resp', label: 'Responsável', campos: ['responsavel'] },
 ]
-const isDate = (c: string) => ['data_inicio', 'data_termino', 'novo_prazo', 'prazo_realizado'].includes(c)
-const val = (c: string, v: string | null) => (v === null || v === '' ? '—' : isDate(c) ? fmtDate(v) : c === 'percentual_concluido' ? v + '%' : v)
+const isDate = (c: string) => ['data_ideia', 'data_priorizacao', 'data_especificacao', 'data_homologacao', 'data_abertura', 'data_inicio', 'data_termino', 'novo_prazo', 'prazo_realizado'].includes(c)
+const FASE_NOME: Record<string, string> = { ideia: 'Ideia', priorizada: 'Priorização', especificacao: 'Especificação', chamado_aberto: 'Chamado aberto', em_desenvolvimento: 'Desenvolvimento', homologacao: 'Homologação', producao: 'Produção' }
+const val = (c: string, v: string | null) => (v === null || v === '' ? '—' : c === 'fase' ? FASE_NOME[v] || v : isDate(c) ? fmtDate(v) : c === 'percentual_concluido' ? v + '%' : v)
 
 function Dot({ s }: { s: Status }) {
   return <span className="inline-block h-3 w-3 shrink-0 rounded-full" style={{ background: STATUS_COLOR[s] }} aria-hidden />
 }
 
-export default function BacklogDetalhe({ m, nomes, podeEditar, podeExcluir, modulos, onBack, onChanged, onDelete, onSaveMelhoria }: {
-  m: Melhoria; nomes: Record<string, string>; podeEditar: boolean; podeExcluir: boolean; modulos: string[]
+export default function BacklogDetalhe({ m, nomes, usuarios, podeEditar, podeExcluir, modulos, onBack, onChanged, onDelete, onSaveMelhoria }: {
+  m: Melhoria; nomes: Record<string, string>; usuarios?: { id: string; nome: string }[]; podeEditar: boolean; podeExcluir: boolean; modulos: string[]
   onBack: () => void; onChanged: () => Promise<void> | void; onDelete: () => void; onSaveMelhoria: (p: Partial<Melhoria>) => Promise<string>
 }) {
   const hoje = todayStr()
@@ -40,15 +44,16 @@ export default function BacklogDetalhe({ m, nomes, podeEditar, podeExcluir, modu
   const [fGrupo, setFGrupo] = useState('')
   const [fEtapa, setFEtapa] = useState('')
 
+  const ehMel = m.tipo_backlog === 'melhoria'   // Melhorias não têm etapas (COMO?): o andamento vem da etapa do funil
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from('backlog_etapas').select('*').eq('melhoria_id', m.id).order('ordem', { ascending: true }),
+      ehMel ? Promise.resolve({ data: [], error: null }) : supabase.from('backlog_etapas').select('*').eq('melhoria_id', m.id).order('ordem', { ascending: true }),
       supabase.from('backlog_historico').select('*').eq('melhoria_id', m.id).order('data_hora', { ascending: false }).order('id', { ascending: false }),
     ])
     if (a.error || b.error) setErr('Não foi possível carregar etapas/histórico: ' + (a.error || b.error)!.message)
     else { setEtapas((a.data || []) as Etapa[]); setHist((b.data || []) as Hist[]); setErr('') }
     setLoading(false)
-  }, [m.id])
+  }, [m.id, ehMel])
   useEffect(() => { load() }, [load, m.atualizado_em])
 
   async function refresh() { await load(); await onChanged() }
@@ -92,25 +97,29 @@ export default function BacklogDetalhe({ m, nomes, podeEditar, podeExcluir, modu
 
   return (
     <div className="space-y-4">
-      <button className="text-sm font-semibold text-violet-700 hover:underline" onClick={onBack}>← Voltar ao backlog</button>
+      <button className="text-sm font-semibold text-violet-700 hover:underline" onClick={onBack}>← {m.tipo_backlog === 'melhoria' ? 'Voltar às melhorias' : 'Voltar à correção/manutenção'}</button>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-navy">{m.melhoria}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
             <Chip color={STATUS_COLOR[m.status]}>{m.status}</Chip><Chip color="#2e1a6e">Prioridade {m.prioridade}</Chip>
-            <span>{m.modulo}</span><span>· Responsável: {m.responsavel || '—'}</span><span>· {fmtDate(m.data_inicio)} → {fmtDate(m.data_termino)}</span>
+            <span>{m.modulo}</span><span>· Responsável: {(m.responsavel_id && nomes[m.responsavel_id]) || m.responsavel || '—'}</span><span>· {fmtDate(m.data_inicio)} → {fmtDate(m.data_termino)}</span>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {podeExcluir && <button className={btnD} onClick={onDelete}>Excluir atividade</button>}
           {podeEditar && <button className={btnG} onClick={() => setEMel(true)}>Editar atividade</button>}
-          {podeEditar && <button className={btnP} onClick={() => setEEtapa({ status: 'A Iniciar', percentual_concluido: 0 })}>+ Nova etapa</button>}
+          {podeEditar && !ehMel && <button className={btnP} onClick={() => setEEtapa({ status: 'A Iniciar', percentual_concluido: 0 })}>+ Nova etapa</button>}
         </div>
       </div>
       {!podeEditar && <Msg kind="aviso">Você pode acompanhar esta atividade, mas só quem a criou, Diretor, Gerente ou Analista Sr pode alterá-la.</Msg>}
       {err && <Msg kind="erro">{err}</Msg>}
 
-      <PainelStatus titulo={etapas.length ? 'Status das Etapas' : 'Status da Atividade'} rotulo={etapas.length ? 'etapas' : 'atividade'} items={items} />
+      {m.tipo_backlog === 'melhoria' && <Card className="!p-4"><div className="mb-2 text-sm font-bold text-navy">Etapas do processo da melhoria{m.numero_chamado ? ` · chamado ${m.numero_chamado}` : ''}</div><FunilLinha m={m} /></Card>}
+
+      {ehMel
+        ? <Card className="!p-4"><div className="flex items-center justify-between text-sm font-bold text-navy"><span>Andamento da melhoria</span><span>{pctDaFase(faseDe(m))}%</span></div><Bar pct={pctDaFase(faseDe(m))} color={faseInfo(faseDe(m)).cor} /><p className="mt-1 text-xs text-slate-500">O andamento acompanha a etapa do funil: Ideia 0% · Priorização 17% · Especificação 33% · Chamado aberto 50% · Desenvolvimento 67% · Homologação 83% · Produção 100%.</p></Card>
+        : <PainelStatus titulo={etapas.length ? 'Status das Etapas' : 'Status da Atividade'} rotulo={etapas.length ? 'etapas' : 'atividade'} items={items} />}
 
       <Card className="!p-4">
         <button className="flex w-full items-center justify-between text-left font-bold text-navy" onClick={() => setDet(!det)} aria-expanded={det}>
@@ -123,7 +132,7 @@ export default function BacklogDetalhe({ m, nomes, podeEditar, podeExcluir, modu
         )}
       </Card>
 
-      <Card className="!p-0">
+      {!ehMel && <Card className="!p-0">
         <div className="border-b border-violet-100 px-5 py-3 font-bold text-navy">Etapas (COMO?) <span className="ml-1 text-xs font-normal text-slate-500">{etapas.length ? `${etapas.length} etapa(s) — status e % da atividade são calculados a partir delas` : ''}</span></div>
         {loading ? <p className="p-5 text-slate-500">Carregando…</p> : etapas.length === 0 ? (
           <div className="p-5"><Empty>Sem etapas. {podeEditar ? 'Use “+ Nova etapa” para detalhar o plano (COMO?) e acompanhar prazos e status de cada passo.' : ''}</Empty></div>
@@ -159,7 +168,7 @@ export default function BacklogDetalhe({ m, nomes, podeEditar, podeExcluir, modu
             </table>
           </div>
         )}
-      </Card>
+      </Card>}
 
       <Card>
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -167,10 +176,10 @@ export default function BacklogDetalhe({ m, nomes, podeEditar, podeExcluir, modu
           {GRUPOS.map((g) => (
             <button key={g.k} onClick={() => setFGrupo(g.k)} className={'rounded-full border px-3 py-1 text-xs font-semibold ' + (fGrupo === g.k ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy')}>{g.label}</button>
           ))}
-          <select aria-label="Filtrar por etapa" className={inp + ' !w-auto !py-1 text-xs'} value={fEtapa} onChange={(e) => setFEtapa(e.target.value)}>
+          {!ehMel && <select aria-label="Filtrar por etapa" className={inp + ' !w-auto !py-1 text-xs'} value={fEtapa} onChange={(e) => setFEtapa(e.target.value)}>
             <option value="">Todas as etapas</option><option value="__ativ">Só a atividade</option>
             {etapas.map((e) => <option key={e.id} value={e.id}>{e.como.slice(0, 50)}</option>)}
-          </select>
+          </select>}
         </div>
         {histFiltrado.length === 0 ? <Empty>Sem registros{hist.length ? ' para este filtro' : ' ainda — o histórico começa a ser gravado a partir da atualização do banco'}.</Empty> : (
           <ol className="space-y-2">
@@ -193,7 +202,7 @@ export default function BacklogDetalhe({ m, nomes, podeEditar, podeExcluir, modu
       </Card>
 
       {eEtapa && <EtapaForm init={eEtapa} onClose={() => setEEtapa(null)} onSave={saveEtapa} />}
-      {eMel && <MelhoriaForm init={m} modulos={modulos} temEtapas={etapas.length > 0} onClose={() => setEMel(false)} onSave={async (p) => { const r = await onSaveMelhoria(p); if (!r) { setEMel(false); await load() } return r }} />}
+      {eMel && <MelhoriaForm funil={m.tipo_backlog === 'melhoria'} usuarios={usuarios} init={m} modulos={modulos} temEtapas={etapas.length > 0} onClose={() => setEMel(false)} onSave={async (p) => { const r = await onSaveMelhoria(p); if (!r) { setEMel(false); await load() } return r }} />}
     </div>
   )
 }

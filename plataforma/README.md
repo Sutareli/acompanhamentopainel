@@ -10,10 +10,10 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 2. Botão **Limpar lista do dia** (desmarcar ou apagar) e aba **Histórico de atividades**.
 3. **Sem cronômetro**; usuários novos começam **sem atividades** (o dia seguinte herda o último dia com tarefas).
 4. Paleta roxa e nova tela de login.
-5. **Backlog de Melhorias** com painel de status, visão detalhada, etapas, histórico e cálculo automático; resumo dos chamados da base.
+5. **Melhorias** (em curso, a iniciar, prazos e resumo) e **Correção/manutenção** (antigo Backlog, com painel de status, visão detalhada, etapas, histórico e cálculo automático; resumo dos chamados da base).
 6. **Pareto backlog** (análise dos chamados).
 7. **Importar bases** (somente Analista Sr): chamados do backlog (alimenta Pareto e Backlog) e projetos.
-8. Menu: itens de backlog sempre por último (`… Gestão da equipe · Importar bases · Backlog de Melhorias · Pareto backlog`).
+8. Menu: itens de backlog sempre por último (`… Jornadas da equipe · Melhorias · Correção/manutenção · Pareto backlog · Importar bases`).
 
 | Migração | O que faz | Rodar se o banco já está no ar |
 |---|---|---|
@@ -23,7 +23,7 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 | 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
 | 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
 | 007 | responsável e fase nos chamados (detalhamento “Quem é responsável” do Pareto) | uma vez, **depois** de 006, e reimporte a base de chamados |
-| 008 → 019 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_019_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
+| 008 → 023 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_023_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
 | 006 | Atividades futuras (por bloco) e Projetos macro/micro (“com quem está”) | uma vez (se ainda não rodou) |
 
 **Atalho:** quem rodou só a 002 pode executar **`supabase/003_a_006_tudo_junto.sql`** (003 + 004 + 005 + 006 em um arquivo, uma única vez) em vez de rodar um por um.
@@ -52,7 +52,13 @@ Calculado a partir da distribuição numérica (a iniciar `a`, em andamento `e`,
 
 ---
 
-## Atividades futuras (Painel)
+## Atividades diárias (antigo “Painel”)
+- A página **Painel** agora se chama **Atividades diárias** (menu e título).
+- Cada bloco tem **rolagem lateral** própria para a lista de tarefas (também nas atividades futuras e na transferência para amanhã): o card não estica mais com muitas tarefas.
+- O texto de cada tarefa **quebra linha e aparece inteiro** dentro do card (Enter confirma a edição).
+- O nome de cada bloco pode ser trocado pelo **✏️ ao lado do título** (ou por “Editar nome e duração”); vale também para os dias seguintes. Nomes longos quebram linha no título.
+
+## Atividades futuras (Atividades diárias)
 
 Cada bloco do Painel tem o quadro **📅 Atividades futuras**: escreva a atividade e escolha uma data (a partir de amanhã). Ela fica guardada e **continua visível no bloco** (com a data / “amanhã”) mesmo depois de **Limpar lista do dia**. Quando a data chega, ao abrir o Painel ela entra **uma única vez** na lista do bloco, no fim, como uma tarefa normal (se a data passou com o sistema fechado, entra no próximo acesso). Depois de incorporada, limpar o dia a remove como qualquer tarefa, e ela **não é copiada** para o dia seguinte. Cada pessoa vê e altera só as suas; Diretor/Gerente/Analista Sr podem ler. A tabela é `atividades_futuras` (migração 006).
 
@@ -70,9 +76,26 @@ O painel **Status das Atividades** é único e passa a contar também os chamado
 
 Você segue alimentando normalmente (editar, prioridade, observações, etapas, histórico). **Ao reimportar a base nada é apagado nem duplicado**: chamados novos viram atividades novas e uma atividade existente só muda de status se o status do chamado **mudou na base** (e, se ela tiver etapas, o status continua vindo das etapas). Chamados que depois virarem Cancelado/Improcedente ou sumirem da base **não removem** a atividade (exclua à mão, se quiser). Como chamados não têm data de término, “% planejado” e Desempenho consideram só atividades com datas (o rodapé do painel mostra “base: N de M com datas”). A tabela mostra as atividades em aberto primeiro, tem filtro “Origem” e carrega 150 por vez (“Mostrar mais”). Editar um chamado-atividade exige ser quem importou, Diretor, Gerente ou Analista Sr. **Rode a migração 008 e reimporte a base** (a primeira importação cria uma atividade por chamado válido: com a sua planilha, 1.179).
 
-## Backlog de Melhorias (atividades, etapas e histórico)
+## Melhorias × Correção/manutenção (migração 020)
 
-Menu **Backlog de Melhorias**, visível a todos os perfis.
+O antigo backlog foi dividido em dois menus (mesma tabela, coluna `tipo_backlog`):
+
+- **Melhorias** — acompanha cada melhoria ao longo do **processo de 7 etapas**: 💡 **Ideia** → 🗳️ **Priorização** (reunião semanal: criticidade/prioridade) → 📝 **Especificação** → 🎫 **Chamado aberto** (data + nº do chamado) → 🛠️ **Desenvolvimento** (prazo de entrega, %, etapas) → 🧪 **Homologação** → ✅ **Produção**. Cada melhoria tem um **responsável (usuário da plataforma) desde a ideia** — obrigatório ao cadastrar, ajustável no cartão; o responsável também pode editar a melhoria. O desenvolvimento é sempre da mesma empresa, por isso não há responsável de desenvolvimento. Tela em **Quadro** (uma coluna por etapa) ou **Cartões**; contadores por etapa; alertas (prazo vencido, sem responsável, aguardando abertura de chamado, em desenvolvimento/homologação sem prazo); filtros por módulo, **responsável**, busca (inclui nº do chamado) e **Chamado aberto de/até**. Cada cartão mostra a linha do tempo das 7 etapas com a data de cada uma, há quanto tempo está na etapa atual e o botão **Avançar →**, que registra a próxima etapa com a data (priorização pede a criticidade, chamado o nº, desenvolvimento o prazo previsto). A edição traz a etapa atual e todas as datas; o histórico registra cada mudança de etapa. Com etapas (COMO?) cadastradas, o % vem delas e, ao concluí-las todas, a melhoria vai para **Homologação**; a entrada em **Produção** é sempre registrada à mão (Avançar). Na aba **📊 Visão gerencial** (para apresentar rápido): números-chave, funil, ritmo mensal, tempo médio entre cada etapa e ciclo completo, panorama por módulo, tabela do que está em desenvolvimento/homologação, **quadro por responsável**, filas e botão **Copiar resumo (texto)**.
+- **Correção/manutenção** — tudo o que já existia (atividades manuais e as geradas pelos chamados). Nada foi apagado: as linhas atuais viram `correcao`.
+
+**Importar a base de melhorias** (só Analista Sr): Importar bases → "3 · Base de melhorias" (CSV com ID;Módulo;Melhoria;Descrição;…;Prioridade;Status;10 PRIMEIRAS). Colunas **opcionais**: `RESPONSÁVEL` (nome igual ao de um usuário ativo da plataforma; sem correspondência, defina na tela), `DATA DE ABERTURA`, `Nº DO CHAMADO`, `DATA DA IDEIA`. Etapa inicial: Concluído → Produção · Em andamento → Desenvolvimento · A iniciar com chamado/data de abertura → Chamado aberto · A iniciar na lista "10 primeiras" → Priorização · demais → Ideia. Linhas "Cancelado" não entram; "VOLTAR À CAPA" é ignorada. **Reimportar** atualiza textos, prioridade e posição, mas **não desfaz** etapa, datas, prazo, % nem responsável definidos no sistema (a base só faz a melhoria avançar de status).
+
+**Migração:** quem já rodou até a 019 executa `020_melhorias_e_correcao.sql` e depois `021_melhorias_data_abertura.sql` (a 021 pode ser rodada de novo sem problema, mesmo que uma versão anterior já tenha sido aplicada (as etapas antigas "Aplicada" viram "Produção")). O arquivo `008_a_023_tudo_junto.sql` reúne tudo.
+
+**Sem etapas “COMO?” nas Melhorias (migração 023):** o andamento (%) agora acompanha a etapa do funil — Ideia 0% · Priorização 17% · Especificação 33% · Chamado aberto 50% · Desenvolvimento 67% · Homologação 83% · Produção 100% — e não é mais digitado. A tela de detalhe das melhorias não mostra mais as etapas “COMO?” (as já cadastradas ficam guardadas no banco, sem efeito no status/%). A **Correção/manutenção** continua com etapas e % calculado por elas. Quem já rodou até a 022 executa apenas `023_melhorias_andamento_pela_etapa.sql`.
+
+**Visão Analítico:** terceira aba em Melhorias, com uma tabela de todas as ideias (etapa, responsável, todas as datas, prazo, nº do chamado, SLA), filtros, ordenação por coluna e exportação CSV da lista filtrada. O Analista Sr tem o botão **Excluir** em cada linha (a exclusão remove também etapas e histórico e fica 48 h na Lixeira).
+
+**SLA por melhoria (migração 022):** cada ideia tem o seu SLA: *Chamado aberto → Desenvolvimento* (padrão **3 dias úteis**, contados da abertura do chamado) e *Desenvolvimento → Homologação* (padrão **15 dias corridos**, contados do início do desenvolvimento). Passou do prazo sem avançar de etapa, a melhoria aparece com **⏱ SLA vencido** (selo no cartão, chip de filtro, Visão gerencial e CSV). O SLA é separado do *prazo de entrega*. Só **Analista Sr e Gerente** alteram o SLA (campos no formulário de edição da melhoria; a regra é imposta no banco por trigger). Dias úteis = segunda a sexta; **feriados não são descontados**. Quem já rodou a 021 executa apenas `022_sla_melhorias.sql` (pode ser repetida).
+
+## Correção/manutenção (atividades, etapas e histórico)
+
+Menu **Correção/manutenção**, visível a todos os perfis.
 
 - **Tela principal:** painel **Status das Atividades** (rosca com total no centro, tabela Atrasado / Novo Prazo / Em andamento / A Iniciar / Concluído com % e quantidade, e **Análise de Desempenho**: Desempenho, % Planejado, % Realizado), lista das últimas mudanças de status e a tabela de atividades com filtros. Clicar num status do painel filtra a tabela.
 - **Visão detalhada (clique na atividade):** painel **Status das Etapas**, descrição/objetivo/AS IS–TO BE, tabela de etapas (COMO? / responsável / início / término / novo prazo / prazo realizado / % concluído / % planejado / status / observações) e **Histórico de alterações** (quem mudou, quando, de→para; filtros por tipo e por etapa).
@@ -305,7 +328,7 @@ Todas as confirmações de exclusão (reunião, imprevisto, ideia, atividade e e
 **Onde ver:** botão **🛡️ Segurança**, no fim do menu, só para o Analista Sr (no celular, o escudo no topo). Mostra falhas encontradas, corrigidas, pendentes, resumo da IA e histórico. Botões: *Verificar agora* (sem IA) e *Verificar com IA*.
 
 **Ativar:**
-1. Rode a migração 013 (já está no `008_a_019_tudo_junto.sql`). Se a extensão **pg_cron** estiver ativa no Supabase (Database → Extensions), ela já agenda a verificação **toda segunda, 09:00 UTC** (sem IA).
+1. Rode a migração 013 (já está no `008_a_023_tudo_junto.sql`). Se a extensão **pg_cron** estiver ativa no Supabase (Database → Extensions), ela já agenda a verificação **toda segunda, 09:00 UTC** (sem IA).
 2. Para o resumo com IA e/ou agendamento pela função:
 ```
 supabase functions deploy agente-seguranca --no-verify-jwt
@@ -386,4 +409,4 @@ A importação de Projetos lê o CSV da aba **Microprojetos** exatamente como a 
 - **Responsável** aceita e-mail, nome completo, **primeiro nome/sobrenome** (ex.: “Higor”) ou **iniciais** (ex.: “MA”), desde que resolva para uma única pessoa ativa.
 
 ## Ordem do menu lateral
-Painel · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Backlog de Melhorias · Pareto backlog · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).
+Atividades diárias · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Melhorias · Correção/manutenção · Pareto backlog · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).

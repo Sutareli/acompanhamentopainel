@@ -10,7 +10,7 @@ import { MelhoriaForm } from '../components/BacklogForms'
 import { Chamado, contar, mesKey, mesLabel, noPrazo } from '../lib/chamados'
 import { Etapa, Hist, ItemStat, Melhoria, melhoriaVencida, planejadoEtapa, planejadoPct, STATUS, STATUS_COLOR, Status } from '../lib/backlog'
 
-/** Módulo "Backlog de Melhorias" — visível a todos os usuários ativos. As permissões de escrita são garantidas pelo RLS do banco. */
+/** Módulo "Correção/manutenção" (antigo Backlog de Melhorias; as melhorias agora têm o módulo próprio "Melhorias") — visível a todos os usuários ativos. As permissões de escrita são garantidas pelo RLS do banco. */
 const clamp = (n: number): CSSProperties => ({ display: '-webkit-box', WebkitLineClamp: n, WebkitBoxOrient: 'vertical', overflow: 'hidden' })
 
 export default function Backlog({ onNavigate }: { onNavigate: (p: string) => void }) {
@@ -44,7 +44,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
   async function carregarMelhorias() {
     const all: Melhoria[] = []
     for (let from = 0; ; from += 1000) {
-      const r = await supabase.from('backlog_melhorias').select('*').order('prioridade', { ascending: true }).order('data_termino', { ascending: true }).order('id', { ascending: true }).range(from, from + 999)
+      const r = await supabase.from('backlog_melhorias').select('*').eq('tipo_backlog', 'correcao').order('prioridade', { ascending: true }).order('data_termino', { ascending: true }).order('id', { ascending: true }).range(from, from + 999)
       if (r.error) return { data: null, error: r.error }
       all.push(...((r.data || []) as Melhoria[])); if (!r.data || r.data.length < 1000) break
     }
@@ -55,7 +55,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
     const [a, b, c, d] = await Promise.all([
       carregarMelhorias(),
       supabase.from('backlog_etapas').select('*').order('ordem', { ascending: true }),
-      supabase.from('backlog_historico').select('*').eq('campo', 'status').order('data_hora', { ascending: false }).order('id', { ascending: false }).limit(12),
+      supabase.from('backlog_historico').select('*').eq('campo', 'status').order('data_hora', { ascending: false }).order('id', { ascending: false }).limit(40),
       supabase.from('profiles').select('id,nome'),
     ])
     if (a.error) setErr('Não foi possível carregar o backlog: ' + a.error.message)
@@ -127,7 +127,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
     }
     const r = p.id
       ? await supabase.from('backlog_melhorias').update(payload).eq('id', p.id).select('id')
-      : await supabase.from('backlog_melhorias').insert({ ...payload, criado_por: uid }).select('id')
+      : await supabase.from('backlog_melhorias').insert({ ...payload, tipo_backlog: 'correcao', criado_por: uid }).select('id')
     if (r.error) return r.error.message
     if (p.id && (!r.data || r.data.length === 0)) return 'Você não tem permissão para editar este item (somente quem criou, Diretor, Gerente ou Analista Sr).'
     setEdit(null); await load()
@@ -139,7 +139,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
     if (r.error || !r.data?.length) setErr('Não foi possível excluir: ' + (r.error?.message || 'sem permissão.'))
     else { setSelId(null); await load() }
   }
-  const exportCsv = () => download(`backlog-melhorias-${hoje}.csv`, toCSV([
+  const exportCsv = () => download(`correcao-manutencao-${hoje}.csv`, toCSV([
     ['Módulo', 'Melhoria', 'Descrição', 'Objetivo', 'AS IS', 'TO BE', 'Prioridade', 'Status', '% concluído', 'Etapas', 'Responsável', 'Início (criação)', 'Término (prazo)', 'Finalização', 'Observações'],
     ...filtered.map((r) => {
       const es = etapasDe[r.id] || []
@@ -164,12 +164,12 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Backlog de Melhorias</h1>
-          <p className="text-sm text-slate-500">Acompanhamento das atividades, etapas, prazos e histórico de status do time.</p>
+          <h1 className="text-2xl font-bold text-navy">Correção/manutenção</h1>
+          <p className="text-sm text-slate-500">Correções e manutenções: atividades (inclusive as geradas pelos chamados), etapas, prazos e histórico de status.</p>
         </div>
         <div className="flex gap-2">
           <button className={btnG} onClick={exportCsv} disabled={!filtered.length}>⬇ Exportar (CSV)</button>
-          <button className={btnP} onClick={() => setEdit({ status: 'A Iniciar', prioridade: 3, percentual_concluido: 0 })}>+ Nova melhoria</button>
+          <button className={btnP} onClick={() => setEdit({ status: 'A Iniciar', prioridade: 3, percentual_concluido: 0 })}>+ Nova atividade</button>
         </div>
       </div>
       {err && <Msg kind="erro">{err}</Msg>}
@@ -195,9 +195,9 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
       <Card>
         <h3 className="mb-1 font-bold text-navy">Últimas mudanças de status</h3>
         <p className="mb-2 text-xs text-slate-500">Movimentações mais recentes das atividades e etapas.</p>
-        {mudancas.length === 0 ? <Empty>Nenhuma mudança de status registrada ainda.</Empty> : (
+        {mudancas.filter((h) => nomeAtiv(h.melhoria_id)).length === 0 ? <Empty>Nenhuma mudança de status registrada ainda.</Empty> : (
           <ul className="space-y-1 text-sm">
-            {mudancas.slice(0, 8).map((h) => {
+            {mudancas.filter((h) => nomeAtiv(h.melhoria_id)).slice(0, 8).map((h) => {
               const nome = nomeAtiv(h.melhoria_id)
               const chip = (s: string | null) => s && s in STATUS_COLOR ? <Chip color={STATUS_COLOR[s as Status]}>{s}</Chip> : <span>{s || '—'}</span>
               return (
@@ -247,7 +247,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
       </Card>
 
       {loading ? <p className="py-6 text-center text-slate-500">Carregando…</p> : filtered.length === 0 ? (
-        <Empty>{total === 0 ? 'Nenhuma melhoria cadastrada ainda. Use “+ Nova melhoria” para começar.' : 'Nenhum item corresponde aos filtros.'}</Empty>
+        <Empty>{total === 0 ? 'Nenhuma atividade de correção/manutenção cadastrada ainda. Use “+ Nova atividade” para começar.' : 'Nenhum item corresponde aos filtros.'}</Empty>
       ) : (<>
         <Card className="hidden !p-0 md:block">
           <div className="overflow-x-auto">

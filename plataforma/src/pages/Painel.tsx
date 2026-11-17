@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { addDays, BLOCK_COLORS, BLOCK_ICONS, DEFAULT_BLOCKS, chk, fmtDate, fmtMin, hhmm, todayStr } from '../lib/rules'
@@ -100,7 +100,7 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Gestão de atividades</h1>
+          <h1 className="text-2xl font-bold text-navy">Atividades diárias</h1>
           <p className="text-sm text-slate-500">
             {saud}, {profile!.nome.split(' ')[0]}! {new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'UTC' })}, {fmtDate(date)}
           </p>
@@ -153,6 +153,24 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
   )
 }
 
+/** Descrição da tarefa: campo que quebra linha e cresce até mostrar o texto inteiro (nada fica escondido no card). Enter confirma; salva ao sair do campo. */
+function TarefaTexto({ valor, riscado, onSalvar }: { valor: string; riscado: boolean; onSalvar: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  const ajustar = useCallback(() => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' }, [])
+  useLayoutEffect(() => {
+    ajustar()
+    const el = ref.current; if (!el || typeof ResizeObserver === 'undefined') return
+    let w = el.clientWidth; const ro = new ResizeObserver(() => { if (el.clientWidth !== w) { w = el.clientWidth; ajustar() } }); ro.observe(el)
+    return () => ro.disconnect()
+  }, [ajustar, valor])
+  return (
+    <textarea ref={ref} rows={1} defaultValue={valor} aria-label="Descrição da tarefa" maxLength={500}
+      className={'min-w-0 flex-1 resize-none overflow-hidden whitespace-pre-wrap break-words bg-transparent text-sm leading-snug outline-none ' + (riscado ? 'text-slate-400 line-through' : '')}
+      onInput={ajustar} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLTextAreaElement).blur() } }}
+      onBlur={(e) => { const v = e.target.value.replace(/\s+/g, ' ').trim(); if (v && v !== valor) onSalvar(v); else e.target.value = valor; ajustar() }} />
+  )
+}
+
 function BlockCard({ b, act, toggle, prep, setPrep, recId, uid, futuras }: {
   b: Block; act: (f: () => PromiseLike<any>) => void; toggle: (t: Task) => void
   prep: string; setPrep: (s: string) => void; recId: string; uid: string; futuras: Futura[]
@@ -175,14 +193,18 @@ function BlockCard({ b, act, toggle, prep, setPrep, recId, uid, futuras }: {
     <Card className="flex flex-col gap-2 !p-5">
       <div style={{ borderTop: `5px solid ${color}`, margin: '-20px -20px 4px', borderRadius: '16px 16px 0 0' }} />
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-bold" style={{ color }}>{BLOCK_ICONS[b.numero - 1]} {b.numero}. {b.nome}</h3>
+        <h3 className="min-w-0 break-words font-bold" style={{ color }}>
+          {BLOCK_ICONS[b.numero - 1]} {b.numero}. {b.nome}
+          <button type="button" className="ml-1.5 align-middle text-xs opacity-60 hover:opacity-100" title="Renomear este bloco" aria-label={`Renomear o bloco ${b.nome}`} onClick={() => setEdit(true)}>✏️</button>
+        </h3>
         <Chip color={stColor}>{stLabel}</Chip>
       </div>
-      <p className="text-xs text-slate-500">{fmtMin(b.duracao_planejada_min)} · {objetivo}</p>
+      <p className="break-words text-xs text-slate-500">{fmtMin(b.duracao_planejada_min)} · {objetivo}</p>
       <button className="self-start text-xs text-turq underline" onClick={() => setEdit(!edit)}>{edit ? 'Fechar edição' : 'Editar nome e duração'}</button>
       {edit && (
         <div className="flex flex-wrap gap-2">
-          <input className={inp + ' flex-[3] min-w-[120px]'} value={nome} onChange={(e) => setNome(e.target.value)} />
+          <input className={inp + ' flex-[3] min-w-[120px]'} value={nome} maxLength={60} autoFocus aria-label="Nome do bloco" onChange={(e) => setNome(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && nome.trim() && min >= 5) { act(() => supabase.from('daily_blocks').update({ nome: nome.trim(), duracao_planejada_min: min }).eq('id', b.id)); setEdit(false) } }} />
           <input className={inp + ' w-20'} type="number" min={5} value={min} onChange={(e) => setMin(+e.target.value)} />
           <button className={btnS + ' ' + btnSm} onClick={() => { if (nome.trim() && min >= 5) { act(() => supabase.from('daily_blocks').update({ nome: nome.trim(), duracao_planejada_min: min }).eq('id', b.id)); setEdit(false) } }}>Salvar</button>
         </div>
@@ -190,7 +212,7 @@ function BlockCard({ b, act, toggle, prep, setPrep, recId, uid, futuras }: {
       <Bar pct={pct} color={color} />
       <small className="text-slate-500">{nd}/{tasks.length} tarefas · {pct}%</small>
 
-      <div>
+      <div className="max-h-[22rem] overflow-y-auto pr-1 [scrollbar-gutter:stable]" tabIndex={tasks.length > 8 ? 0 : undefined} aria-label={`Tarefas do bloco ${b.numero}`}>
         {tasks.map((t) => {
           const h = t.grupo && t.grupo !== g ? (g = t.grupo, <div className="mt-2 text-xs font-semibold text-turq">{t.grupo}</div>) : null
           return (
@@ -198,8 +220,7 @@ function BlockCard({ b, act, toggle, prep, setPrep, recId, uid, futuras }: {
               {h}
               <div className="flex items-start gap-2 border-b border-dashed border-slate-200 py-1.5">
                 <input type="checkbox" className="mt-0.5 h-5 w-5 accent-green-600" checked={t.concluida} onChange={() => toggle(t)} />
-                <input className={'min-w-0 flex-1 bg-transparent text-sm outline-none ' + (t.concluida ? 'text-slate-400 line-through' : '')} defaultValue={t.descricao}
-                  onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== t.descricao) act(() => supabase.from('daily_tasks').update({ descricao: v }).eq('id', t.id)) }} />
+                <TarefaTexto valor={t.descricao} riscado={t.concluida} onSalvar={(v) => act(() => supabase.from('daily_tasks').update({ descricao: v }).eq('id', t.id))} />
                 {t.concluida && t.concluida_em && <small className="text-green-700">✔ {hhmm(t.concluida_em)}</small>}
                 <button className="text-slate-400 hover:text-red-600" title="Excluir tarefa" onClick={() => act(() => supabase.from('daily_tasks').delete().eq('id', t.id))}>×</button>
               </div>
@@ -266,7 +287,7 @@ function Agendadas({ b, futuras, act, uid, color }: { b: Block; futuras: Futura[
         <span>📅 Atividades futuras{futuras.length ? ` (${futuras.length})` : ''}</span><span>{open ? '▾' : '▸'}</span>
       </button>
       {futuras.length > 0 && (
-        <ul className="mt-2 space-y-1">
+        <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto pr-1">
           {futuras.map((f) => {
             const d = dias(f.data_alvo)
             return (
@@ -326,9 +347,9 @@ function Adiar({ b, tasks, act, uid, color }: { b: Block; tasks: Task[]; act: (f
         <button type="button" className="underline" onClick={() => setSel(new Set(sel.size === pend.length ? [] : pend.map((t) => t.id)))}>{sel.size === pend.length ? 'Limpar seleção' : 'Selecionar todas'}</button>
       </div>
       <p className="mb-2 text-[11px] text-slate-500">As tarefas escolhidas saem de hoje (sem pesar na execução do dia) e entram na lista de amanhã, neste mesmo bloco.</p>
-      <ul className="space-y-1">
+      <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
         {pend.map((t) => (
-          <li key={t.id}><label className="flex cursor-pointer items-start gap-2 rounded-lg px-1 py-1 text-sm hover:bg-slate-50"><input type="checkbox" className="mt-0.5 h-4 w-4" checked={sel.has(t.id)} onChange={() => toggleSel(t.id)} /><span>{t.descricao}</span></label></li>
+          <li key={t.id}><label className="flex cursor-pointer items-start gap-2 rounded-lg px-1 py-1 text-sm hover:bg-slate-50"><input type="checkbox" className="mt-0.5 h-4 w-4" checked={sel.has(t.id)} onChange={() => toggleSel(t.id)} /><span className="min-w-0 break-words">{t.descricao}</span></label></li>
         ))}
       </ul>
       <div className="mt-2 flex justify-end gap-2">
