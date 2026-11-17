@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { contar, diasNoMes, kpis, mesAnterior, mesLabel, porDia, quinzenaDe, semanaDe, semanasDoMes } from '../src/lib/chamados'
+import { contar, diasNoMes, kpis, lerBase, mesAnterior, mesLabel, porDia, quinzenaDe, resumoMes, semanaDe, semanasDoMes } from '../src/lib/chamados'
 import type { Chamado } from '../src/lib/chamados'
 import { compara, fatorPeriodo, naPeriodo } from '../src/lib/comparativo'
 
@@ -22,10 +22,38 @@ test('contagem ignora maiúsculas/minúsculas e separa vazios', () => {
   assert.equal(r.vazios, 1); assert.equal(r.barras[0].qtd, 2); assert.equal(r.barras.length, 2)
 })
 
-test('KPIs: total, % no prazo, tipos e subcategorias', () => {
-  const k = kpis([ch({}), ch({ prazo: 'Fora do prazo' }), ch({ tipo: 'Melhoria', subcategoria: 'B' }), ch({ prazo: null })])
-  assert.equal(k.total, 4); assert.equal(k.noPrazo, 2); assert.equal(k.pctPrazo, 0.5); assert.equal(k.tipos, 2); assert.equal(k.subcategorias, 2)
+test('KPIs seguem a planilha: Improcedente não é caso; prazo em branco = dentro; % no prazo sobre os concluídos', () => {
+  const C = { status: '3 - Concluído' }
+  const k = kpis([ch(C), ch({ ...C, prazo: 'Fora do prazo' }), ch({ ...C, tipo: 'Melhoria', subcategoria: 'B' }), ch({ ...C, prazo: null }), ch({ status: '6 - Improcedente' }), ch({ status: '1 - A iniciar', prazo: null })])
+  assert.equal(k.total, 5); assert.equal(k.improcedentes, 1)          // 6 linhas − 1 improcedente
+  assert.equal(k.noPrazo, 3); assert.equal(k.pctPrazo, 0.75)          // 3 de 4 concluídos (o pendente não entra na base)
+  assert.equal(k.tipos, 2); assert.equal(k.subcategorias, 2)
   assert.equal(kpis([]).pctPrazo, null)
+})
+
+test('Resumo do mês reproduz a planilha (Set: 211 linhas → 204 casos, 201 no prazo, 4 reincidentes)', () => {
+  const C = { status: '3 - Concluído', data_ref: '2026-09-10' }
+  const set = [...Array(201).fill(0).map((_, i) => ch({ ...C, prazo: i < 173 ? 'Dentro do prazo' : null, reincidente: i < 4 })), ...Array(3).fill(0).map(() => ch({ ...C, prazo: 'Fora do prazo' })), ...Array(7).fill(0).map(() => ch({ status: '6 - Improcedente', data_ref: '2026-09-11' }))]
+  const [r] = resumoMes(set, ['2026-09'])
+  assert.equal(set.length, 211); assert.equal(r.casos, 204); assert.equal(r.concluidos, 204); assert.equal(r.noPrazo, 201)
+  assert.equal(Math.round((r.pctNoPrazo as number) * 1000) / 10, 98.5); assert.equal(r.reincidentes, 4); assert.equal(Math.round((r.pctReincidentes as number) * 1000) / 10, 2); assert.equal(r.improcedentes, 7)
+})
+
+test('Resumo do mês: pendentes e pendentes no prazo (Nov: 9 pendentes, 5 no prazo = 55,6%)', () => {
+  const N = { data_ref: '2026-11-10' }
+  const pend = [...Array(5).fill(0).map(() => ch({ ...N, status: '1 - A iniciar', prazo: 'Dentro do prazo' })), ...Array(4).fill(0).map(() => ch({ ...N, status: '2 - Em andamento', prazo: 'Fora do prazo' }))]
+  const [r] = resumoMes([...pend, ...Array(41).fill(0).map(() => ch({ ...N, status: '3 - Concluído' }))], ['2026-11'])
+  assert.equal(r.casos, 50); assert.equal(r.concluidos, 41); assert.equal(Math.round((r.pctConcluidos as number) * 100), 82)
+  assert.equal(r.pendentes, 9); assert.equal(r.pendNoPrazo, 5); assert.equal(Math.round((r.pctPendNoPrazo as number) * 1000) / 10, 55.6)
+})
+
+test('leitura do CSV: Status_Prazo manda no prazo (como no Resumo Mês) e REINCIDENTE ? vira verdadeiro/falso', () => {
+  const csv = 'ID;DATA IDENTIFICAÇÃO;CATEGORIA;SUBCATEGORIA;TIPO ;STATUS;TRATADO DENTRO DO PRAZO?;Status_Prazo;REINCIDENTE ?\n1;05/11/2026;A;B;Correção;3 - Concluído;;Dentro do Prazo;SIM\n2;05/11/2026;A;B;Correção;1 - A iniciar;;Fora do Prazo;NÃO\n3;05/11/2026;A;B;Correção;3 - Concluído;Fora do prazo;Dentro do Prazo;'
+  const r = lerBase(csv).rows
+  assert.equal(r[0].prazo, 'Dentro do prazo'); assert.equal(r[0].reincidente, true)
+  assert.equal(r[1].prazo, 'Fora do prazo'); assert.equal(r[1].reincidente, false)
+  assert.equal(r[2].prazo, 'Dentro do prazo'); assert.equal(r[2].reincidente, null)   // Status_Prazo prevalece sobre a coluna manual
+  assert.equal(lerBase('ID;DATA IDENTIFICAÇÃO;TRATADO DENTRO DO PRAZO?\n1;05/11/2026;Fora do prazo').rows[0].prazo, 'Fora do prazo')   // sem Status_Prazo, usa a coluna manual
 })
 
 test('chamados por dia do mês', () => {

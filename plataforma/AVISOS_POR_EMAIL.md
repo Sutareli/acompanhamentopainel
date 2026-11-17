@@ -7,7 +7,7 @@ O destinatário inicial é `jsilas@almavivadobrasil.com.br`. Para trocar ou paus
 > O sistema só envia depois dos passos abaixo. Sem eles, nada é enviado e a tela de Segurança mostra o motivo.
 
 ## 1. Banco de dados
-Rode `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_025_tudo_junto.sql`) no **SQL Editor**.
+Rode `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_027_tudo_junto.sql`) no **SQL Editor**.
 
 ## 2. Conta no Resend (serviço de e-mail, plano gratuito)
 1. Crie a conta em <https://resend.com>. **Use o mesmo e-mail que vai receber o aviso** (`jsilas@almavivadobrasil.com.br`): no plano gratuito, sem domínio próprio verificado, o Resend só entrega para o e-mail dono da conta.

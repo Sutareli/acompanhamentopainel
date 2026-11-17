@@ -23,7 +23,7 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 | 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
 | 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
 | 007 | responsável e fase nos chamados (detalhamento “Quem é responsável” do Pareto) | uma vez, **depois** de 006, e reimporte a base de chamados |
-| 008 → 025 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_025_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
+| 008 → 027 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_027_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
 | 006 | Atividades futuras (por bloco) e Projetos macro/micro (“com quem está”) | uma vez (se ainda não rodou) |
 
 **Atalho:** quem rodou só a 002 pode executar **`supabase/003_a_006_tudo_junto.sql`** (003 + 004 + 005 + 006 em um arquivo, uma única vez) em vez de rodar um por um.
@@ -96,7 +96,7 @@ O antigo backlog foi dividido em dois menus (mesma tabela, coluna `tipo_backlog`
 
 **Importar a base de melhorias** (só Analista Sr): Importar bases → "3 · Base de melhorias" (CSV com ID;Módulo;Melhoria;Descrição;…;Prioridade;Status;10 PRIMEIRAS). Colunas **opcionais**: `RESPONSÁVEL` (nome igual ao de um usuário ativo da plataforma; sem correspondência, defina na tela), `DATA DE ABERTURA`, `Nº DO CHAMADO`, `DATA DA IDEIA`. Etapa inicial: Concluído → Produção · Em andamento → Desenvolvimento · A iniciar com chamado/data de abertura → Chamado aberto · A iniciar na lista "10 primeiras" → Priorização · demais → Ideia. Linhas "Cancelado" não entram; "VOLTAR À CAPA" é ignorada. **Reimportar** atualiza textos, prioridade e posição, mas **não desfaz** etapa, datas, prazo, % nem responsável definidos no sistema (a base só faz a melhoria avançar de status).
 
-**Migração:** quem já rodou até a 019 executa `020_melhorias_e_correcao.sql` e depois `021_melhorias_data_abertura.sql` (a 021 pode ser rodada de novo sem problema, mesmo que uma versão anterior já tenha sido aplicada (as etapas antigas "Aplicada" viram "Produção")). O arquivo `008_a_025_tudo_junto.sql` reúne tudo.
+**Migração:** quem já rodou até a 019 executa `020_melhorias_e_correcao.sql` e depois `021_melhorias_data_abertura.sql` (a 021 pode ser rodada de novo sem problema, mesmo que uma versão anterior já tenha sido aplicada (as etapas antigas "Aplicada" viram "Produção")). O arquivo `008_a_027_tudo_junto.sql` reúne tudo.
 
 **Sem etapas “COMO?” nas Melhorias (migração 023):** o andamento (%) agora acompanha a etapa do funil — Ideia 0% · Priorização 17% · Especificação 33% · Chamado aberto 50% · Desenvolvimento 67% · Homologação 83% · Produção 100% — e não é mais digitado. A tela de detalhe das melhorias não mostra mais as etapas “COMO?” (as já cadastradas ficam guardadas no banco, sem efeito no status/%). A **Correção/manutenção** continua com etapas e % calculado por elas. Quem já rodou até a 022 executa apenas `023_melhorias_andamento_pela_etapa.sql`.
 
@@ -396,7 +396,7 @@ A importação de Projetos lê o CSV da aba **Microprojetos** exatamente como a 
 - **Responsável** aceita e-mail, nome completo, **primeiro nome/sobrenome** (ex.: “Higor”) ou **iniciais** (ex.: “MA”), desde que resolva para uma única pessoa ativa.
 
 ## Novidades da migração 025 (feriados, metas, comentários, backup, avisos)
-Aplique `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_025_tudo_junto.sql`). É idempotente e **não apaga dados**.
+Aplique `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_027_tudo_junto.sql`). É idempotente e **não apaga dados**.
 
 - **🔔 Atenção** (Diretor, Gerente, Analista Sr; é a tela inicial deles): cartões clicáveis com melhorias de prazo vencido, SLA vencido, sem responsável, correções vencidas e atividades com data target vencida, mais suas **menções**.
 - **Feriados no SLA:** *Configurações → Feriados*. Os nacionais já vêm até 2028; Analista Sr e Gerente incluem/removem. O SLA em dias úteis pula fim de semana **e** feriados (tela e banco usam a mesma regra).
@@ -410,3 +410,17 @@ Aplique `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a
 
 ## Ordem do menu lateral
 Atenção (só Diretor, Gerente e Analista Sr) · To do diário · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Melhorias · Correção/manutenção · Análise de chamados · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).
+
+## Resumo do mês e regras da planilha (migração 027)
+
+A Análise de chamados ganhou o bloco **Resumo do mês**, com os mesmos quatro gráficos da aba "Resumo Mês" da planilha (Concluídos, Concluídos no prazo, Pendentes no prazo e Casos reincidentes), para os últimos 3 ou 6 meses até o mês escolhido.
+
+**Regras (iguais às da planilha):**
+- *Casos* não incluem chamados **Improcedentes** (o painel mostra "+N improc." ao lado do total). **Cancelado** conta como concluído, como na planilha.
+- *% no prazo* = concluídos no prazo ÷ **concluídos** (antes era ÷ todos os chamados, e prazo em branco contava como fora).
+- *Prazo* vem da coluna **Status_Prazo** (a que a planilha calcula, inclusive para os pendentes). Sem ela, o painel usa "TRATADO DENTRO DO PRAZO?", que costuma estar vazia.
+- *Reincidentes* vêm da coluna **REINCIDENTE ?** (SIM/NÃO); o % usa os concluídos como base.
+
+**Para importar:** a base precisa ter as colunas `Status_Prazo` e `REINCIDENTE ?` (além das de sempre). Sem elas a importação avisa o que ficará incompleto.
+
+**Migração:** aplique `supabase/027_chamados_reincidente.sql` (ou o `008_a_027_tudo_junto.sql`). Cria a coluna `reincidente` e atualiza a função de importação; não apaga dados.

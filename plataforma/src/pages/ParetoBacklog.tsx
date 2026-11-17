@@ -7,6 +7,7 @@ import ParetoChart from '../components/ParetoChart'
 import { AreaDias, Rosca } from '../components/Charts2'
 import Responsaveis from '../components/Responsaveis'
 import ComparativoChamados, { Metas } from '../components/ComparativoChamados'
+import ResumoMes from '../components/ResumoMes'
 import EvolucaoSubcategorias from '../components/EvolucaoSubcategorias'
 import { podeAjustarSla } from '../lib/sla'
 import { Chamado, contar, kpis, mesAnterior, mesKey, mesLabel, noPrazo, porDia, quinzenaDe, semanaDe, semanasDoMes } from '../lib/chamados'
@@ -149,11 +150,12 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
 
         {/* ===== indicadores ===== */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard titulo="Total de chamados" valor={k.total}><Delta valor={temAnt && kp.total ? k.total / kp.total - 1 : null} texto={temAnt && kp.total ? Math.abs(Math.round((k.total / kp.total - 1) * 100)) + '%' : ''} bomSeSobe={false} /></KpiCard>
+          <KpiCard titulo="Total de chamados" valor={k.total} sub={k.improcedentes ? `(+${k.improcedentes} improc.)` : undefined}><Delta valor={temAnt && kp.total ? k.total / kp.total - 1 : null} texto={temAnt && kp.total ? Math.abs(Math.round((k.total / kp.total - 1) * 100)) + '%' : ''} bomSeSobe={false} /></KpiCard>
           <KpiCard titulo="Chamados no prazo" valor={k.noPrazo} sub={pct(k.pctPrazo)}><Delta valor={temAnt && k.pctPrazo !== null && kp.pctPrazo !== null ? (k.pctPrazo - kp.pctPrazo) * 100 : null} texto={temAnt && k.pctPrazo !== null && kp.pctPrazo !== null ? Math.abs((k.pctPrazo - kp.pctPrazo) * 100).toFixed(1).replace('.', ',') + ' p.p.' : ''} bomSeSobe /></KpiCard>
           <KpiCard titulo="Tipos de chamados" valor={k.tipos}><Delta valor={temAnt ? k.tipos - kp.tipos : null} texto={Math.abs(k.tipos - kp.tipos) + ''} bomSeSobe={false} /></KpiCard>
           <KpiCard titulo="Subcategorias" valor={k.subcategorias}><Delta valor={temAnt ? k.subcategorias - kp.subcategorias : null} texto={Math.abs(k.subcategorias - kp.subcategorias) + ''} bomSeSobe={false} /></KpiCard>
         </div>
+        <ResumoMes key={'rm' + (mesSel || meses[meses.length - 1])} rows={rows} meses={meses} mesInicial={mesSel || meses[meses.length - 1]} />
         <ComparativoChamados key={mesSel || meses[meses.length - 1]} rows={rows.filter(filtraTipo)} meses={meses} mesInicial={mesSel || meses[meses.length - 1]} filtroTxt={tipos.length ? `Tipo: ${tipos.join(', ')}. ` : ''} metas={metas} podeMetas={podeAjustarSla(profile!.perfil)} onSalvarMetas={salvarMetas} />
         <EvolucaoSubcategorias rows={rows.filter(filtraTipo)} meses={meses} />
         {!mesSel && <p className="text-xs text-slate-500">Com “Todos” os meses não há comparação com o mês anterior; os filtros de quinzena e semana aparecem ao escolher um mês.</p>}

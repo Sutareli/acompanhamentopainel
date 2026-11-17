@@ -1204,3 +1204,54 @@ revoke all on function public.avisos_dados() from public, anon, authenticated;
 do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then grant execute on function public.avisos_dados() to service_role; end if; end $$;
 
 commit;
+
+-- ===== 026 =====
+-- 026: agenda o aviso semanal por e-mail (segunda 08:00 Fortaleza = 11:00 UTC).
+-- O segredo do agendamento é gerado AQUI, dentro do banco (Vault); nenhum valor precisa ser copiado à mão.
+-- A função aviso-semanal confere o segredo por cron_secret_ok() (só service_role).
+create extension if not exists pg_net with schema extensions;
+
+do $$ begin
+  if not exists (select 1 from vault.secrets where name = 'cron_secret') then
+    perform vault.create_secret(encode(gen_random_bytes(32), 'hex'), 'cron_secret', 'Segredo do agendamento do aviso semanal');
+  end if;
+end $$;
+
+create or replace function public.cron_secret_ok(p text) returns boolean
+language sql security definer set search_path = public, vault as $$
+  select exists (select 1 from vault.decrypted_secrets where name = 'cron_secret' and decrypted_secret = p)
+$$;
+revoke all on function public.cron_secret_ok(text) from public, anon, authenticated;
+grant execute on function public.cron_secret_ok(text) to service_role;
+
+select cron.unschedule('aviso-semanal') where exists (select 1 from cron.job where jobname = 'aviso-semanal');
+select cron.schedule('aviso-semanal', '0 11 * * 1', $job$
+  select net.http_post(
+    url := 'https://hgzubmiwmflfaobnuvdu.supabase.co/functions/v1/aviso-semanal',
+    headers := jsonb_build_object('Content-Type','application/json',
+      'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')),
+    body := '{}'::jsonb)
+$job$);
+
+-- ===== 027 =====
+-- 027: reincidência dos chamados (coluna "REINCIDENTE ?" da planilha) para o "Resumo do mês" da Análise de chamados.
+-- A importação passa a gravar a coluna; cargas anteriores (e o "Desfazer carga") continuam funcionando (valor vazio).
+alter table public.backlog_chamados add column if not exists reincidente boolean;
+
+create or replace function public.chamados_substituir(p_rows jsonb) returns integer
+language plpgsql security definer set search_path to 'public' as $$
+declare n int;
+begin
+  if not is_manager() then raise exception 'Somente o Analista Sr pode importar a base de chamados.'; end if;
+  if jsonb_typeof(p_rows) <> 'array' or jsonb_array_length(p_rows) = 0 then raise exception 'Nenhuma linha para importar.'; end if;
+  delete from backlog_chamados where true;
+  insert into backlog_chamados(id_chamado,data_identificacao,data_ref,categoria,subcategoria,tipo,item_sintoma,sistema_ofensor,cliente,site,status,prazo,responsavel,empresa_responsavel,responsavel_rocco,fase,reincidente)
+    select id_chamado,data_identificacao,data_ref,categoria,subcategoria,tipo,item_sintoma,sistema_ofensor,cliente,site,status,prazo,responsavel,empresa_responsavel,responsavel_rocco,fase,reincidente
+    from jsonb_to_recordset(p_rows) as x(id_chamado text,data_identificacao date,data_ref date,categoria text,subcategoria text,tipo text,item_sintoma text,sistema_ofensor text,cliente text,site text,status text,prazo text,responsavel text,empresa_responsavel text,responsavel_rocco text,fase text,reincidente boolean);
+  get diagnostics n = row_count;
+  insert into backlog_chamados_carga(qtd) values (n);
+  perform chamados_sincronizar();   -- chamados válidos viram/atualizam atividades do Backlog
+  return n;
+end $$;
+revoke all on function public.chamados_substituir(jsonb) from public, anon;
+grant execute on function public.chamados_substituir(jsonb) to authenticated;

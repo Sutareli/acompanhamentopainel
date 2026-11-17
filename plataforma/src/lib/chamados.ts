@@ -2,7 +2,7 @@
 export interface Chamado {
   id: string; id_chamado: string | null; data_identificacao: string | null; data_ref: string
   categoria: string | null; subcategoria: string | null; tipo: string | null; item_sintoma: string | null
-  sistema_ofensor: string | null; cliente: string | null; site: string | null; status: string | null; prazo: string | null
+  sistema_ofensor: string | null; cliente: string | null; site: string | null; status: string | null; prazo: string | null; reincidente?: boolean | null
   responsavel: string | null; empresa_responsavel: string | null; responsavel_rocco: string | null; fase: string | null
 }
 export type ChamadoImport = Omit<Chamado, 'id'>
@@ -95,7 +95,9 @@ export function lerBase(text: string): Leitura {
     }
     if (!ref) { ref = ident; if (ident && mm) semRef++ }
     if (!ref) { ignoradas++; continue }
-    const prazoRaw = (clean(g(r, 'tratadodentrodoprazo')) || '').toLowerCase()
+    // prazo: a planilha calcula "Status_Prazo" (é ela que alimenta os gráficos do Resumo Mês, inclusive para os pendentes); sem essa coluna, usa "TRATADO DENTRO DO PRAZO?"
+    const prazoRaw = (clean(g(r, 'statusprazo')) || clean(g(r, 'tratadodentrodoprazo')) || '').toLowerCase()
+    const reincRaw = hnorm(clean(g(r, 'reincidente')) || '')   // "REINCIDENTE ?": SIM / NÃO
     rows.push({
       id_chamado: clean(g(r, 'id')), data_identificacao: ident, data_ref: ref,
       categoria: clean(g(r, 'categoria')), subcategoria: clean(g(r, 'subcategoria')), tipo: tipoNorm(clean(g(r, 'tipo'))),
@@ -103,9 +105,12 @@ export function lerBase(text: string): Leitura {
       site: clean(g(r, 'site')), status: clean(g(r, 'status')),
       responsavel: clean(g(r, 'responsavel')), empresa_responsavel: clean(g(r, 'empresaresponsavel')), responsavel_rocco: clean(g(r, 'responsavelrocco')), fase: clean(g(r, 'fase')),
       prazo: prazoRaw === 'dentro do prazo' ? 'Dentro do prazo' : prazoRaw === 'fora do prazo' ? 'Fora do prazo' : null,
+      reincidente: 'reincidente' in idx ? (reincRaw === '' ? null : reincRaw === 'sim') : null,
     })
   }
   const avisos: string[] = []
+  if (!('reincidente' in idx)) avisos.push('Sem a coluna "REINCIDENTE ?": o gráfico de reincidentes do Resumo do mês ficará zerado.')
+  if (!('statusprazo' in idx)) avisos.push('Sem a coluna "Status_Prazo": o prazo vem de "TRATADO DENTRO DO PRAZO?" (que a planilha não usa nos gráficos e costuma estar vazio) e os pendentes não entram em "Pendentes no prazo". Exporte a base com a coluna Status_Prazo.')
   const semResp = ['responsavel', 'empresaresponsavel', 'responsavelrocco'].filter((k) => !(k in idx))
   if (semResp.length) avisos.push('Sem as colunas de responsável (' + semResp.join(', ') + '): o detalhamento “Quem é responsável” ficará incompleto. Use o CSV com RESPONSÁVEL, EMPRESA RESPONSÁVEL e RESPONSÁVEL ROCCO.')
   if (faltam.length) avisos.push('Colunas não encontradas (ficarão vazias): ' + faltam.join(', ') + '.')
@@ -138,10 +143,27 @@ export function porDia(items: Chamado[], mes: string): number[] {
   for (const c of items) if (mesKey(c.data_ref) === mes) a[+c.data_ref.slice(8, 10) - 1]++
   return a
 }
-export interface KpiMes { total: number; noPrazo: number; pctPrazo: number | null; tipos: number; subcategorias: number }
-export function kpis(items: Chamado[]): KpiMes {
-  const total = items.length, np = items.filter(noPrazo).length
-  return { total, noPrazo: np, pctPrazo: total ? np / total : null, tipos: contar(items, (c) => c.tipo).barras.length, subcategorias: contar(items, (c) => c.subcategoria).barras.length }
+export interface KpiMes { total: number; noPrazo: number; pctPrazo: number | null; tipos: number; subcategorias: number; improcedentes: number }
+/** Regras da planilha (aba "Resumo Mês"): Improcedente não é caso; Cancelado conta como concluído; prazo em branco conta como dentro do prazo. */
+export const improcedente = (c: Chamado) => /improced/i.test(c.status || '')
+export const concluido = (c: Chamado) => /conclu|cancel/i.test(c.status || '')
+export const noPrazoPlan = (c: Chamado) => concluido(c) && (c.prazo || '').trim().toLowerCase() !== 'fora do prazo'
+export function kpis(todos: Chamado[]): KpiMes {
+  const items = todos.filter((c) => !improcedente(c))
+  const total = items.length, conc = items.filter(concluido).length, np = items.filter(noPrazoPlan).length
+  return { total, noPrazo: np, pctPrazo: conc ? np / conc : null, tipos: contar(items, (c) => c.tipo).barras.length, subcategorias: contar(items, (c) => c.subcategoria).barras.length, improcedentes: todos.length - total }
+}
+
+export interface ResumoMes { mes: string; casos: number; concluidos: number; pctConcluidos: number | null; noPrazo: number; pctNoPrazo: number | null; pendentes: number; pendNoPrazo: number; pctPendNoPrazo: number | null; reincidentes: number; pctReincidentes: number | null; improcedentes: number }
+/** Os quatro gráficos do "Resumo Mês" da planilha, para cada mês pedido. Reincidentes: contados entre todos os casos; o % usa os concluídos como base (como na planilha). */
+export function resumoMes(rows: Chamado[], meses: string[]): ResumoMes[] {
+  return meses.map((mes) => {
+    const todos = rows.filter((r) => mesKey(r.data_ref) === mes)
+    const x = todos.filter((c) => !improcedente(c)), conc = x.filter(concluido), pend = x.filter((c) => !concluido(c))
+    const np = conc.filter(noPrazoPlan).length, pnp = pend.filter((c) => (c.prazo || '').trim().toLowerCase() !== 'fora do prazo').length, re = x.filter((c) => c.reincidente === true).length
+    const f = (a: number, b: number) => (b ? a / b : null)
+    return { mes, casos: x.length, concluidos: conc.length, pctConcluidos: f(conc.length, x.length), noPrazo: np, pctNoPrazo: f(np, conc.length), pendentes: pend.length, pendNoPrazo: pnp, pctPendNoPrazo: f(pnp, pend.length), reincidentes: re, pctReincidentes: f(re, conc.length), improcedentes: todos.length - x.length }
+  })
 }
 
 // ---------------- responsabilidade e chamados abertos ----------------
