@@ -145,9 +145,7 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
           <KpiCard titulo="Tipos de chamados" valor={k.tipos}><Delta valor={temAnt ? k.tipos - kp.tipos : null} texto={Math.abs(k.tipos - kp.tipos) + ''} bomSeSobe={false} /></KpiCard>
           <KpiCard titulo="Subcategorias" valor={k.subcategorias}><Delta valor={temAnt ? k.subcategorias - kp.subcategorias : null} texto={Math.abs(k.subcategorias - kp.subcategorias) + ''} bomSeSobe={false} /></KpiCard>
         </div>
-        {temAnt && <ComparativoChamados atual={filtrado} anterior={anterior} mesAtual={mesLabel(mesSel)} mesAnt={mesLabel(mesAnterior(mesSel))}
-          recorte={(emAndamento ? `Comparando os dias 1 a ${diaCorte} dos dois meses (mês em andamento). ` : '') + (quinz ? `${quinz}ª quinzena. ` : '') + (tipos.length ? `Tipo: ${tipos.join(', ')}. ` : '')} />}
-        {!!mesSel && !sem && !temAnt && <p className="text-xs text-slate-500">Não há chamados em {mesLabel(mesAnterior(mesSel))} para comparar com {mesLabel(mesSel)}.</p>}
+        <ComparativoChamados key={mesSel || meses[meses.length - 1]} rows={rows.filter(filtraTipo)} meses={meses} mesInicial={mesSel || meses[meses.length - 1]} filtroTxt={tipos.length ? `Tipo: ${tipos.join(', ')}. ` : ''} />
         {!mesSel && <p className="text-xs text-slate-500">Com “Todos” os meses não há comparação com o mês anterior; os filtros de quinzena e semana aparecem ao escolher um mês.</p>}
         {!!mesSel && !!sem && <p className="text-xs text-slate-500">Filtro de semana: sem comparação com o mês anterior. Semanas vão de segunda a domingo (a 1ª e a última podem ser parciais).</p>}
 
