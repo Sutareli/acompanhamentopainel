@@ -96,6 +96,12 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
   const [estado, setEstado] = useState<'salvo' | 'salvando' | 'erro'>('salvo')
   const [novo, setNovo] = useState(''); const [zoom, setZoom] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null); const sujo = useRef(false)
+  // em tela cheia o menu some (classe no <html>, tratada no index.css); ao sair ou fechar a semanal ele volta
+  useEffect(() => {
+    const h = () => document.documentElement.classList.toggle('tela-cheia', !!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', h); h()
+    return () => { document.removeEventListener('fullscreenchange', h); document.documentElement.classList.remove('tela-cheia'); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}) }
+  }, [])
 
   useEffect(() => { (async () => {
     const r = await supabase.from('semanais').select('titulo,data_reuniao,blocos').eq('id', id).single()

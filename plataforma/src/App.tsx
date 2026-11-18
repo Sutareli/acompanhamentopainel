@@ -74,7 +74,7 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <ConfirmHost />
-      <aside className="fixed inset-y-0 left-0 hidden w-56 flex-col bg-navy p-3 text-white md:flex">
+      <aside className="app-menu fixed inset-y-0 left-0 hidden w-56 flex-col bg-navy p-3 text-white md:flex">
         <div className="px-2 py-4"><LogoHorizontal /></div>
         <nav className="flex-1 space-y-1">
           {items.map(([k, i, l]) => (
@@ -94,12 +94,12 @@ export default function App() {
         </div>
       </aside>
 
-      <header className="flex items-center justify-between bg-navy px-4 py-2 text-white md:hidden">
+      <header className="app-menu flex items-center justify-between bg-navy px-4 py-2 text-white md:hidden">
         <span className="flex items-center gap-2 text-sm font-bold"><LogoIcone size={26} />Gestão de atividades</span>
         <span className="flex items-center gap-3">{canAdmin(profile.perfil) && <button onClick={() => setPage('seguranca')} aria-label="Segurança" className="text-lg">🛡️</button>}<button onClick={signOut} className="text-xs underline">Sair ({profile.nome.split(' ')[0]})</button></span>
       </header>
 
-      <main className="px-3 pb-24 pt-4 md:ml-56 md:px-8 md:pb-10 md:pt-6">
+      <main className="app-main px-3 pb-24 pt-4 md:ml-56 md:px-8 md:pb-10 md:pt-6">
         {canAdmin(profile.perfil) && <AvisoCapacidade />}
         {view === 'atencao' && viewer && <Atencao onNavigate={setPage} />}
         {view === 'painel' && <Painel onNavigate={setPage} />}
@@ -119,7 +119,7 @@ export default function App() {
         {view === 'semanal' && canAdmin(profile.perfil) && <Semanal />}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav className="app-menu fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
         {items.map(([k, i, l]) => (
           <button key={k} onClick={() => setPage(k)} className={'flex min-w-[76px] flex-1 flex-col items-center py-2 text-[11px] ' + (view === k ? 'font-bold text-navy' : 'text-slate-500')}>
             <span className="text-lg">{i}</span>{l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Correção/manutenção', 'Correção').replace('Análise de chamados', 'Análise').replace('Importar bases', 'Importar').replace('Semanal Italo', 'Semanal')}

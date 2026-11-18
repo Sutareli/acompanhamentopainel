@@ -14,3 +14,7 @@ body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-se
   body.imprimindo-comp .area-comp { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: 0; }
   .print\:hidden { display: none !important; }
 }
+
+/* Tela cheia da Semanal Italo: some o menu e fica só a semanal */
+html.tela-cheia .app-menu { display: none !important; }
+html.tela-cheia .app-main { margin-left: 0; padding-bottom: 1.5rem; }
