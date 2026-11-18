@@ -10,16 +10,22 @@ import { Bloco, blocosNovos, duplicarBlocos, Item, lerBlocos, moverItem, resumoB
 interface Sem { id: string; titulo: string; data_reuniao: string; blocos: unknown; atualizado_em: string }
 const MAX_IMG = 1400
 
-/** Reduz o print (máx. 1400 px, JPEG) para caber no registro sem pesar. */
+/** Reduz o print (máx. 1400 px, JPEG) para caber no registro sem pesar.
+ *  Não usa URL blob: (a política de segurança do site só admite imagens do próprio site e data:). */
 async function reduzir(f: File): Promise<string> {
-  const url = URL.createObjectURL(f)
-  try {
-    const img = await new Promise<HTMLImageElement>((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('imagem inválida')); i.src = url })
-    const k = Math.min(1, MAX_IMG / Math.max(img.width, img.height))
-    const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k)
-    const g = c.getContext('2d')!; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height)
-    return c.toDataURL('image/jpeg', 0.8)
-  } finally { URL.revokeObjectURL(url) }
+  let fonte: CanvasImageSource, w: number, h: number
+  if (typeof createImageBitmap === 'function') {
+    try { const bm = await createImageBitmap(f); fonte = bm; w = bm.width; h = bm.height } catch { fonte = null as never; w = 0; h = 0 }
+  } else { fonte = null as never; w = 0; h = 0 }
+  if (!fonte) {   // alternativa: lê o arquivo como data URL
+    const du = await new Promise<string>((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = () => no(new Error('leitura')); r.readAsDataURL(f) })
+    const img = await new Promise<HTMLImageElement>((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('imagem inválida')); i.src = du })
+    fonte = img; w = img.width; h = img.height
+  }
+  const k = Math.min(1, MAX_IMG / Math.max(w, h))
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k))
+  const g = c.getContext('2d')!; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(fonte, 0, 0, c.width, c.height)
+  return c.toDataURL('image/jpeg', 0.8)
 }
 
 /** Texto editável sem perder o cursor: o DOM só é reescrito quando o valor mudou por fora. */
@@ -124,7 +130,7 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
   async function addFiles(fs: FileList | File[]) {
     for (const f of Array.from(fs)) {
       if (!f.type.startsWith('image/')) continue
-      try { const src = await reduzir(f); doBloco((x) => ({ ...x, items: [...x.items, { k: 'i', src, cap: '' }] })) } catch { setErr('Não foi possível ler a imagem.') }
+      try { const src = await reduzir(f); doBloco((x) => ({ ...x, items: [...x.items, { k: 'i', src, cap: '' }] })) } catch (e) { setErr('Não foi possível ler a imagem' + (f.type ? ` (${f.type})` : '') + '. Tente um print em PNG ou JPG.') }
     }
   }
   useEffect(() => {
