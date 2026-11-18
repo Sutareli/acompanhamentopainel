@@ -61,7 +61,7 @@ export default function PainelStatus({ titulo, rotulo, items, onStatus, ativo }:
                       onKeyDown={onStatus ? (e) => e.key === 'Enter' && onStatus(sel ? '' : s) : undefined}
                       tabIndex={onStatus ? 0 : undefined} title={onStatus ? 'Clique para filtrar a tabela por este status' : undefined}>
                       <td className="w-6 py-2 pl-2"><i className="block h-3 w-3 rounded-full" style={{ background: STATUS_COLOR[s] }} /></td>
-                      <td className="py-2 pr-3 font-semibold text-slate-700">{s}</td>
+                      <td data-esq className="py-2 pr-3 font-semibold text-slate-700">{s}</td>
                       <td className="w-28 py-2 pr-3"><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full" style={{ width: pct + '%', background: STATUS_COLOR[s] }} /></div></td>
                       <td className="w-12 py-2 text-right font-bold text-slate-800">{pct}%</td>
                       <td className="w-10 py-2 pr-2 text-right text-slate-500">{r.counts[s]}</td>

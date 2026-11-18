@@ -18,3 +18,7 @@ body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-se
 /* Tela cheia da Semanal Italo: some o menu e fica só a semanal */
 html.tela-cheia .app-menu { display: none !important; }
 html.tela-cheia .app-main { margin-left: 0; padding-bottom: 1.5rem; }
+
+/* Tabelas: títulos e dados centralizados; só a 1ª coluna (nome/identificação do item) fica à esquerda */
+table th, table td { text-align: center !important; }
+table th:first-child, table td:first-child, table [data-esq] { text-align: left !important; }   /* data-esq: exceção para um rótulo fora da 1ª coluna */
