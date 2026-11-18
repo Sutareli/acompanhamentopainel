@@ -425,3 +425,9 @@ A Análise de chamados ganhou o bloco **Resumo do mês**, com os mesmos quatro g
 **Para importar:** a base precisa ter as colunas `Status_Prazo` e `REINCIDENTE ?` (além das de sempre). Sem elas a importação avisa o que ficará incompleto.
 
 **Migração:** aplique `supabase/027_chamados_reincidente.sql` (ou o `008_a_027_tudo_junto.sql`). Cria a coluna `reincidente` e atualiza a função de importação; não apaga dados.
+
+## Instalar no celular (PWA)
+O painel é um aplicativo instalável, sem loja e sem custo: abra o endereço do site no celular e instale.
+- **Android (Chrome):** menu ⋮ → *Instalar aplicativo* (ou *Adicionar à tela inicial*).
+- **iPhone (Safari):** botão Compartilhar → *Adicionar à Tela de Início*.
+Arquivos: `public/manifest.webmanifest`, `public/sw.js` (service worker mínimo: só arquivos do próprio site; dados do Supabase nunca ficam em cache), `public/offline.html` e os ícones `icon-*.png`/`apple-touch-icon.png` (gerados do `favicon.svg`). Sem internet o app mostra a tela “Sem conexão”. Novas versões chegam sozinhas na próxima abertura.
