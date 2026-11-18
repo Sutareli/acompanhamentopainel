@@ -11,7 +11,7 @@ import ResumoMes from '../components/ResumoMes'
 import EvolucaoSubcategorias from '../components/EvolucaoSubcategorias'
 import { podeAjustarSla } from '../lib/sla'
 import ListaChamadosModal from '../components/ListaChamadosModal'
-import { Chamado, contar, foraPrazo, improcedente, kpis, noPrazoPlan, pendente, mesAnterior, mesKey, mesLabel, noPrazo, porDia, quinzenaDe, semanaDe, semanasDoMes } from '../lib/chamados'
+import { Chamado, SEM_RESP, empresaDe, contar, foraPrazo, improcedente, kpis, noPrazoPlan, pendente, mesAnterior, mesKey, mesLabel, noPrazo, porDia, quinzenaDe, semanaDe, semanasDoMes } from '../lib/chamados'
 
 /** "Análise de chamados" (antes "Pareto backlog") — análise qualitativa dos chamados de correção/manutenção (visão da planilha "Análise de backlog"). Leitura para todos; carga só do Analista Sr. */
 const lc = (s: string | null) => (s ?? '').trim().toLowerCase()
@@ -35,7 +35,8 @@ const chip = (on: boolean) => 'rounded-full border px-3 py-1 text-xs font-semibo
 
 export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { profile } = useAuth()
-  const [rows, setRows] = useState<Chamado[]>([])
+  const [todas, setTodas] = useState<Chamado[]>([])   // base inteira; `rows` abaixo é a base já filtrada pela empresa responsável
+  const [emp, setEmp] = useState('')                     // '' = todas · senão a empresa responsável em minúsculas (almawave, almaviva…)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [mes, setMes] = useState<string | null>(null)      // null = ainda não escolhido (usa o mais recente) · '' = todos
@@ -55,7 +56,7 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
       all.push(...((r.data || []) as Chamado[]))
       if (!r.data || r.data.length < 1000) break
     }
-    setRows(all); setErr('')
+    setTodas(all); setErr('')
     const c = await supabase.from('backlog_chamados_carga').select('em,qtd,usuario_id').order('em', { ascending: false }).limit(1)
     const u = c.data?.[0]
     if (u) {
@@ -72,7 +73,10 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
     setMetas(m); return null
   }
 
-  const meses = useMemo(() => [...new Set(rows.map((r) => mesKey(r.data_ref)))].sort(), [rows])
+  const empresas = useMemo(() => { const m = new Map<string, number>(); todas.forEach((c) => { const e = empresaDe(c); if (e !== SEM_RESP) m.set(e, (m.get(e) || 0) + 1) }); return [...m.entries()].sort((a, b) => b[1] - a[1]).map((x) => x[0]) }, [todas])
+  const rows = useMemo(() => (emp ? todas.filter((c) => lc(empresaDe(c)) === emp) : todas), [todas, emp])   // o filtro de empresa vale para TODO o painel
+  const nomeEmp = empresas.find((e) => lc(e) === emp) || ''
+  const meses = useMemo(() => [...new Set(todas.map((r) => mesKey(r.data_ref)))].sort(), [todas])
   const mesSel = mes === null ? meses[meses.length - 1] || '' : mes
   const tiposDisp = useMemo(() => contar(rows, (c) => c.tipo).barras.map((b) => b.nome), [rows])
   const filtraTipo = (c: Chamado) => !tipos.length || tipos.includes(lc(c.tipo))
@@ -121,7 +125,7 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
       </div>
       {err && <Msg kind="erro">{err}</Msg>}
 
-      {loading ? <p className="py-10 text-center text-slate-500">Carregando…</p> : rows.length === 0 ? (
+      {loading ? <p className="py-10 text-center text-slate-500">Carregando…</p> : todas.length === 0 ? (
         <Empty>{canAdmin(profile!.perfil) ? 'Ainda não há chamados na base. Use a tela “Importar bases” com o CSV da base de chamados.' : 'Ainda não há chamados na base. Peça ao Analista Sr para importar a base de chamados.'}</Empty>
       ) : (<>
         {/* ===== filtros (equivalem às segmentações de MÊS_REF e TIPO da planilha) ===== */}
@@ -143,6 +147,12 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
                 {semanas.map((w) => <button key={w.n} className={chip(sem === w.n)} aria-pressed={sem === w.n} title="Semana de segunda a domingo" onClick={() => { setSem(w.n); setSub(null) }}>S{w.n} · {String(w.ini).padStart(2, '0')}–{String(w.fim).padStart(2, '0')}</button>)}
               </div>
             </>}
+            {empresas.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Responsável (empresa)">
+                <span className="text-xs font-bold uppercase text-slate-500">Responsável</span>
+                <button className={chip(emp === '')} aria-pressed={emp === ''} onClick={() => { setEmp(''); setSub(null) }}>Todos</button>
+                {empresas.map((e) => <button key={e} className={chip(emp === lc(e))} aria-pressed={emp === lc(e)} onClick={() => { setEmp(lc(e)); setSub(null) }}>{e}</button>)}
+              </div>)}
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Tipo de chamado">
               <span className="text-xs font-bold uppercase text-slate-500">Tipo</span>
               {tiposDisp.map((t) => <button key={t} className={chip(tipos.includes(lc(t)))} aria-pressed={tipos.includes(lc(t))} onClick={() => toggleTipo(t)}>{t}</button>)}
@@ -193,7 +203,7 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
         )}
 
         {/* ===== responsabilidade (clique para detalhar) ===== */}
-        <Responsaveis base={rows} itens={lista} filtroTxt={(mesSel ? mesLabel(mesSel) : 'todos os meses') + (periodoTxt ? ' · ' + periodoTxt : '') + (tipos.length ? ' · ' + tipos.join(', ') : '') + (sub ? ' · ' + sub : '')} />
+        <Responsaveis base={rows} itens={lista} filtroTxt={(mesSel ? mesLabel(mesSel) : 'todos os meses') + (periodoTxt ? ' · ' + periodoTxt : '') + (nomeEmp ? ' · ' + nomeEmp : '') + (tipos.length ? ' · ' + tipos.join(', ') : '') + (sub ? ' · ' + sub : '')} />
 
         {/* ===== chamados (detalhe) ===== */}
         <Card className="!p-0">

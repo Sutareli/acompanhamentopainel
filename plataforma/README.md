@@ -435,3 +435,7 @@ Arquivos: `public/manifest.webmanifest`, `public/sw.js` (service worker mínimo:
 ## Semanal Italo (migração 028)
 Menu **Semanal Italo** (só Analista Sr; cada um vê apenas as suas semanais). Lista as reuniões por data, com **Nova semanal** e **Duplicar a última** (copia os textos, sem marcações e sem imagens).
 Dentro da semanal: os 5 blocos (Básico, Implantações, Melhorias e customizações, Atualização das atividades, Próximos passos), um de cada vez em tela grande (setas ← → do teclado). Em cada bloco: textos editáveis, **imagens** (botão ou Ctrl+V; reduzidas a 1400 px) com legenda, reordenar/remover, a **flag “já discutido”** em cada texto e a **flag “bloco visto”**. “Modo reunião” esconde os controles de edição; “Tela cheia” para projetar. Salva sozinho. Tabela `semanais` (RLS só do dono); rode `028_semanal.sql` (ou o `008_a_028_tudo_junto.sql`).
+
+
+### Filtro por responsável (Almawave / Almaviva)
+Na Análise de chamados, o grupo **Responsável** do filtro restringe todo o painel (indicadores, resumo do mês, comparativo, subcategorias, Pareto, gráficos, lista e Responsáveis) à empresa escolhida. Aparece quando a base tem mais de uma empresa.
