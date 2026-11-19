@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { fmtDate, todayStr } from '../lib/rules'
 import { confirmar } from '../components/Confirm'
 import { btnG, btnP, btnSm, Card, Empty, inp, Msg } from '../components/ui'
-import { Bloco, blocosNovos, duplicarBlocos, Item, lerBlocos, moverItem, resumoBlocos } from '../lib/semanal'
+import { Bloco, blocosNovos, consolidarPedidos, duplicarBlocos, Item, lerBlocos, moverItem, pedidosTexto, resumoBlocos } from '../lib/semanal'
 
 /** "Semanal Italo": reunião semanal com o diretor. Lista das reuniões + modo condução (um bloco por vez, em tela grande).
  *  Cada texto tem a flag "já discutido"; cada bloco tem a flag "bloco visto". Salva sozinho. Só o dono (Analista Sr) vê. */
@@ -79,7 +79,7 @@ export default function Semanal() {
               <button className="text-left" onClick={() => setAberta(s.id)}>
                 <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">{fmtDate(s.data_reuniao)}</div>
                 <div className="text-lg font-bold text-navy">{s.titulo}</div>
-                <div className="mt-1 text-xs text-slate-500">{r.vistos}/5 blocos vistos · {r.textos} texto(s) · {r.imagens} imagem(ns)</div>
+                <div className="mt-1 text-xs text-slate-500">{r.vistos}/5 blocos vistos · {r.textos} texto(s) · {r.imagens} imagem(ns) · {r.pedidos} pedido(s){r.pedidosAbertos ? ` (${r.pedidosAbertos} em aberto)` : ''}</div>
               </button>
               <div className="mt-auto flex gap-2 pt-2"><button className={btnP + ' ' + btnSm} onClick={() => setAberta(s.id)}>Abrir</button><button className={btnG + ' ' + btnSm + ' !text-red-600'} onClick={() => excluir(s)}>Excluir</button></div>
             </Card>) })}
@@ -94,7 +94,7 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
   const [cur, setCur] = useState(0); const [edit, setEdit] = useState(true)
   const [carregado, setCarregado] = useState(false); const [err, setErr] = useState('')
   const [estado, setEstado] = useState<'salvo' | 'salvando' | 'erro'>('salvo')
-  const [novo, setNovo] = useState(''); const [zoom, setZoom] = useState<string | null>(null)
+  const [novo, setNovo] = useState(''); const [novoPed, setNovoPed] = useState(''); const [zoom, setZoom] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null); const sujo = useRef(false)
   // em tela cheia o menu some (classe no <html>, tratada no index.css); ao sair ou fechar a semanal ele volta
   useEffect(() => {
@@ -122,8 +122,13 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
     return () => clearTimeout(t)
   }, [blocos, titulo, data, carregado, id])
 
-  const b = blocos[cur]
-  const go = useCallback((i: number) => { setCur(Math.max(0, Math.min(blocos.length - 1, i))); window.scrollTo({ top: 0 }) }, [blocos.length])
+  const consol = cur >= blocos.length
+  const b = blocos[Math.min(cur, blocos.length - 1)]
+  const alterarPedidos = (bi: number, fn: (p: Bloco['pedidos']) => Bloco['pedidos']) => alterar((bs) => bs.map((x, j) => (j === bi ? { ...x, pedidos: fn(x.pedidos) } : x)))
+  const addPedido = () => { const v = novoPed.trim(); if (!v) return; alterarPedidos(cur, (p) => [...p, { v, ok: false }]); setNovoPed('') }
+  const todosPed = consolidarPedidos(blocos)
+  const [copiado, setCopiado] = useState(false)
+  const go = useCallback((i: number) => { setCur(Math.max(0, Math.min(blocos.length, i))); window.scrollTo({ top: 0 }) }, [blocos.length])
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setZoom(null)
@@ -176,12 +181,38 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
             <span className={'grid h-6 w-6 flex-none place-items-center rounded-full text-xs font-bold ' + (x.done ? 'bg-green-600 text-white' : i === cur ? 'bg-violet-500 text-white' : 'bg-violet-100 text-slate-500')}>{x.done ? '✓' : i + 1}</span>
             <span className="text-[13px] font-semibold leading-tight">{x.n}</span>
           </button>))}
+        <button role="tab" aria-selected={consol} onClick={() => go(blocos.length)} className={'flex min-w-[130px] flex-1 items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left ' + (consol ? 'border-navy bg-navy text-white' : 'border-amber-300 bg-amber-50 text-slate-700 hover:bg-amber-100')}>
+          <span className={'grid h-6 w-6 flex-none place-items-center rounded-full text-xs font-bold ' + (consol ? 'bg-amber-400 text-navy' : 'bg-amber-200 text-amber-900')}>{todosPed.filter((x) => !x.ok).length}</span>
+          <span className="text-[13px] font-semibold leading-tight">Consolidado de pedidos</span>
+        </button>
       </div>
       <section className="flex min-h-[60vh] flex-col rounded-3xl border border-violet-100 bg-white shadow-sm">
         <div className="rounded-t-3xl bg-navy px-5 py-5 text-white sm:px-9">
-          <div className="text-xs font-semibold uppercase tracking-widest opacity-75">Tópico {cur + 1} de {blocos.length} · {vistos}/{blocos.length} vistos</div>
-          <h2 className="mt-1 text-3xl font-bold leading-tight sm:text-4xl">{b.n}</h2>
+          <div className="text-xs font-semibold uppercase tracking-widest opacity-75">{consol ? 'Fechamento da reunião' : `Tópico ${cur + 1} de ${blocos.length} · ${vistos}/${blocos.length} vistos`}</div>
+          <h2 className="mt-1 text-3xl font-bold leading-tight sm:text-4xl">{consol ? 'Consolidado de pedidos' : b.n}</h2>
         </div>
+        {consol ? (
+        <div className="flex-1 space-y-6 p-5 sm:p-9">
+          {todosPed.length === 0 ? <Empty>Nenhum pedido registrado. Em cada etapa há o quadro “Pedidos desta etapa”.</Empty> : (
+            <>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                <span><b>{todosPed.length}</b> pedido(s) · <b className="text-amber-700">{todosPed.filter((x) => !x.ok).length}</b> em aberto · <b className="text-green-700">{todosPed.filter((x) => x.ok).length}</b> atendido(s)</span>
+                <button className={btnG + ' ' + btnSm + ' ml-auto'} onClick={async () => { try { await navigator.clipboard.writeText(pedidosTexto(blocos, `${titulo} — ${fmtDate(data)}`)); setCopiado(true); setTimeout(() => setCopiado(false), 2000) } catch { setErr('Não foi possível copiar. Selecione o texto manualmente.') } }}>{copiado ? 'Copiado ✓' : 'Copiar lista'}</button>
+              </div>
+              {blocos.map((x, bi) => x.pedidos.length > 0 && (
+                <div key={bi}>
+                  <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-violet-700">{x.n} <span className="font-normal text-slate-400">({x.pedidos.length})</span></h3>
+                  <ul className="space-y-2">
+                    {x.pedidos.map((p, pi) => (
+                      <li key={pi} className="flex items-start gap-3.5 text-lg leading-snug sm:text-xl">
+                        <input type="checkbox" checked={p.ok} onChange={(e) => alterarPedidos(bi, (a) => a.map((q, j) => (j === pi ? { ...q, ok: e.target.checked } : q)))} className="mt-1 h-5 w-5 flex-none accent-green-600" aria-label="Pedido atendido" title="Marcar como atendido" />
+                        <span className={p.ok ? 'text-slate-400 line-through' : 'text-slate-900'}>{p.v}</span>
+                      </li>))}
+                  </ul>
+                </div>))}
+            </>)}
+        </div>
+        ) : (
         <div className="flex-1 p-5 sm:p-9">
           {txt.length > 0 && (
             <ul className="space-y-3">
@@ -209,11 +240,28 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
               <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = '' }} />
               <span>ou cole um print com Ctrl+V</span>
             </div>)}
+          <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:p-5">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-amber-800">Pedidos desta etapa <span className="font-normal text-amber-700/70">({b.pedidos.length})</span></h3>
+            {b.pedidos.length === 0 && <p className="mt-2 text-sm text-slate-500">Nenhum pedido nesta etapa.</p>}
+            <ul className="mt-2 space-y-2">
+              {b.pedidos.map((p, pi) => (
+                <li key={pi} className="flex items-start gap-3 text-lg leading-snug">
+                  <input type="checkbox" checked={p.ok} onChange={(e) => alterarPedidos(cur, (a) => a.map((q, j) => (j === pi ? { ...q, ok: e.target.checked } : q)))} className="mt-1 h-5 w-5 flex-none accent-green-600" aria-label="Pedido atendido" title="Marcar como atendido" />
+                  <Edita valor={p.v} ativo={edit} onChange={(v) => alterarPedidos(cur, (a) => a.map((q, j) => (j === pi ? { ...q, v } : q)))} className={'min-w-0 flex-1 ' + (p.ok ? 'text-slate-400 line-through' : 'text-slate-900')} />
+                  {edit && <button className="rounded px-1.5 text-slate-400 hover:bg-white hover:text-red-600" onClick={() => alterarPedidos(cur, (a) => a.filter((_, j) => j !== pi))} aria-label="Remover pedido">✕</button>}
+                </li>))}
+            </ul>
+            {edit && <div className="mt-3 flex flex-wrap items-center gap-2">
+              <input className={inp + ' !w-auto min-w-[180px] flex-1 !py-1.5'} placeholder="Novo pedido e Enter" value={novoPed} onChange={(e) => setNovoPed(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPedido() } }} />
+              <button className={btnP + ' ' + btnSm} onClick={addPedido}>Adicionar pedido</button>
+            </div>}
+          </div>
         </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-violet-100 px-5 py-3 sm:px-9">
           <button className={btnG} onClick={() => go(cur - 1)} disabled={cur === 0}>← Anterior</button>
-          <button className={(b.done ? btnG : btnG + ' !border-green-600 !text-green-700') + ' !px-4'} onClick={() => doBloco((x) => ({ ...x, done: !x.done }))} aria-pressed={b.done}>{b.done ? '✓ Bloco visto (reabrir)' : 'Marcar bloco como visto'}</button>
-          <button className={btnP} onClick={() => go(cur + 1)} disabled={cur === blocos.length - 1}>Próximo →</button>
+          <button className={(b.done ? btnG : btnG + ' !border-green-600 !text-green-700') + ' !px-4'} onClick={() => doBloco((x) => ({ ...x, done: !x.done }))} aria-pressed={b.done} hidden={consol}>{b.done ? '✓ Bloco visto (reabrir)' : 'Marcar bloco como visto'}</button>
+          <button className={btnP} onClick={() => go(cur + 1)} disabled={cur === blocos.length}>Próximo →</button>
         </div>
       </section>
       {zoom && <div className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/90 p-6" role="dialog" aria-label="Imagem ampliada" onClick={() => setZoom(null)}><img src={zoom} alt="" className="max-h-full max-w-full rounded bg-white" /></div>}

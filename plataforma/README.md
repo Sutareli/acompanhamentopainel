@@ -439,3 +439,7 @@ Dentro da semanal: os 5 blocos (Básico, Implantações, Melhorias e customizaç
 
 ### Filtro por responsável (Almawave / Almaviva)
 Na Análise de chamados, o grupo **Responsável** do filtro restringe todo o painel (indicadores, resumo do mês, comparativo, subcategorias, Pareto, gráficos, lista e Responsáveis) à empresa escolhida. Aparece quando a base tem mais de uma empresa.
+
+
+### Pedidos na Semanal Italo
+Cada etapa da agenda tem o quadro **Pedidos desta etapa** (adicionar, editar, remover, marcar como atendido). A aba final **Consolidado de pedidos** reúne todos, agrupados por etapa, com contagem de abertos/atendidos e botão **Copiar lista**. Ao duplicar a última semanal, os pedidos ainda em aberto vêm junto. Fica no mesmo campo `blocos` (sem migração nova).
