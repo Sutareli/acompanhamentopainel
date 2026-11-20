@@ -12,7 +12,7 @@ function Donut({ counts, total, rotulo }: { counts: Record<Status, number>; tota
         acc += len
         return el
       })}
-      <text x="21" y="21.5" textAnchor="middle" fontSize="9" fontWeight="800" fill="#2e1a6e">{total}</text>
+      <text x="21" y="21.5" textAnchor="middle" fontSize="9" fontWeight="800" fill="#26294f">{total}</text>
       <text x="21" y="26.5" textAnchor="middle" fontSize="2.8" fill="#64748b" letterSpacing="0.2">{rotulo.toUpperCase()}</text>
     </svg>
   )
@@ -40,7 +40,7 @@ export default function PainelStatus({ titulo, rotulo, items, onStatus, ativo }:
   const tom = d === null ? '#64748b' : d >= 1 ? '#16a34a' : d >= 0.8 ? '#d97706' : '#dc2626'
   const leitura = d === null ? 'Sem datas para calcular' : d >= 1 ? 'No ritmo ou à frente do plano' : d >= 0.8 ? 'Levemente abaixo do plano' : 'Abaixo do plano'
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" aria-label={titulo}>
+    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white" aria-label={titulo}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-6 py-4" style={{ background: 'linear-gradient(90deg,#f5f0ff,#fff)' }}>
         <div><h2 className="text-lg font-bold text-navy">{titulo}</h2><p className="text-xs text-slate-500">Visão consolidada · {r.total} {rotulo}</p></div>
         {onStatus && ativo && <button className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-navy" onClick={() => onStatus('')}>Filtro: {ativo} ✕</button>}
@@ -49,7 +49,7 @@ export default function PainelStatus({ titulo, rotulo, items, onStatus, ativo }:
         <div className="flex flex-wrap items-center justify-center gap-8 p-6">
           <Donut counts={r.counts} total={r.total} rotulo={rotulo} />
           <div className="min-w-[260px] flex-1">
-            <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Status {rotulo}</div>
+            <div className="mb-2 text-xs font-bold text-slate-500">Status {rotulo}</div>
             <table className="w-full text-sm">
               <tbody>
                 {STATUS.map((s) => {
@@ -74,14 +74,14 @@ export default function PainelStatus({ titulo, rotulo, items, onStatus, ativo }:
           </div>
         </div>
         <div className="space-y-5 border-t border-slate-100 bg-slate-50/70 p-6 lg:border-l lg:border-t-0">
-          <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Análise de desempenho</div>
-          <div className="rounded-2xl bg-white p-4 shadow-sm" style={{ borderLeft: `5px solid ${tom}` }}>
+          <div className="text-xs font-bold text-slate-500">Análise de desempenho</div>
+          <div className="rounded-md bg-white p-4" style={{ borderLeft: `5px solid ${tom}` }}>
             <div className="text-xs font-semibold text-slate-500">Desempenho</div>
             <div className="text-4xl font-extrabold leading-tight" style={{ color: tom }} title="Realizado ÷ planejado">{fmtDesempenho(d)}</div>
             <div className="text-xs" style={{ color: tom }}>{leitura}</div>
           </div>
           <Medidor rotulo="% Planejado" valor={r.planejado} cor="#94a3b8" />
-          <Medidor rotulo="% Realizado" valor={r.realizado} cor="#8b3fff" />
+          <Medidor rotulo="% Realizado" valor={r.realizado} cor="#4f46b5" />
           <p className="text-[11px] leading-snug text-slate-400">Planejado = parte do prazo já decorrida · Desempenho = realizado ÷ planejado{r.total > r.basePlano && r.basePlano > 0 ? ` · base: ${r.basePlano} de ${r.total} ${rotulo} com datas` : ''}</p>
         </div>
       </div>

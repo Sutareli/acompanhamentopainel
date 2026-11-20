@@ -84,9 +84,9 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
   const saud = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
   const T = cfg.atuacao_min + cfg.pausa_min + cfg.reunioes_min + cfg.margem_min || 1
   const seg = [
-    { n: 'Atuação prática', v: cfg.atuacao_min, c: '#2e1a6e', s: '' },
+    { n: 'Atuação prática', v: cfg.atuacao_min, c: '#26294f', s: '' },
     { n: 'Pausa', v: cfg.pausa_min, c: '#64748b', s: '' },
-    { n: 'Reuniões', v: cfg.reunioes_min, c: '#8b3fff', s: '' },
+    { n: 'Reuniões', v: cfg.reunioes_min, c: '#4f46b5', s: '' },
     { n: 'Margem flexível', v: cfg.margem_min, c: '#f59e0b', s: fmtMin(impMin) + ' em imprevistos' },
   ]
   let acc = 0
@@ -102,15 +102,15 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-navy">To do diário</h1>
+          <h1 className="text-xl font-semibold text-ink">To do diário</h1>
           <p className="text-sm text-slate-500">
             {saud}, {profile!.nome.split(' ')[0]}! {new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'UTC' })}, {fmtDate(date)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {onNavigate && <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('imprevistos')}>⚡ Imprevistos</button>}
-          <button className={btnS + ' ' + btnSm} onClick={() => setEnviando(true)} disabled={all.length === 0}>📦 Enviar para Projetos</button>
-          <button className={btnG + ' ' + btnSm} onClick={() => setClearing(true)} disabled={all.length === 0}>🧹 Limpar lista do dia</button>
+          {onNavigate && <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('imprevistos')}>Imprevistos</button>}
+          <button className={btnS + ' ' + btnSm} onClick={() => setEnviando(true)} disabled={all.length === 0}>Enviar para Projetos</button>
+          <button className={btnG + ' ' + btnSm} onClick={() => setClearing(true)} disabled={all.length === 0}>Limpar lista do dia</button>
         </div>
       </div>
       {enviando && <EnviarProjetos blocos={blocks} data={date} uid={uid} onClose={() => setEnviando(false)} onDone={load} onNavigate={onNavigate} />}
@@ -120,11 +120,11 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
       }} />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5">
-        <Kpi icon="📈" label="Execução das tarefas" value={pct + '%'} pct={pct} color="#8b3fff" />
-        <Kpi icon="✅" label="Tarefas concluídas" value={done} pct={pct} color="#16a34a" />
-        <Kpi icon="⏳" label="Tarefas pendentes" value={all.length - done} pct={all.length ? 100 - pct : 0} color="#f59e0b" />
-        <Kpi icon="🧱" label="Blocos concluídos" value={`${blocksDone}/${blocks.length || 5}`} pct={blocks.length ? (blocksDone / blocks.length) * 100 : 0} color="#2e1a6e" sub="todas as tarefas do bloco marcadas" />
-        <Kpi icon="🧭" label="Margem flexível restante" value={fmtMin(margem)} pct={cfg.margem_min ? (Math.max(0, margem) / cfg.margem_min) * 100 : 0} color={margem < 0 ? '#dc2626' : '#2e1a6e'} sub={`de ${fmtMin(cfg.margem_min)}, menos imprevistos`} />
+        <Kpi icon="" label="Execução das tarefas" value={pct + '%'} pct={pct} color="#4f46b5" />
+        <Kpi icon="" label="Tarefas concluídas" value={done} pct={pct} color="#16a34a" />
+        <Kpi icon="" label="Tarefas pendentes" value={all.length - done} pct={all.length ? 100 - pct : 0} color="#f59e0b" />
+        <Kpi icon="" label="Blocos concluídos" value={`${blocksDone}/${blocks.length || 5}`} pct={blocks.length ? (blocksDone / blocks.length) * 100 : 0} color="#26294f" sub="todas as tarefas do bloco marcadas" />
+        <Kpi icon="" label="Margem flexível restante" value={fmtMin(margem)} pct={cfg.margem_min ? (Math.max(0, margem) / cfg.margem_min) * 100 : 0} color={margem < 0 ? '#dc2626' : '#26294f'} sub={`de ${fmtMin(cfg.margem_min)}, menos imprevistos`} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 min-[1700px]:grid-cols-5">
@@ -136,7 +136,7 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card>
-          <h3 className="mb-3 font-bold text-navy">⏳ Distribuição da jornada ({fmtMin(T)})</h3>
+          <h3 className="mb-3 font-bold text-navy">Distribuição da jornada ({fmtMin(T)})</h3>
           <div className="flex flex-wrap items-center gap-6">
             <div className="grid h-40 w-40 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(${conic})` }}>
               <div className="grid h-24 w-24 place-content-center rounded-full bg-white text-center"><b>{fmtMin(T)}</b><small className="text-slate-500">jornada</small></div>
@@ -193,11 +193,11 @@ function BlockCard({ b, act, toggle, prep, setPrep, recId, uid, futuras }: {
 
   return (
     <Card className="flex flex-col gap-2 !p-5">
-      <div style={{ borderTop: `5px solid ${color}`, margin: '-20px -20px 4px', borderRadius: '16px 16px 0 0' }} />
+      <div style={{ borderTop: `4px solid ${color}`, margin: '-20px -20px 4px', borderRadius: '8px 8px 0 0' }} />
       <div className="flex items-start justify-between gap-2">
-        <h3 className="min-w-0 break-words font-bold" style={{ color }}>
+        <h3 className="min-w-0 break-words font-semibold text-ink">
           {BLOCK_ICONS[b.numero - 1]} {b.numero}. {b.nome}
-          <button type="button" className="ml-1.5 align-middle text-xs opacity-60 hover:opacity-100" title="Renomear este bloco" aria-label={`Renomear o bloco ${b.nome}`} onClick={() => setEdit(true)}>✏️</button>
+          <button type="button" className="ml-1.5 align-middle text-xs opacity-60 hover:opacity-100" title="Renomear este bloco" aria-label={`Renomear o bloco ${b.nome}`} onClick={() => setEdit(true)}>✏</button>
         </h3>
         <Chip color={stColor}>{stLabel}</Chip>
       </div>
@@ -255,7 +255,7 @@ function ClearDialog({ total, done, onCancel, onConfirm }: { total: number; done
   const [modo, setModo] = useState<'desmarcar' | 'excluir'>('desmarcar')
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" onClick={onCancel}>
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-md bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h3 className="mb-1 text-lg font-bold text-navy">Limpar a lista de atividades do dia?</h3>
         <p className="mb-3 text-sm text-slate-600">Hoje há {total} tarefa(s), {done} concluída(s). As concluídas ficam guardadas no <b>Histórico de atividades</b>.</p>
         <label className="mb-2 flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 p-3 text-sm">
@@ -286,14 +286,14 @@ function Agendadas({ b, futuras, act, uid, color }: { b: Block; futuras: Futura[
   return (
     <div className="rounded-xl border border-dashed p-3" style={{ borderColor: color, background: color + '0d' }} aria-label={`Atividades futuras do bloco ${b.numero}`}>
       <button type="button" className="flex w-full items-center justify-between text-left text-xs font-bold" style={{ color }} onClick={() => setOpen(!open)}>
-        <span>📅 Atividades futuras{futuras.length ? ` (${futuras.length})` : ''}</span><span>{open ? '▾' : '▸'}</span>
+        <span>Atividades futuras{futuras.length ? ` (${futuras.length})` : ''}</span><span>{open ? '▾' : '▸'}</span>
       </button>
       {futuras.length > 0 && (
         <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto pr-1">
           {futuras.map((f) => {
             const d = dias(f.data_alvo)
             return (
-              <li key={f.id} className="flex items-start gap-2 rounded-lg bg-white px-2 py-1.5 text-sm shadow-sm">
+              <li key={f.id} className="flex items-start gap-2 rounded-lg bg-white px-2 py-1.5 text-sm">
                 <span className="mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-white" style={{ background: color }} title={fmtDate(f.data_alvo)}>
                   {d <= 0 ? 'hoje' : d === 1 ? 'amanhã' : `${fmtDate(f.data_alvo).slice(0, 5)} · ${d}d`}
                 </span>
@@ -340,12 +340,12 @@ function Adiar({ b, tasks, act, uid, color }: { b: Block; tasks: Task[]; act: (f
   }
   if (!open) return (
     <button type="button" className="rounded-xl border px-3 py-2 text-left text-xs font-bold hover:bg-slate-50 disabled:opacity-50" style={{ borderColor: color, color }} disabled={pend.length === 0}
-      title={pend.length ? 'Escolher tarefas pendentes para fazer amanhã' : 'Não há tarefas pendentes neste bloco'} onClick={() => setOpen(true)}>➡️ Alterar para dia seguinte</button>
+      title={pend.length ? 'Escolher tarefas pendentes para fazer amanhã' : 'Não há tarefas pendentes neste bloco'} onClick={() => setOpen(true)}>Alterar para dia seguinte</button>
   )
   return (
     <div className="rounded-xl border p-3" style={{ borderColor: color }} aria-label={`Alterar para dia seguinte, bloco ${b.numero}`}>
       <div className="mb-1 flex items-center justify-between text-xs font-bold" style={{ color }}>
-        <span>➡️ Transferir para o dia seguinte</span>
+        <span>Transferir para o dia seguinte</span>
         <button type="button" className="underline" onClick={() => setSel(new Set(sel.size === pend.length ? [] : pend.map((t) => t.id)))}>{sel.size === pend.length ? 'Limpar seleção' : 'Selecionar todas'}</button>
       </div>
       <p className="mb-2 text-[11px] text-slate-500">As tarefas escolhidas saem de hoje (sem pesar na execução do dia) e entram na lista de amanhã, neste mesmo bloco.</p>

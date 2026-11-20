@@ -34,7 +34,7 @@ export default function MencoesCard({ onNavigate }: { onNavigate?: (p: string) =
   if (!itens.length) return null
   return (
     <Card className="!border-violet-300 !bg-violet-50/60">
-      <h3 className="mb-2 font-bold text-navy">🔔 Você foi mencionado ({itens.length})</h3>
+      <h3 className="mb-2 font-bold text-navy">Você foi mencionado ({itens.length})</h3>
       <ul className="space-y-1.5">
         {itens.map((i) => (
           <li key={i.id} className="rounded-xl bg-white px-3 py-2 text-sm">

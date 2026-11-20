@@ -101,9 +101,9 @@ export default function BacklogDetalhe({ m, nomes, usuarios, podeEditar, podeExc
       <button className="text-sm font-semibold text-violet-700 hover:underline" onClick={onBack}>← {m.tipo_backlog === 'melhoria' ? 'Voltar às melhorias' : 'Voltar à correção/manutenção'}</button>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-navy">{m.melhoria}</h1>
+          <h1 className="text-xl font-semibold text-ink">{m.melhoria}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-            <Chip color={STATUS_COLOR[m.status]}>{m.status}</Chip><Chip color="#2e1a6e">Prioridade {m.prioridade}</Chip>
+            <Chip color={STATUS_COLOR[m.status]}>{m.status}</Chip><Chip color="#26294f">Prioridade {m.prioridade}</Chip>
             <span>{m.modulo}</span><span>· Responsável: {(m.responsavel_id && nomes[m.responsavel_id]) || m.responsavel || '—'}</span><span>· {fmtDate(m.data_inicio)} → {fmtDate(m.data_termino)}</span>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function BacklogDetalhe({ m, nomes, usuarios, podeEditar, podeExc
         </button>
         {det && (
           <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            {dl.map(([k, v]) => <div key={k} className="rounded-xl bg-slate-50 p-3"><dt className="text-xs font-semibold uppercase text-slate-500">{k}</dt><dd className="mt-1 whitespace-pre-wrap">{v || '—'}</dd></div>)}
+            {dl.map(([k, v]) => <div key={k} className="rounded-xl bg-slate-50 p-3"><dt className="text-xs font-semibold text-slate-500">{k}</dt><dd className="mt-1 whitespace-pre-wrap">{v || '—'}</dd></div>)}
           </dl>
         )}
       </Card>
@@ -140,7 +140,7 @@ export default function BacklogDetalhe({ m, nomes, usuarios, podeEditar, podeExc
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1150px] text-left text-sm [&_th]:pr-2">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <thead className="bg-slate-50 text-xs text-slate-500">
                 <tr><th className="px-3 py-2">Como?</th><th>Responsável</th><th>Início</th><th>Término</th><th>Novo prazo</th><th>Prazo realizado</th><th className="w-28">% concluído</th><th className="w-28">% planejado</th><th>Status</th><th>Observações</th>{podeEditar && <th className="pr-3" />}</tr>
               </thead>
               <tbody>
@@ -175,7 +175,7 @@ export default function BacklogDetalhe({ m, nomes, usuarios, podeEditar, podeExc
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <h3 className="mr-2 font-bold text-navy">Histórico de alterações</h3>
           {GRUPOS.map((g) => (
-            <button key={g.k} onClick={() => setFGrupo(g.k)} className={'rounded-full border px-3 py-1 text-xs font-semibold ' + (fGrupo === g.k ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy')}>{g.label}</button>
+            <button key={g.k} onClick={() => setFGrupo(g.k)} className={'rounded-md border px-3 py-1 text-xs font-medium ' + (fGrupo === g.k ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy')}>{g.label}</button>
           ))}
           {!ehMel && <select aria-label="Filtrar por etapa" className={inp + ' !w-auto !py-1 text-xs'} value={fEtapa} onChange={(e) => setFEtapa(e.target.value)}>
             <option value="">Todas as etapas</option><option value="__ativ">Só a atividade</option>

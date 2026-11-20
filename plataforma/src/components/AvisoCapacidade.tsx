@@ -29,8 +29,8 @@ export function AvisoCapacidade() {
   const pior = st.storage_pct >= st.banco_pct ? { n: 'arquivos (Storage)', p: st.storage_pct } : { n: 'banco de dados', p: st.banco_pct }
   return (
     <>
-      <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
-        <span className="text-xl" aria-hidden>⚠️</span>
+      <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+        <span className="text-xl" aria-hidden></span>
         <div className="min-w-[220px] flex-1">
           <b>O espaço do plano chegou a {pior.p.toLocaleString('pt-BR')}% ({pior.n}).</b> O limiar de aviso é {st.alerta_pct}%. Gere o backup único de todas as atas (guarde o arquivo), e depois libere o espaço excluindo apenas as atas.
         </div>
@@ -70,7 +70,7 @@ export function CapacidadeCard() {
   return (
     <Card>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-bold text-navy">📦 Espaço do plano <span className="text-sm font-normal text-slate-500">· aviso aos {st.alerta_pct}%</span></h3>
+        <h3 className="font-bold text-navy">Espaço do plano <span className="text-sm font-normal text-slate-500">· aviso aos {st.alerta_pct}%</span></h3>
         <div className="flex gap-2"><button className={btnG + ' ' + btnSm} onClick={editar}>Ajustar limites</button><button className={btnG + ' ' + btnSm} onClick={carregar}>Atualizar</button></div>
       </div>
       {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}
@@ -80,7 +80,7 @@ export function CapacidadeCard() {
       </div>
       <p className="mt-3 text-sm text-slate-600">Atas guardadas: <b>{st.atas_qtd}</b> · texto {fmtMB(st.atas_texto_bytes)} · arquivos anexados {fmtMB(st.atas_arquivo_bytes)}.</p>
       {edit && (
-        <div className="mt-3 grid gap-3 rounded-2xl border border-violet-200 bg-violet-50/50 p-3 sm:grid-cols-3">
+        <div className="mt-3 grid gap-3 rounded-md border border-violet-200 bg-violet-50/50 p-3 sm:grid-cols-3">
           <Field label="Limite do banco (MB)"><input className={inp} inputMode="numeric" value={f.banco} onChange={(e) => setF({ ...f, banco: e.target.value })} /></Field>
           <Field label="Limite de arquivos (MB)"><input className={inp} inputMode="numeric" value={f.storage} onChange={(e) => setF({ ...f, storage: e.target.value })} /></Field>
           <Field label="Avisar a partir de (%)"><input className={inp} inputMode="numeric" value={f.pct} onChange={(e) => setF({ ...f, pct: e.target.value })} /></Field>

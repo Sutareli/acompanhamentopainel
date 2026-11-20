@@ -48,7 +48,7 @@ export default function Configuracoes() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-navy">Configurações</h1>
+      <h1 className="text-xl font-semibold text-ink">Configurações</h1>
       {err && <Msg kind="erro">{err}</Msg>}
       {ok && <Msg kind="ok">{ok}</Msg>}
 

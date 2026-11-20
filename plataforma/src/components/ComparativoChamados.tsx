@@ -8,13 +8,13 @@ import { compara, fatorPeriodo, naPeriodo, Per } from '../lib/comparativo'
 type Dim = 'subcategoria' | 'tipo' | 'categoria'
 const DIMS: [Dim, string][] = [['subcategoria', 'Subcategoria'], ['tipo', 'Tipo'], ['categoria', 'Categoria']]
 const norm = (s: string | null) => (s ?? '').trim().toLowerCase()
-const chip = (on: boolean) => 'rounded-full border px-3 py-1 text-xs font-semibold transition ' + (on ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')
+const chip = (on: boolean) => 'rounded-md border px-3 py-1 text-xs font-medium transition ' + (on ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')
 
 function Metrica({ titulo, ant, atu, delta, bom }: { titulo: string; ant: string; atu: string; delta: string; bom: boolean | null }) {
   const cor = bom === null ? 'text-slate-500' : bom ? 'text-green-700' : 'text-red-600'
   return (
     <div className="rounded-xl bg-white/80 px-3 py-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{titulo}</div>
+      <div className="text-[11px] font-semibold text-slate-500">{titulo}</div>
       <div className="text-sm text-slate-600">{ant} → <b className="text-lg text-navy">{atu}</b></div>
       <div className={'text-xs font-bold ' + cor}>{delta}</div>
     </div>
@@ -75,7 +75,7 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
   ]
   const Seletor = ({ rot, mes, setMes, per, setPer }: { rot: string; mes: string; setMes: (m: string) => void; per: Per; setPer: (p: Per) => void }) => (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="w-20 text-xs font-bold uppercase text-slate-500">{rot}</span>
+      <span className="w-20 text-xs font-bold text-slate-500">{rot}</span>
       <select className={sel} aria-label={rot + ' — mês'} value={mes} onChange={(e) => setMes(e.target.value)}>{opcoes.map((m) => <option key={m} value={m}>{mesLabel(m)}</option>)}</select>
       <select className={sel} aria-label={rot + ' — período'} value={per} onChange={(e) => setPer(e.target.value as Per)}>
         <option value="mes">Mês completo</option><option value="q1">1ª quinzena (1–15)</option><option value="q2">2ª quinzena (16+)</option>
@@ -86,11 +86,11 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
 
   const { veredito, varTotal, dPrazo, sTotal, sPrazo } = compara(a, b)
   const semBase = veredito === 'sem_base'
-  const v = { sem_base: { ico: '⚪', t: 'Sem base de comparação', c: 'border-slate-300 bg-slate-50 text-slate-700' },
-    melhorou: { ico: '🟢', t: 'Melhorou', c: 'border-green-300 bg-green-50 text-green-800' },
-    piorou: { ico: '🔴', t: 'Piorou', c: 'border-red-300 bg-red-50 text-red-800' },
-    misto: { ico: '🟡', t: 'Cenário misto', c: 'border-amber-300 bg-amber-50 text-amber-800' },
-    estavel: { ico: '⚪', t: 'Estável', c: 'border-slate-300 bg-slate-50 text-slate-700' } }[veredito]
+  const v = { sem_base: { ico: '', t: 'Sem base de comparação', c: 'border-slate-300 bg-slate-50 text-slate-700' },
+    melhorou: { ico: '', t: 'Melhorou', c: 'border-green-300 bg-green-50 text-green-800' },
+    piorou: { ico: '', t: 'Piorou', c: 'border-red-300 bg-red-50 text-red-800' },
+    misto: { ico: '', t: 'Cenário misto', c: 'border-amber-300 bg-amber-50 text-amber-800' },
+    estavel: { ico: '', t: 'Estável', c: 'border-slate-300 bg-slate-50 text-slate-700' } }[veredito]
   const pctTxt = (x: number) => (x > 0 ? '▲ +' : x < 0 ? '▼ −' : '') + Math.abs(Math.round(x * 100)) + '%'
   const ppTxt = (x: number) => (x > 0 ? '▲ +' : x < 0 ? '▼ −' : '') + Math.abs(x).toFixed(1).replace('.', ',') + ' p.p.'
   const frase = a.total === b.total ? `O volume de chamados ficou igual (${a.total}).`
@@ -126,11 +126,11 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
 
   return (
     <Card className="area-comp">
-      <div className="mb-3 rounded-2xl border border-violet-100 bg-violet-50/40 p-3">
+      <div className="mb-3 rounded-md border border-violet-100 bg-violet-50/40 p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="font-bold text-navy">Comparativo de períodos</h3>
           <span className="text-xs text-slate-500">Escolha atalhos ou monte o seu: cada lado tem mês e período próprios.</span>
-          <span className="ml-auto flex gap-2 print:hidden"><button className={btnG + ' ' + btnSm} onClick={exportaCsv}>⬇ CSV</button><button className={btnG + ' ' + btnSm} onClick={imprimir} title="Abre a impressão; escolha “Salvar como PDF”">🖨 PDF / imprimir</button></span>
+          <span className="ml-auto flex gap-2 print:hidden"><button className={btnG + ' ' + btnSm} onClick={exportaCsv}>CSV</button><button className={btnG + ' ' + btnSm} onClick={imprimir} title="Abre a impressão; escolha “Salvar como PDF”">PDF / imprimir</button></span>
         </div>
         <div className="mb-2 flex flex-wrap gap-2">{presets.map(([l, f]) => <button key={l} className={chip(false)} onClick={f}>{l}</button>)}</div>
         <div className="grid gap-2 lg:grid-cols-2">
@@ -138,7 +138,7 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
           <Seletor rot="Comparar com" mes={mesB} setMes={setMesB} per={perB} setPer={setPerB} />
         </div>
       </div>
-      <div className={'rounded-2xl border p-4 ' + v.c}>
+      <div className={'rounded-md border p-4 ' + v.c}>
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-3xl" aria-hidden>{v.ico}</span>
           <div className="min-w-[220px] flex-1">
@@ -155,9 +155,9 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
         <p className="mt-2 text-[11px] opacity-80">{filtroTxt} Menos chamados e mais % no prazo = melhor. Diferenças pequenas (menos de 5% no volume e 2 p.p. no prazo) contam como estável.</p>
       </div>
 
-      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+      <div className="mt-3 rounded-md border border-slate-200 bg-white p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h4 className="text-sm font-bold text-navy">🎯 Metas {temMeta ? <span className="font-normal text-slate-500">(a meta de volume é mensal e proporcional ao período escolhido)</span> : ''}</h4>
+          <h4 className="text-sm font-bold text-navy">Metas {temMeta ? <span className="font-normal text-slate-500">(a meta de volume é mensal e proporcional ao período escolhido)</span> : ''}</h4>
           {podeMetas && !editMeta && <button className={btnG + ' ' + btnSm + ' print:hidden'} onClick={abrirMeta}>{temMeta ? 'Editar metas' : 'Definir metas'}</button>}
         </div>
         {editMeta && (
@@ -172,9 +172,9 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {[['Atual', rotuloA, a, mA], ['Comparar com', rotuloB, b, mB]].map(([t, r, k, m]: any) => (
               <div key={t} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
-                <div className="text-[11px] font-bold uppercase text-slate-500">{t} · {r}</div>
-                {m.alvoT != null && <div>Volume: <b>{k.total}</b> (meta ≤ {String(m.alvoT).replace('.', ',')}) <b className={m.okT ? 'text-green-700' : 'text-red-600'}>{m.okT ? '✅ dentro' : '❌ acima da meta'}</b></div>}
-                {m.alvoP != null && <div>No prazo: <b>{k.pctPrazo == null ? '—' : Math.round(k.pctPrazo * 100) + '%'}</b> (meta ≥ {m.alvoP}%) {m.okP == null ? '' : <b className={m.okP ? 'text-green-700' : 'text-red-600'}>{m.okP ? '✅ dentro' : '❌ abaixo da meta'}</b>}</div>}
+                <div className="text-[11px] font-bold text-slate-500">{t} · {r}</div>
+                {m.alvoT != null && <div>Volume: <b>{k.total}</b> (meta ≤ {String(m.alvoT).replace('.', ',')}) <b className={m.okT ? 'text-green-700' : 'text-red-600'}>{m.okT ? 'dentro' : 'acima da meta'}</b></div>}
+                {m.alvoP != null && <div>No prazo: <b>{k.pctPrazo == null ? '—' : Math.round(k.pctPrazo * 100) + '%'}</b> (meta ≥ {m.alvoP}%) {m.okP == null ? '' : <b className={m.okP ? 'text-green-700' : 'text-red-600'}>{m.okP ? 'dentro' : 'abaixo da meta'}</b>}</div>}
               </div>
             ))}
           </div>
@@ -184,13 +184,13 @@ export default function ComparativoChamados({ rows, meses, mesInicial, filtroTxt
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-bold text-navy">O que mudou: {mesAnt} → {mesAtual}</h3>
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Comparar por">
-          <span className="text-xs font-bold uppercase text-slate-500">Por</span>
+          <span className="text-xs font-bold text-slate-500">Por</span>
           {DIMS.map(([k, l]) => <button key={k} className={chip(dim === k)} aria-pressed={dim === k} onClick={() => setDim(k)}>{l}</button>)}
         </div>
       </div>
       <div className="mt-2 grid gap-4 md:grid-cols-2">
-        <Lista itens={sobem} tit="🔺 Aumentaram (atenção)" cor="text-red-600" />
-        <Lista itens={caem} tit="🔻 Diminuíram (melhoraram)" cor="text-green-700" />
+        <Lista itens={sobem} tit="Aumentaram (atenção)" cor="text-red-600" />
+        <Lista itens={caem} tit="Diminuíram (melhoraram)" cor="text-green-700" />
       </div>
     </Card>
   )

@@ -56,8 +56,8 @@ export default function ParetoChart({ barras, titulo, selecionado, onSelect, des
               onMouseDown={(e) => e.preventDefault()} onClick={onSelect ? () => onSelect(sel ? null : x.nome) : undefined}
               onKeyDown={onSelect ? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onSelect(sel ? null : x.nome)) : undefined}>
               <rect x={cx(i) - slot / 2} y={T} width={slot} height={H + B} fill="transparent" />
-              <rect x={cx(i) - bw / 2} y={T + H - h} width={bw} height={h} rx={6} fill={sel ? '#2e1a6e' : '#8b3fff'} opacity={a ? 1 : 0.35} />
-              <text x={cx(i)} y={T + H - h - 5} textAnchor="middle" fontSize={d.length <= 6 ? 14 : 11} fontWeight="700" fill="#2e1a6e">{x.qtd}</text>
+              <rect x={cx(i) - bw / 2} y={T + H - h} width={bw} height={h} rx={6} fill={sel ? '#26294f' : '#4f46b5'} opacity={a ? 1 : 0.35} />
+              <text x={cx(i)} y={T + H - h - 5} textAnchor="middle" fontSize={d.length <= 6 ? 14 : 11} fontWeight="700" fill="#26294f">{x.qtd}</text>
               <text textAnchor="middle" fontSize={d.length <= 6 ? 12 : 10} fill="#334155" fontWeight={sel ? 700 : 400}>
                 {quebra(x.nome, maxChar).map((l, j) => <tspan key={j} x={cx(i)} y={T + H + 16 + j * 13}>{l}</tspan>)}
               </text>
@@ -65,11 +65,11 @@ export default function ParetoChart({ barras, titulo, selecionado, onSelect, des
             </g>
           )
         })}
-        <polyline points={pts} fill="none" stroke="#2e1a6e" strokeWidth="2" />
+        <polyline points={pts} fill="none" stroke="#26294f" strokeWidth="2" />
         {d.map((x, i) => (
           <g key={'p' + x.nome}>
-            <circle cx={cx(i)} cy={yp(x.acum)} r="3.5" fill="#fff" stroke="#2e1a6e" strokeWidth="2" />
-            {(i === 0 || i === d.length - 1 || d.length <= 8 || i % 3 === 0) && <text x={cx(i)} y={yp(x.acum) - 8} textAnchor="middle" fontSize="9" fill="#2e1a6e" stroke="#fff" strokeWidth="3" paintOrder="stroke">{x.acum.toFixed(0)}%</text>}
+            <circle cx={cx(i)} cy={yp(x.acum)} r="3.5" fill="#fff" stroke="#26294f" strokeWidth="2" />
+            {(i === 0 || i === d.length - 1 || d.length <= 8 || i % 3 === 0) && <text x={cx(i)} y={yp(x.acum) - 8} textAnchor="middle" fontSize="9" fill="#26294f" stroke="#fff" strokeWidth="3" paintOrder="stroke">{x.acum.toFixed(0)}%</text>}
           </g>
         ))}
       </svg>

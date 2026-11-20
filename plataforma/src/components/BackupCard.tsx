@@ -35,12 +35,12 @@ export default function BackupCard() {
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="font-bold text-navy">💾 Backup dos dados</h3>
+          <h3 className="font-bold text-navy">Backup dos dados</h3>
           <p className="text-sm text-slate-500">Toda segunda-feira, às 03:00, o sistema guarda uma cópia (projetos, atividades, melhorias, correções, chamados, feriados, metas e comentários) e mantém as 8 mais recentes. Jornadas pessoais e atas <b>não</b> entram, por serem privadas.</p>
         </div>
         <div className="flex gap-2">
           <button className={btnG + ' ' + btnSm} disabled={!!busy} onClick={gerar}>{busy === 'gerar' ? 'Gerando…' : 'Gerar agora'}</button>
-          <button className={btnP + ' ' + btnSm} disabled={!!busy} onClick={baixar}>{busy === 'baixar' ? 'Preparando…' : '⬇ Baixar JSON'}</button>
+          <button className={btnP + ' ' + btnSm} disabled={!!busy} onClick={baixar}>{busy === 'baixar' ? 'Preparando…' : 'Baixar JSON'}</button>
         </div>
       </div>
       {err && <div className="mt-2"><Msg kind="erro">{err}</Msg></div>}{ok && <div className="mt-2"><Msg kind="ok">{ok}</Msg></div>}

@@ -40,13 +40,13 @@ export const canViewAll = (p?: Perfil) => p === 'diretor' || p === 'gerente' || 
 /** Administração (usuários, perfis, configuração global, auditoria): só Analista Sr. Espelha is_manager() no banco. */
 export const canAdmin = (p?: Perfil) => p === 'analista_sr'
 export const CRIT_LABEL: Record<Crit, string> = { alta: 'Alta', media: 'Média', baixa: 'Baixa', recorrente: 'Recorrente' }
-export const CRIT_COLOR: Record<Crit, string> = { alta: '#dc2626', media: '#f59e0b', baixa: '#3b82f6', recorrente: '#8b3fff' }
+export const CRIT_COLOR: Record<Crit, string> = { alta: '#dc2626', media: '#f59e0b', baixa: '#3b82f6', recorrente: '#4f46b5' }
 export const STATUS_LABEL: Record<StatusGeral, string> = { a_iniciar: 'A iniciar', em_andamento: 'Em andamento', concluido: 'Concluído', concluido_parcial: 'Concluído c/ cancelamentos', cancelado: 'Cancelado' }
 export const STATUS_COLOR: Record<StatusGeral, string> = { a_iniciar: '#94a3b8', em_andamento: '#2563eb', concluido: '#16a34a', concluido_parcial: '#0d9488', cancelado: '#f87171' }
 
 export type TipoProjeto = 'macro' | 'micro'
 export const TIPO_LABEL: Record<TipoProjeto, string> = { macro: 'Projeto', micro: 'Atividade' }
-export const TIPO_COLOR: Record<TipoProjeto, string> = { macro: '#2e1a6e', micro: '#0e7490' }
+export const TIPO_COLOR: Record<TipoProjeto, string> = { macro: '#26294f', micro: '#0e7490' }
 
 export interface Micro {
   id: string; criticidade: Crit; responsavel_id: string; responsavel_nome: string; criado_por: string
@@ -100,8 +100,8 @@ export function distribuicao(m: Pick<Micro, 'a_iniciar' | 'em_andamento' | 'conc
   return p.join(' · ')
 }
 
-export const BLOCK_COLORS = ['#2e1a6e', '#0e7490', '#7c3aed', '#ea580c', '#0f766e']
-export const BLOCK_ICONS = ['🌅', '✉️', '🔎', '💡', '✅']
+export const BLOCK_COLORS = ['#26294f', '#0e7490', '#7c3aed', '#ea580c', '#0f766e']
+export const BLOCK_ICONS = ['', '', '', '', '']
 
 const G1 = '3.1 Validação da ferramenta — 30 min'
 const G2 = '3.2 Acompanhamento dos analistas — 30 min'

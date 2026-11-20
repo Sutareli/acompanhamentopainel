@@ -14,7 +14,7 @@ import { pctDaFase, Fase, FASE_INFO, FASES, emDev, faseDe, faseIdx, faseInfo, da
 
 /**
  * Módulo "Melhorias" — acompanha cada melhoria ao longo do processo:
- *   💡 Ideia → 🗳️ Priorização (reunião semanal) → 📝 Especificação → 🎫 Chamado aberto → 🛠️ Desenvolvimento → 🧪 Homologação → ✅ Produção
+ *   Ideia → Priorização (reunião semanal) → Especificação → Chamado aberto → Desenvolvimento → Homologação → Produção
  * Cada melhoria tem um responsável (usuário da plataforma) desde a ideia; o desenvolvimento é sempre da mesma empresa.
  * Mesma estrutura do banco do Backlog (etapas, histórico e permissões), filtrada por tipo_backlog = 'melhoria'.
  */
@@ -187,7 +187,7 @@ export default function Melhorias() {
 
   const slaBadge = (r: Melhoria, pequeno = false) => {
     const s = slaAtual(r, hoje); if (!s) return null
-    return <div className={'mt-1 rounded-lg border px-2 py-1 font-semibold ' + (pequeno ? 'text-[11px]' : 'text-xs')} style={{ color: s.cor, borderColor: s.cor + '66', background: s.cor + '12' }} title={`${s.regra} · início ${fmtDate(s.inicio)} · vence ${fmtDate(s.venc)}`}>{s.estado === 'atrasado' ? '⏱ ⚠ ' : '⏱ '}{s.txt} <span className="font-normal opacity-80">(até {fmtDate(s.venc)})</span></div>
+    return <div className={'mt-1 rounded-lg border px-2 py-1 font-semibold ' + (pequeno ? 'text-[11px]' : 'text-xs')} style={{ color: s.cor, borderColor: s.cor + '66', background: s.cor + '12' }} title={`${s.regra} · início ${fmtDate(s.inicio)} · vence ${fmtDate(s.venc)}`}>{s.estado === 'atrasado' ? '' : ''}{s.txt} <span className="font-normal opacity-80">(até {fmtDate(s.venc)})</span></div>
   }
   const cartao = (r: Melhoria) => {
     const pi = prazoInfo(r, hoje); const resumo = resumoDe(r); const f = faseInfo(fase(r)); const dias = naEtapa(r)
@@ -197,7 +197,7 @@ export default function Melhorias() {
           <span className="rounded-md bg-violet-100 px-1.5 py-0.5 text-[11px] font-bold text-violet-700">{r.modulo}</span>
           {r.ordem_top != null && (fase(r) === 'ideia' || fase(r) === 'priorizada') && <span className="rounded-md bg-navy px-1.5 py-0.5 text-[11px] font-bold text-white" title="Posição na lista “10 primeiras”">#{r.ordem_top}</span>}
           <span className="text-[11px] text-slate-500" title="Criticidade/prioridade (1 = mais alta)">prioridade {r.prioridade}</span>
-          {r.numero_chamado && <span className="rounded-md bg-cyan-50 px-1.5 py-0.5 text-[11px] font-bold text-cyan-700" title="Nº do chamado">🎫 {r.numero_chamado}</span>}
+          {r.numero_chamado && <span className="rounded-md bg-cyan-50 px-1.5 py-0.5 text-[11px] font-bold text-cyan-700" title="Nº do chamado">{r.numero_chamado}</span>}
           <span className="ml-auto"><Chip color={f.cor}>{f.icon} {f.label}</Chip></span>
         </div>
         <button className="text-left font-bold text-navy hover:underline" onClick={() => setSelId(r.id)} title="Abrir detalhes (etapas, histórico, AS IS / TO BE)">{r.melhoria}</button>
@@ -210,7 +210,7 @@ export default function Melhorias() {
             <input type="date" className={inp + ' mt-0.5 !py-1 text-sm'} value={r.data_termino || ''} disabled={!canEdit(r) || fase(r) === 'producao'} aria-label={`Prazo de ${r.melhoria}`}
               onChange={(e) => setPrazo(r, e.target.value)} />
           </label>
-          <div className="text-right text-xs font-semibold" style={{ color: pi.cor }}>{vencida(r, hoje) ? '⚠ ' : ''}{pi.txt}</div>
+          <div className="text-right text-xs font-semibold" style={{ color: pi.cor }}>{vencida(r, hoje) ? '' : ''}{pi.txt}</div>
         </div>
         <label className="text-xs text-slate-500">Responsável
           <select className={inp + ' mt-0.5 !py-1 text-sm ' + (!r.responsavel_id ? '!border-amber-400' : '')} value={r.responsavel_id || ''} disabled={!canEdit(r)} aria-label={`Responsável por ${r.melhoria}`} onChange={(e) => setResp(r, e.target.value)}>
@@ -229,17 +229,17 @@ export default function Melhorias() {
   const mini = (r: Melhoria) => {
     const pi = prazoInfo(r, hoje); const dias = naEtapa(r); const resumo = resumoDe(r)
     return (
-      <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-3">
         <div className="flex flex-wrap items-center gap-1">
           <span className="rounded bg-violet-100 px-1 py-0.5 text-[10px] font-bold text-violet-700">{r.modulo}</span>
           <span className="text-[10px] text-slate-500">prior. {r.prioridade}</span>
-          {r.numero_chamado && <span className="rounded bg-cyan-50 px-1 py-0.5 text-[10px] font-bold text-cyan-700">🎫 {r.numero_chamado}</span>}
+          {r.numero_chamado && <span className="rounded bg-cyan-50 px-1 py-0.5 text-[10px] font-bold text-cyan-700">{r.numero_chamado}</span>}
         </div>
         <button className="mt-1 text-left text-sm font-bold text-navy hover:underline" onClick={() => setSelId(r.id)}>{r.melhoria}</button>
         {resumo && <p className="mt-1 text-xs text-slate-500" style={clamp(2)}>{resumo}</p>}
         <div className="mt-1 flex items-center gap-1"><div className="flex-1"><Bar pct={pctDaFase(fase(r))} color={faseInfo(fase(r)).cor} /></div><span className="text-[10px] font-semibold text-slate-500">{pctDaFase(fase(r))}%</span></div>
         {slaBadge(r, true)}
-        <div className={'mt-1 text-[11px] ' + (r.responsavel_id ? 'text-slate-600' : 'font-semibold text-amber-600')}>👤 {nomeResp(r) || 'sem responsável'}</div>
+        <div className={'mt-1 text-[11px] ' + (r.responsavel_id ? 'text-slate-600' : 'font-semibold text-amber-600')}>{nomeResp(r) || 'sem responsável'}</div>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-1 text-[11px]">
           <span className="text-slate-500">{fase(r) === 'producao' ? pi.txt : dias ? `Na etapa ${dias}` : ''}</span>
           {(emDev(fase(r)) || r.data_termino) && fase(r) !== 'producao' && <span className="font-semibold" style={{ color: pi.cor }}>{pi.txt}</span>}
@@ -252,7 +252,7 @@ export default function Melhorias() {
   const kp = (k: Fase) => {
     const f = faseInfo(k); const n = porFase(k).length
     return (
-      <button key={k} className={'rounded-2xl border bg-white p-3 text-left shadow-sm transition hover:border-violet-300 ' + (aba === k ? 'border-violet-400 ring-2 ring-violet-200' : 'border-slate-200')} onClick={() => setAba(k)} title={f.ajuda}>
+      <button key={k} className={'rounded-md border bg-white p-3 text-left transition hover:border-violet-300 ' + (aba === k ? 'border-violet-400 ring-2 ring-violet-200' : 'border-slate-200')} onClick={() => setAba(k)} title={f.ajuda}>
         <div className="flex items-center gap-1 text-xs text-slate-500"><span>{FASES.indexOf(k) + 1}.</span><span>{f.icon}</span><span className="truncate">{f.label}</span></div>
         <div className="text-2xl font-extrabold" style={{ color: f.cor }}>{n}</div>
       </button>
@@ -267,18 +267,18 @@ export default function Melhorias() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Melhorias</h1>
+          <h1 className="text-xl font-semibold text-ink">Melhorias</h1>
           <p className="text-sm text-slate-500">Acompanhe cada melhoria do processo: ideia → priorização → especificação → chamado aberto → desenvolvimento → homologação → produção.</p>
         </div>
         <div className="flex gap-2">
-          <button className={btnG} onClick={exportCsv} disabled={!rows.length}>⬇ Exportar (CSV)</button>
+          <button className={btnG} onClick={exportCsv} disabled={!rows.length}>Exportar (CSV)</button>
           <button className={btnP} onClick={() => setEdit({ status: 'A Iniciar', fase: 'ideia', prioridade: 3, percentual_concluido: 0, data_ideia: hoje, responsavel_id: uid, responsavel: usuarios.find((u) => u.id === uid)?.nome || profile!.nome })}>+ Nova melhoria</button>
         </div>
       </div>
       {err && <Msg kind="erro">{err}</Msg>}
 
       <div className="flex gap-1" role="tablist" aria-label="Tipo de visão">
-        {([['acompanhamento', '🗂️ Acompanhamento'], ['gerencial', '📊 Visão gerencial'], ['analitico', '🔎 Analítico']] as [Visao, string][]).map(([k, l]) => (
+        {([['acompanhamento', 'Acompanhamento'], ['gerencial', 'Visão gerencial'], ['analitico', 'Analítico']] as [Visao, string][]).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={visao === k} className={'rounded-xl border px-4 py-2 text-sm font-bold ' + (visao === k ? 'border-navy bg-navy text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-violet-50')} onClick={() => setVisao(k)}>{l}</button>
         ))}
       </div>
@@ -297,8 +297,8 @@ export default function Melhorias() {
             <Field label="até"><input type="date" className={inp} value={ate} min={de || undefined} onChange={(e) => setAte(e.target.value)} /></Field>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            <button className={'rounded-full border px-3 py-1 font-semibold ' + (soVenc ? 'border-red-400 bg-red-50 text-red-700 ring-2 ring-red-200' : 'border-slate-200 bg-white text-slate-600')} aria-pressed={soVenc} onClick={() => setSoVenc((v) => !v)}>⚠ Só prazo vencido ({atrasadas.length})</button>
-            <button className={'rounded-full border px-3 py-1 font-semibold ' + (soSla ? 'border-red-400 bg-red-50 text-red-700 ring-2 ring-red-200' : 'border-slate-200 bg-white text-slate-600')} aria-pressed={soSla} onClick={() => setSoSla((v) => !v)}>⏱ Só SLA vencido ({slaVenc.length})</button>
+            <button className={'rounded-full border px-3 py-1 font-semibold ' + (soVenc ? 'border-red-400 bg-red-50 text-red-700 ring-2 ring-red-200' : 'border-slate-200 bg-white text-slate-600')} aria-pressed={soVenc} onClick={() => setSoVenc((v) => !v)}>Só prazo vencido ({atrasadas.length})</button>
+            <button className={'rounded-full border px-3 py-1 font-semibold ' + (soSla ? 'border-red-400 bg-red-50 text-red-700 ring-2 ring-red-200' : 'border-slate-200 bg-white text-slate-600')} aria-pressed={soSla} onClick={() => setSoSla((v) => !v)}>Só SLA vencido ({slaVenc.length})</button>
             {(fMod || q || de || ate || fResp || soSla || soVenc || fFase) && <button className={btnG + ' ' + btnSm} onClick={() => { setFMod(''); setQ(''); setDe(''); setAte(''); setFResp(''); setSoSla(false); setSoVenc(false); setFFase('') }}>Limpar filtros</button>}
             <span className="ml-auto text-slate-500">{linhasAn.length} de {rows.length} melhorias · clique no cabeçalho para ordenar · “Exportar (CSV)” leva esta lista</span>
           </div>
@@ -319,29 +319,29 @@ export default function Melhorias() {
                     <td className={'px-2 py-1.5 text-xs ' + (r.responsavel_id ? 'text-slate-700' : 'font-semibold text-amber-600')}>{nomeResp(r) || 'sem responsável'}</td>
                     <td className="px-2 py-1.5 text-center text-xs">{r.prioridade}</td>
                     {[r.data_ideia, r.data_priorizacao, r.data_especificacao, r.data_abertura, r.data_inicio, r.data_homologacao].map((d, i) => <td key={i} className="whitespace-nowrap px-2 py-1.5 text-xs text-slate-600">{fmtDate(d)}</td>)}
-                    <td className="whitespace-nowrap px-2 py-1.5 text-xs font-semibold" style={{ color: pi.cor }}>{r.data_termino ? fmtDate(r.data_termino) : '—'}{vencida(r, hoje) ? ' ⚠' : ''}</td>
+                    <td className="whitespace-nowrap px-2 py-1.5 text-xs font-semibold" style={{ color: pi.cor }}>{r.data_termino ? fmtDate(r.data_termino) : '—'}{vencida(r, hoje) ? ' ' : ''}</td>
                     <td className="whitespace-nowrap px-2 py-1.5 text-xs text-slate-600">{fmtDate(dataDaFase(r, 'producao'))}</td>
                     <td className="px-2 py-1.5 text-xs text-slate-600">{r.numero_chamado || '—'}</td>
                     <td className="whitespace-nowrap px-2 py-1.5 text-xs font-semibold" style={{ color: sl?.cor || '#94a3b8' }}>{sl ? `${sl.txt} (até ${fmtDate(sl.venc)})` : '—'}</td>
                     <td className="whitespace-nowrap px-2 py-1.5 text-right">
                       <button className={btnG + ' ' + btnSm} onClick={() => setSelId(r.id)}>Abrir</button>{' '}
-                      {canAdmin(profile!.perfil) && <button className={btnD + ' ' + btnSm} onClick={() => remove(r)} aria-label={`Excluir ${r.melhoria}`}>🗑 Excluir</button>}
+                      {canAdmin(profile!.perfil) && <button className={btnD + ' ' + btnSm} onClick={() => remove(r)} aria-label={`Excluir ${r.melhoria}`}>Excluir</button>}
                     </td>
                   </tr>) })}</tbody>
               </table>
             </div>
           </Card>
         )}
-        {!canAdmin(profile!.perfil) && <p className="text-xs text-slate-500">🔒 Só o Analista Sr pode excluir melhorias.</p>}
+        {!canAdmin(profile!.perfil) && <p className="text-xs text-slate-500">Só o Analista Sr pode excluir melhorias.</p>}
       </>
       ) : (<>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">{FASES.map((k) => kp(k))}</div>
       <div className="flex flex-wrap gap-2 text-xs">
-        <button className={'rounded-full border px-3 py-1 font-semibold ' + (atrasadas.length ? 'border-red-300 bg-red-50 text-red-700' : 'border-slate-200 bg-white text-slate-500') + (soVenc ? ' ring-2 ring-red-300' : '')} aria-pressed={soVenc} onClick={() => { setAba('todas'); setSoVenc((v) => !v) }} title="Melhorias abertas com prazo de entrega vencido. Clique para filtrar.">⚠ Prazo vencido: {atrasadas.length}</button>
-        <button className={'rounded-full border px-3 py-1 font-semibold ' + (slaVenc.length ? 'border-red-300 bg-red-50 text-red-700' : 'border-slate-200 bg-white text-slate-500') + (soSla ? ' ring-2 ring-red-300' : '')} aria-pressed={soSla} onClick={() => { setAba('todas'); setSoSla((v) => !v) }} title="Chamado aberto há mais que o SLA sem iniciar o desenvolvimento, ou desenvolvimento além do SLA sem ir para homologação. Clique para filtrar.">⏱ SLA vencido: {slaVenc.length}</button>
-        <button className={'rounded-full border px-3 py-1 font-semibold ' + (semResp.length ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500')} onClick={() => { setAba('todas'); setFResp('__sem') }} title="Melhorias abertas sem responsável definido">👤 Sem responsável: {semResp.length}</button>
-        <span className={'rounded-full border px-3 py-1 font-semibold ' + (aguardandoChamado.length ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-slate-200 bg-white text-slate-500')} title="Priorizadas (ou em especificação) que ainda não tiveram o chamado aberto">🗳️ Aguardando abertura de chamado: {aguardandoChamado.length}</span>
-        <span className={'rounded-full border px-3 py-1 font-semibold ' + (devSemPrazo.length ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500')} title="Em desenvolvimento sem prazo de entrega definido">🛠️ Em desenvolvimento/homologação sem prazo: {devSemPrazo.length}</span>
+        <button className={'rounded-full border px-3 py-1 font-semibold ' + (atrasadas.length ? 'border-red-300 bg-red-50 text-red-700' : 'border-slate-200 bg-white text-slate-500') + (soVenc ? ' ring-2 ring-red-300' : '')} aria-pressed={soVenc} onClick={() => { setAba('todas'); setSoVenc((v) => !v) }} title="Melhorias abertas com prazo de entrega vencido. Clique para filtrar.">Prazo vencido: {atrasadas.length}</button>
+        <button className={'rounded-full border px-3 py-1 font-semibold ' + (slaVenc.length ? 'border-red-300 bg-red-50 text-red-700' : 'border-slate-200 bg-white text-slate-500') + (soSla ? ' ring-2 ring-red-300' : '')} aria-pressed={soSla} onClick={() => { setAba('todas'); setSoSla((v) => !v) }} title="Chamado aberto há mais que o SLA sem iniciar o desenvolvimento, ou desenvolvimento além do SLA sem ir para homologação. Clique para filtrar.">SLA vencido: {slaVenc.length}</button>
+        <button className={'rounded-full border px-3 py-1 font-semibold ' + (semResp.length ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500')} onClick={() => { setAba('todas'); setFResp('__sem') }} title="Melhorias abertas sem responsável definido">Sem responsável: {semResp.length}</button>
+        <span className={'rounded-full border px-3 py-1 font-semibold ' + (aguardandoChamado.length ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-slate-200 bg-white text-slate-500')} title="Priorizadas (ou em especificação) que ainda não tiveram o chamado aberto">Aguardando abertura de chamado: {aguardandoChamado.length}</span>
+        <span className={'rounded-full border px-3 py-1 font-semibold ' + (devSemPrazo.length ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500')} title="Em desenvolvimento sem prazo de entrega definido">Em desenvolvimento/homologação sem prazo: {devSemPrazo.length}</span>
       </div>
 
       <Card className="!p-4">
@@ -376,7 +376,7 @@ export default function Melhorias() {
       ) : emQuadro ? (
         <div className="flex gap-3 overflow-x-auto pb-2">
           {colunas.map((k) => { const f = faseInfo(k); const l = visiveis(k); return (
-            <section key={k} aria-label={f.label} className="flex min-h-[8rem] w-[250px] shrink-0 flex-col rounded-2xl bg-slate-50 p-2 xl:min-w-[230px] xl:flex-1">
+            <section key={k} aria-label={f.label} className="flex min-h-[8rem] w-[250px] shrink-0 flex-col rounded-md bg-slate-50 p-2 xl:min-w-[230px] xl:flex-1">
               <h2 className="mb-2 flex items-center gap-1.5 px-1 text-sm font-bold" style={{ color: f.cor }}><span>{f.icon}</span>{f.label}<span className="ml-auto rounded-full bg-white px-2 text-xs text-slate-600">{l.length}</span></h2>
               <div className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto pr-0.5">{l.length ? l.map((r) => mini(r)) : <p className="px-1 py-4 text-center text-xs text-slate-400">Nada nesta etapa.</p>}</div>
             </section>

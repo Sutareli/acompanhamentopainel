@@ -90,22 +90,22 @@ export function MelhoriaForm({ init, modulos, temEtapas, funil = false, usuarios
         {!funil && <Field label="% concluído (0 a 100)"><input className={inp} type="number" min={0} max={100} value={f.percentual_concluido ?? 0} disabled={temEtapas || f.status === 'Concluído'} onChange={(e) => set('percentual_concluido', e.target.value)} /></Field>}
         {temEtapas && <p className="text-xs text-violet-700 sm:col-span-2">Status e % são calculados automaticamente a partir das etapas desta atividade.</p>}
         {funil && (<>
-          <p className="text-xs font-bold uppercase tracking-wide text-violet-700 sm:col-span-2">Datas das etapas do processo</p>
-          <Field label="💡 Ideia registrada em"><input className={inp} type="date" value={f.data_ideia || ''} onChange={(e) => set('data_ideia', e.target.value)} /></Field>
-          <Field label="🗳️ Priorização em reunião em"><input className={inp} type="date" value={f.data_priorizacao || ''} disabled={fi < 1 && !f.data_priorizacao} onChange={(e) => set('data_priorizacao', e.target.value)} /></Field>
-          <Field label="📝 Especificação concluída em"><input className={inp} type="date" value={f.data_especificacao || ''} disabled={fi < 2 && !f.data_especificacao} onChange={(e) => set('data_especificacao', e.target.value)} /></Field>
-          <Field label="🎫 Chamado aberto em"><input className={inp} type="date" value={f.data_abertura || ''} max={todayStr()} disabled={fi < 3 && !f.data_abertura} onChange={(e) => set('data_abertura', e.target.value)} /></Field>
+          <p className="text-xs font-bold text-violet-700 sm:col-span-2">Datas das etapas do processo</p>
+          <Field label="Ideia registrada em"><input className={inp} type="date" value={f.data_ideia || ''} onChange={(e) => set('data_ideia', e.target.value)} /></Field>
+          <Field label="Priorização em reunião em"><input className={inp} type="date" value={f.data_priorizacao || ''} disabled={fi < 1 && !f.data_priorizacao} onChange={(e) => set('data_priorizacao', e.target.value)} /></Field>
+          <Field label="Especificação concluída em"><input className={inp} type="date" value={f.data_especificacao || ''} disabled={fi < 2 && !f.data_especificacao} onChange={(e) => set('data_especificacao', e.target.value)} /></Field>
+          <Field label="Chamado aberto em"><input className={inp} type="date" value={f.data_abertura || ''} max={todayStr()} disabled={fi < 3 && !f.data_abertura} onChange={(e) => set('data_abertura', e.target.value)} /></Field>
           <Field label="Nº do chamado"><input className={inp} value={f.numero_chamado || ''} maxLength={60} placeholder="ex.: CH-12345" disabled={fi < 3 && !f.numero_chamado} onChange={(e) => set('numero_chamado', e.target.value)} /></Field>
         </>)}
-        <Field label={funil ? '🛠️ Desenvolvimento iniciado em' : 'Data de início'}><input className={inp} type="date" value={f.data_inicio || ''} disabled={funil && fi < 4 && !f.data_inicio} onChange={(e) => set('data_inicio', e.target.value)} /></Field>
-        {funil && <Field label="🧪 Homologação iniciada em"><input className={inp} type="date" value={f.data_homologacao || ''} disabled={fi < 5 && !f.data_homologacao} onChange={(e) => set('data_homologacao', e.target.value)} /></Field>}
+        <Field label={funil ? 'Desenvolvimento iniciado em' : 'Data de início'}><input className={inp} type="date" value={f.data_inicio || ''} disabled={funil && fi < 4 && !f.data_inicio} onChange={(e) => set('data_inicio', e.target.value)} /></Field>
+        {funil && <Field label="Homologação iniciada em"><input className={inp} type="date" value={f.data_homologacao || ''} disabled={fi < 5 && !f.data_homologacao} onChange={(e) => set('data_homologacao', e.target.value)} /></Field>}
         <Field label={funil ? 'Prazo de entrega previsto' : 'Data de término (prazo)'}><input className={inp} type="date" value={f.data_termino || ''} min={f.data_inicio || undefined} onChange={(e) => set('data_termino', e.target.value)} /></Field>
         {funil && (<>
-          <Field label="⏱ SLA: chamado aberto → desenvolvimento (dias úteis)"><input className={inp} type="number" min={1} max={60} disabled={!podeSla} value={f.sla_chamado_dias_uteis ?? SLA_PADRAO.chamado_dias_uteis} onChange={(e) => set('sla_chamado_dias_uteis', e.target.value as any)} /></Field>
-          <Field label="⏱ SLA: desenvolvimento → homologação (dias corridos)"><input className={inp} type="number" min={1} max={365} disabled={!podeSla} value={f.sla_dev_dias_corridos ?? SLA_PADRAO.dev_dias_corridos} onChange={(e) => set('sla_dev_dias_corridos', e.target.value as any)} /></Field>
-          <p className="-mt-1 text-xs text-slate-500 sm:col-span-2">{podeSla ? 'SLA próprio desta melhoria (padrão 3 dias úteis e 15 dias corridos). Só Analista Sr e Gerente alteram; os feriados cadastrados em Configurações são descontados.' : '🔒 O SLA desta melhoria só pode ser alterado por Analista Sr e Gerente.'}</p>
+          <Field label="SLA: chamado aberto → desenvolvimento (dias úteis)"><input className={inp} type="number" min={1} max={60} disabled={!podeSla} value={f.sla_chamado_dias_uteis ?? SLA_PADRAO.chamado_dias_uteis} onChange={(e) => set('sla_chamado_dias_uteis', e.target.value as any)} /></Field>
+          <Field label="SLA: desenvolvimento → homologação (dias corridos)"><input className={inp} type="number" min={1} max={365} disabled={!podeSla} value={f.sla_dev_dias_corridos ?? SLA_PADRAO.dev_dias_corridos} onChange={(e) => set('sla_dev_dias_corridos', e.target.value as any)} /></Field>
+          <p className="-mt-1 text-xs text-slate-500 sm:col-span-2">{podeSla ? 'SLA próprio desta melhoria (padrão 3 dias úteis e 15 dias corridos). Só Analista Sr e Gerente alteram; os feriados cadastrados em Configurações são descontados.' : 'O SLA desta melhoria só pode ser alterado por Analista Sr e Gerente.'}</p>
         </>)}
-        {(funil ? f.fase === 'producao' : f.status === 'Concluído' || f.data_conclusao) && <Field label={funil ? '✅ Em produção desde' : 'Data de finalização (conclusão real)'}><input className={inp} type="date" value={f.data_conclusao || ''} onChange={(e) => set('data_conclusao', e.target.value)} /></Field>}
+        {(funil ? f.fase === 'producao' : f.status === 'Concluído' || f.data_conclusao) && <Field label={funil ? 'Em produção desde' : 'Data de finalização (conclusão real)'}><input className={inp} type="date" value={f.data_conclusao || ''} onChange={(e) => set('data_conclusao', e.target.value)} /></Field>}
         {txt('observacoes', 'Observações')}
         <div className="flex justify-end gap-2 sm:col-span-2">
           <button type="button" className={btnG} onClick={onClose}>Cancelar</button>

@@ -55,9 +55,9 @@ export function ConfirmHost() {
   const perigo = !!o.perigo
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-navy/50 p-4 backdrop-blur-[2px]" onMouseDown={(e) => e.target === e.currentTarget && fechar(false)}>
-      <div data-confirm role="alertdialog" aria-modal="true" aria-labelledby="cf-t" aria-describedby="cf-m" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-violet-100">
+      <div data-confirm role="alertdialog" aria-modal="true" aria-labelledby="cf-t" aria-describedby="cf-m" className="w-full max-w-md rounded-md bg-white p-6 shadow-2xl ring-1 ring-violet-100">
         <div className="flex items-start gap-4">
-          <div className={'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl ' + (perigo ? 'bg-red-50 text-red-600' : 'bg-violet-50 text-violet-700')} aria-hidden="true">{perigo ? '🗑️' : '❔'}</div>
+          <div className={'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl ' + (perigo ? 'bg-red-50 text-red-600' : 'bg-violet-50 text-violet-700')} aria-hidden="true">{perigo ? '' : ''}</div>
           <div className="min-w-0">
             <h3 id="cf-t" className="text-lg font-bold text-navy">{o.titulo || 'Confirmar ação'}</h3>
             <div id="cf-m" className="mt-1 text-sm leading-relaxed text-slate-600">{o.mensagem}</div>

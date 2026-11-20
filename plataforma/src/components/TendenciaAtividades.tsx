@@ -34,7 +34,7 @@ export default function TendenciaAtividades({ rows, campo }: { rows: Micro[]; ca
     <Card>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-bold text-navy">📈 Tendência das atividades — o que o time mais preenche</h3>
+          <h3 className="font-bold text-navy">Tendência das atividades — o que o time mais preenche</h3>
           <p className="text-xs text-slate-500">Considera só as <b>Atividades</b> do período filtrado acima ({ats.length} registro(s)). Tudo é calculado direto dos registros.</p>
         </div>
       </div>

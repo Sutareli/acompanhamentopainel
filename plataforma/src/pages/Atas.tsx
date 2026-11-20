@@ -110,7 +110,7 @@ export default function Atas() {
     <div className="mx-auto max-w-5xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-navy">📝 Atas importantes</h1>
+          <h1 className="text-xl font-semibold text-ink">Atas importantes</h1>
           <p className="text-sm text-slate-500">Guarde as atas das reuniões que você fez: cole o texto e/ou anexe o arquivo original. Clique numa ata para ler completa. Só você vê as suas atas.</p>
         </div>
         <button className={btnP} onClick={() => { setOk(''); setForm({ v: { ...VAZIO, data_reuniao: todayStr() } }) }}>+ Nova ata</button>
@@ -132,12 +132,12 @@ export default function Atas() {
         <ul className="space-y-3">
           {lista.map((a) => (
             <li key={a.id}>
-              <button type="button" onClick={() => abrir(a)} className="block w-full rounded-2xl border border-violet-100 bg-white p-4 text-left shadow-sm transition hover:border-violet-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-turq">
+              <button type="button" onClick={() => abrir(a)} className="block w-full rounded-md border border-violet-100 bg-white p-4 text-left transition hover:border-violet-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-turq">
                 <div className="flex flex-wrap items-start gap-3">
-                  <div className="min-w-[100px] rounded-xl bg-violet-50 px-3 py-2 text-center"><div className="text-xs font-semibold uppercase text-slate-500">Reunião</div><div className="font-bold text-navy">{fmtDate(a.data_reuniao)}</div></div>
+                  <div className="min-w-[100px] rounded-xl bg-violet-50 px-3 py-2 text-center"><div className="text-xs font-semibold text-slate-500">Reunião</div><div className="font-bold text-navy">{fmtDate(a.data_reuniao)}</div></div>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-bold text-navy">{a.nome}</h3>
-                    {a.arquivo_path && <span className="mt-1 inline-block rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800">📎 {a.arquivo_nome}</span>}
+                    {a.arquivo_path && <span className="mt-1 inline-block rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800">{a.arquivo_nome}</span>}
                     {a.resumo && <p className="mt-1 line-clamp-2 whitespace-pre-line text-sm text-slate-700">{a.resumo}</p>}
                     <p className="mt-1 text-xs text-slate-400">Guardada em {fmtDateTime(a.criado_em)}{Date.parse(a.atualizado_em) - Date.parse(a.criado_em) > 2000 ? ` · editada ${fmtDateTime(a.atualizado_em)}` : ''}</p>
                   </div>
@@ -158,8 +158,8 @@ export default function Atas() {
           {lendo.resumo && <div className="mb-3 rounded-xl border border-violet-200 bg-violet-50/60 p-3 text-sm"><b className="text-navy">Resumo:</b> <span className="whitespace-pre-line">{lendo.resumo}</span></div>}
           {lendo.arquivo_path && (
             <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-              <span>📎 {lendo.arquivo_nome} <small className="text-slate-500">({fmtBytes(lendo.arquivo_tamanho)})</small></span>
-              <button className={btnP + ' ' + btnSm + ' ml-auto'} onClick={() => baixar(lendo)}>⬇ Baixar arquivo original</button>
+              <span>{lendo.arquivo_nome} <small className="text-slate-500">({fmtBytes(lendo.arquivo_tamanho)})</small></span>
+              <button className={btnP + ' ' + btnSm + ' ml-auto'} onClick={() => baixar(lendo)}>Baixar arquivo original</button>
             </div>
           )}
           {lendo.texto === undefined ? <p className="py-8 text-center text-slate-500">Carregando a ata…</p>
@@ -230,10 +230,10 @@ function AtaForm({ uid, init, onClose, onSaved }: { uid: string; init: { id?: st
         <Field label="Data da reunião *"><input type="date" className={inp} value={v.data_reuniao} max="2100-01-01" onChange={(e) => setV({ ...v, data_reuniao: e.target.value })} /></Field>
         <Field label="Breve resumo" className="sm:col-span-3"><textarea className={inp + ' min-h-[64px]'} maxLength={1000} value={v.resumo} onChange={(e) => setV({ ...v, resumo: e.target.value })} placeholder="Em 1 ou 2 frases: o que foi decidido…" /></Field>
         <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-3 sm:col-span-3">
-          <span className="mb-1 block text-sm font-medium text-slate-600">📎 Arquivo original da ata (Word ou PDF, até 10 MB) <span className="font-normal text-slate-500">— mantém tabelas, imagens e formatação</span></span>
+          <span className="mb-1 block text-sm font-medium text-slate-600">Arquivo original da ata (Word ou PDF, até 10 MB) <span className="font-normal text-slate-500">— mantém tabelas, imagens e formatação</span></span>
           {atual?.arquivo_path && !arq && !tirar && (
             <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 text-sm">
-              <span>📎 {atual.arquivo_nome} <small className="text-slate-500">({fmtBytes(atual.arquivo_tamanho)})</small></span>
+              <span>{atual.arquivo_nome} <small className="text-slate-500">({fmtBytes(atual.arquivo_tamanho)})</small></span>
               <button type="button" className={btnG + ' ' + btnSm + ' ml-auto !text-red-600'} onClick={() => setTirar(true)}>Remover arquivo</button>
             </div>
           )}

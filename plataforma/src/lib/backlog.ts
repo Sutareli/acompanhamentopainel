@@ -60,13 +60,13 @@ export const FASES = ['ideia', 'priorizada', 'especificacao', 'chamado_aberto', 
 export type Fase = (typeof FASES)[number]
 export interface FaseInfo { k: Fase; label: string; curto: string; icon: string; cor: string; campo: 'data_ideia' | 'data_priorizacao' | 'data_especificacao' | 'data_abertura' | 'data_inicio' | 'data_homologacao' | 'data_conclusao'; dataLabel: string; ajuda: string }
 export const FASE_INFO: FaseInfo[] = [
-  { k: 'ideia', label: 'Ideia', curto: 'Ideia', icon: '💡', cor: '#64748b', campo: 'data_ideia', dataLabel: 'Ideia registrada em', ajuda: 'Ideia pensada e alocada no painel, aguardando a reunião semanal.' },
-  { k: 'priorizada', label: 'Priorização', curto: 'Priorização', icon: '🗳️', cor: '#7c3aed', campo: 'data_priorizacao', dataLabel: 'Priorizada em reunião em', ajuda: 'Debatida na reunião semanal: criticidade e prioridade definidas.' },
-  { k: 'especificacao', label: 'Especificação', curto: 'Especif.', icon: '📝', cor: '#db2777', campo: 'data_especificacao', dataLabel: 'Especificação concluída em', ajuda: 'Escopo e regras da melhoria sendo especificados para o chamado.' },
-  { k: 'chamado_aberto', label: 'Chamado aberto', curto: 'Chamado', icon: '🎫', cor: '#0891b2', campo: 'data_abertura', dataLabel: 'Chamado aberto em', ajuda: 'Chamado aberto conforme a criticidade, aguardando o desenvolvimento.' },
-  { k: 'em_desenvolvimento', label: 'Desenvolvimento', curto: 'Desenv.', icon: '🛠️', cor: '#2563eb', campo: 'data_inicio', dataLabel: 'Desenvolvimento iniciado em', ajuda: 'Em desenvolvimento: acompanhar prazo, andamento e etapas.' },
-  { k: 'homologacao', label: 'Homologação', curto: 'Homolog.', icon: '🧪', cor: '#d97706', campo: 'data_homologacao', dataLabel: 'Entrou em homologação em', ajuda: 'Desenvolvimento entregue: validação (homologação) antes de ir para produção.' },
-  { k: 'producao', label: 'Produção', curto: 'Produção', icon: '✅', cor: '#16a34a', campo: 'data_conclusao', dataLabel: 'Entrou em produção em', ajuda: 'Melhoria em produção (concluída).' },
+  { k: 'ideia', label: 'Ideia', curto: 'Ideia', icon: '', cor: '#8c92a8', campo: 'data_ideia', dataLabel: 'Ideia registrada em', ajuda: 'Ideia pensada e alocada no painel, aguardando a reunião semanal.' },
+  { k: 'priorizada', label: 'Priorização', curto: 'Priorização', icon: '', cor: '#757ca3', campo: 'data_priorizacao', dataLabel: 'Priorizada em reunião em', ajuda: 'Debatida na reunião semanal: criticidade e prioridade definidas.' },
+  { k: 'especificacao', label: 'Especificação', curto: 'Especif.', icon: '', cor: '#5f66a2', campo: 'data_especificacao', dataLabel: 'Especificação concluída em', ajuda: 'Escopo e regras da melhoria sendo especificados para o chamado.' },
+  { k: 'chamado_aberto', label: 'Chamado aberto', curto: 'Chamado', icon: '', cor: '#4d51a8', campo: 'data_abertura', dataLabel: 'Chamado aberto em', ajuda: 'Chamado aberto conforme a criticidade, aguardando o desenvolvimento.' },
+  { k: 'em_desenvolvimento', label: 'Desenvolvimento', curto: 'Desenv.', icon: '', cor: '#3d3da0', campo: 'data_inicio', dataLabel: 'Desenvolvimento iniciado em', ajuda: 'Em desenvolvimento: acompanhar prazo, andamento e etapas.' },
+  { k: 'homologacao', label: 'Homologação', curto: 'Homolog.', icon: '', cor: '#2f2c8c', campo: 'data_homologacao', dataLabel: 'Entrou em homologação em', ajuda: 'Desenvolvimento entregue: validação (homologação) antes de ir para produção.' },
+  { k: 'producao', label: 'Produção', curto: 'Produção', icon: '', cor: '#2f7a4d', campo: 'data_conclusao', dataLabel: 'Entrou em produção em', ajuda: 'Melhoria em produção (concluída).' },
 ]
 export const faseInfo = (k?: string | null) => FASE_INFO.find((f) => f.k === k) || FASE_INFO[0]
 export const faseIdx = (k?: string | null) => Math.max(0, FASES.indexOf((k || 'ideia') as Fase))

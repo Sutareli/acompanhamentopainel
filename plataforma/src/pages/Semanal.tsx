@@ -66,7 +66,7 @@ export default function Semanal() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="min-w-[220px] flex-1"><h1 className="text-2xl font-bold text-navy">Semanal Italo</h1>
+        <div className="min-w-[220px] flex-1"><h1 className="text-xl font-semibold text-ink">Semanal Italo</h1>
           <p className="text-sm text-slate-500">Acompanhamento semanal com o diretor: Básico, Implantações, Melhorias e customizações, Atualização das atividades e Próximos passos. Só você vê.</p></div>
         <button className={btnP} onClick={() => criar()}>+ Nova semanal</button>
         {lista[0] && <button className={btnG} onClick={() => criar(lista[0])} title="Copia os textos da última semanal (sem marcações e sem imagens)">Duplicar a última</button>}
@@ -77,7 +77,7 @@ export default function Semanal() {
           {lista.map((s) => { const r = resumoBlocos(lerBlocos(s.blocos)); return (
             <Card key={s.id} className="flex flex-col gap-2">
               <button className="text-left" onClick={() => setAberta(s.id)}>
-                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">{fmtDate(s.data_reuniao)}</div>
+                <div className="text-xs font-semibold text-violet-600">{fmtDate(s.data_reuniao)}</div>
                 <div className="text-lg font-bold text-navy">{s.titulo}</div>
                 <div className="mt-1 text-xs text-slate-500">{r.vistos}/5 blocos vistos · {r.textos} texto(s) · {r.imagens} imagem(ns) · {r.pedidos} pedido(s){r.pedidosAbertos ? ` (${r.pedidosAbertos} em aberto)` : ''}</div>
               </button>
@@ -186,9 +186,9 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
           <span className="text-[13px] font-semibold leading-tight">Consolidado de pedidos</span>
         </button>
       </div>
-      <section className="flex min-h-[60vh] flex-col rounded-3xl border border-violet-100 bg-white shadow-sm">
+      <section className="flex min-h-[60vh] flex-col rounded-lg border border-violet-100 bg-white">
         <div className="rounded-t-3xl bg-navy px-5 py-5 text-white sm:px-9">
-          <div className="text-xs font-semibold uppercase tracking-widest opacity-75">{consol ? 'Fechamento da reunião' : `Tópico ${cur + 1} de ${blocos.length} · ${vistos}/${blocos.length} vistos`}</div>
+          <div className="text-xs font-semibold opacity-75">{consol ? 'Fechamento da reunião' : `Tópico ${cur + 1} de ${blocos.length} · ${vistos}/${blocos.length} vistos`}</div>
           <h2 className="mt-1 text-3xl font-bold leading-tight sm:text-4xl">{consol ? 'Consolidado de pedidos' : b.n}</h2>
         </div>
         {consol ? (
@@ -201,7 +201,7 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
               </div>
               {blocos.map((x, bi) => x.pedidos.length > 0 && (
                 <div key={bi}>
-                  <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-violet-700">{x.n} <span className="font-normal text-slate-400">({x.pedidos.length})</span></h3>
+                  <h3 className="mb-2 text-sm font-bold text-violet-700">{x.n} <span className="font-normal text-slate-400">({x.pedidos.length})</span></h3>
                   <ul className="space-y-2">
                     {x.pedidos.map((p, pi) => (
                       <li key={pi} className="flex items-start gap-3.5 text-lg leading-snug sm:text-xl">
@@ -240,8 +240,8 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
               <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = '' }} />
               <span>ou cole um print com Ctrl+V</span>
             </div>)}
-          <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:p-5">
-            <h3 className="text-sm font-bold uppercase tracking-wide text-amber-800">Pedidos desta etapa <span className="font-normal text-amber-700/70">({b.pedidos.length})</span></h3>
+          <div className="mt-8 rounded-md border border-amber-200 bg-amber-50/60 p-4 sm:p-5">
+            <h3 className="text-sm font-bold text-amber-800">Pedidos desta etapa <span className="font-normal text-amber-700/70">({b.pedidos.length})</span></h3>
             {b.pedidos.length === 0 && <p className="mt-2 text-sm text-slate-500">Nenhum pedido nesta etapa.</p>}
             <ul className="mt-2 space-y-2">
               {b.pedidos.map((p, pi) => (

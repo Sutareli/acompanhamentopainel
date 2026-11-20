@@ -67,7 +67,7 @@ export default function Ideias() {
   const list = ideas.filter((i) => !filter || i.status === filter)
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-navy">Banco de ideias</h1>
+      <h1 className="text-xl font-semibold text-ink">Banco de ideias</h1>
       {err && <Msg kind="erro">{err}</Msg>}
       {ok && <Msg kind="ok">{ok}</Msg>}
       <Card>

@@ -61,7 +61,7 @@ export default function HistoricoAtividades({ userId }: { userId: string }) {
             <button className={btnG} onClick={() => quick(90)}>90 dias</button>
           </div>
           <label className="min-w-[180px] flex-1 text-sm">Buscar<input className={inp} placeholder="Texto da atividade ou do bloco" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-          <button className={btnG} onClick={exportCsv} disabled={!filtered.length}>⬇ Exportar (CSV)</button>
+          <button className={btnG} onClick={exportCsv} disabled={!filtered.length}>Exportar (CSV)</button>
         </div>
         <p className="mt-2 text-sm text-slate-500">{filtered.length} atividade(s) concluída(s) em {days.length} dia(s) entre {fmtDate(de)} e {fmtDate(ate)}.</p>
       </Card>

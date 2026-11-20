@@ -55,9 +55,9 @@ export default function Microentregas({ presetResp, presetTipo }: { presetResp?:
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-navy">Projetos e atividades</h1>
+        <h1 className="text-xl font-semibold text-ink">Projetos e atividades</h1>
         <div className="flex gap-2">
-          <button className={btnG} onClick={exportCSV} disabled={!list.length}>⬇ Exportar CSV ({list.length})</button>
+          <button className={btnG} onClick={exportCSV} disabled={!list.length}>Exportar CSV ({list.length})</button>
           <button className={btnS} onClick={() => setForm({ v: { ...EMPTY, tipo_projeto: fl.tipo || 'micro', responsavel_id: profile!.id } })}>+ Novo (projeto ou atividade)</button>
         </div>
       </div>
@@ -67,13 +67,13 @@ export default function Microentregas({ presetResp, presetTipo }: { presetResp?:
       <Seg value={fl.tipo} onChange={(t) => setFl({ ...fl, tipo: t })} contagem={{ '': rows.length, macro: rows.filter((r) => r.tipo_projeto === 'macro').length, micro: rows.filter((r) => r.tipo_projeto === 'micro').length }} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-7">
-        <Kpi icon="📦" label="Total" value={base.length} />
-        <Kpi icon="⚪" label="A iniciar" value={cnt('a_iniciar')} color="#64748b" />
-        <Kpi icon="🔵" label="Em andamento" value={cnt('em_andamento')} color="#2563eb" />
-        <Kpi icon="✅" label="Concluídas" value={cnt('concluido')} color="#16a34a" />
-        <Kpi icon="☑️" label="Concl. c/ cancelamentos" value={cnt('concluido_parcial')} color="#0d9488" />
-        <Kpi icon="🚫" label="Canceladas" value={cnt('cancelado')} color="#f87171" />
-        <Kpi icon="⚠️" label="Atrasadas" value={base.filter((r) => r.atrasada).length} color="#dc2626" />
+        <Kpi icon="" label="Total" value={base.length} />
+        <Kpi icon="" label="A iniciar" value={cnt('a_iniciar')} color="#64748b" />
+        <Kpi icon="" label="Em andamento" value={cnt('em_andamento')} color="#2563eb" />
+        <Kpi icon="" label="Concluídas" value={cnt('concluido')} color="#16a34a" />
+        <Kpi icon="" label="Concl. c/ cancelamentos" value={cnt('concluido_parcial')} color="#0d9488" />
+        <Kpi icon="" label="Canceladas" value={cnt('cancelado')} color="#f87171" />
+        <Kpi icon="" label="Atrasadas" value={base.filter((r) => r.atrasada).length} color="#dc2626" />
       </div>
 
       <Card>
@@ -93,7 +93,7 @@ export default function Microentregas({ presetResp, presetTipo }: { presetResp?:
         {list.length === 0 ? <div className="p-5"><Empty>{rows.length ? 'Nenhum item corresponde aos filtros.' : 'Nada cadastrado ainda. Use “Novo”.'}</Empty></div> : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1000px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <thead className="bg-slate-50 text-xs text-slate-500">
                 <tr>{['Tipo', 'Criticidade', 'Responsável', 'Demanda', 'Data Target', 'Status', 'Progresso', 'Última atualização', 'Ações'].map((h) => <th key={h} className="px-3 py-2.5">{h}</th>)}</tr>
               </thead>
               <tbody>
@@ -255,7 +255,7 @@ function Detail({ m, ativos, onClose, onChanged }: { m: Micro; ativos: any[]; on
 export function Seg({ value, onChange, contagem }: { value: '' | TipoProjeto; onChange: (t: '' | TipoProjeto) => void; contagem?: Record<string, number> }) {
   const opts: ['' | TipoProjeto, string][] = [['', 'Todos'], ['macro', 'Projetos'], ['micro', 'Atividades']]
   return (
-    <div className="inline-flex flex-wrap overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" role="tablist" aria-label="Tipo de projeto">
+    <div className="inline-flex flex-wrap overflow-hidden rounded-xl border border-slate-200 bg-white" role="tablist" aria-label="Tipo de projeto">
       {opts.map(([k, l]) => (
         <button key={k || 'todos'} role="tab" aria-selected={value === k} onClick={() => onChange(k)}
           className={'px-4 py-2 text-sm font-semibold transition ' + (value === k ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-50')}>

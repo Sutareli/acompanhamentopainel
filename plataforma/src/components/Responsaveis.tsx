@@ -7,7 +7,7 @@ import { download, fmtDate, todayStr, toCSV } from '../lib/rules'
 const COR_EMPRESA: Record<string, string> = { Almawave: '#5b21b6', Almaviva: '#0e7490', Outros: '#d97706' }
 export const corEmpresa = (n: string) => COR_EMPRESA[n] || '#64748b'
 const COR_STATUS: Record<string, string> = { 'A iniciar': '#64748b', 'Em andamento': '#2563eb', Suspenso: '#d97706', Concluído: '#16a34a', Cancelado: '#94a3b8', Improcedente: '#cbd5e1' }
-const corStatus = (n: string) => COR_STATUS[n] || '#8b3fff'
+const corStatus = (n: string) => COR_STATUS[n] || '#4f46b5'
 const lc = (s: string | null) => (s ?? '').trim().toLowerCase()
 
 /** Barras horizontais empilhadas e clicáveis (uma linha por grupo, segmentos coloridos por série). */
@@ -33,7 +33,7 @@ const Legenda = ({ itens, cor }: { itens: string[]; cor: (s: string) => string }
   <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">{itens.map((i) => <span key={i} className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: cor(i) }} />{i}</span>)}</div>
 )
 function Kpi({ t, v, sub, cor }: { t: string; v: string | number; sub?: string; cor?: string }) {
-  return <div className="rounded-2xl border border-violet-100 bg-white p-3 shadow-sm"><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t}</div><div className="text-2xl font-extrabold" style={{ color: cor || '#2e1a6e' }}>{v}</div>{sub && <div className="text-xs text-slate-500">{sub}</div>}</div>
+  return <div className="rounded-md border border-violet-100 bg-white p-3"><div className="text-[11px] font-semibold text-slate-500">{t}</div><div className="text-2xl font-extrabold" style={{ color: cor || '#26294f' }}>{v}</div>{sub && <div className="text-xs text-slate-500">{sub}</div>}</div>
 }
 
 /**
@@ -53,14 +53,14 @@ export default function Responsaveis({ base, itens, filtroTxt }: { base: Chamado
           <h3 className="font-bold text-navy">Quem é responsável pelos chamados</h3>
           <p className="text-xs text-slate-500">Acompanha os filtros acima ({filtroTxt}). Abertos = A iniciar, Em andamento e Suspenso.</p>
         </div>
-        <div className="flex items-center gap-3"><span className="rounded-full bg-red-50 px-3 py-1 text-sm font-bold text-red-600">{totAb} abertos</span><button className={btnG + ' ' + btnSm} onClick={() => setAberta('')}>🔎 Ver detalhamento →</button></div>
+        <div className="flex items-center gap-3"><span className="rounded-full bg-red-50 px-3 py-1 text-sm font-bold text-red-600">{totAb} abertos</span><button className={btnG + ' ' + btnSm} onClick={() => setAberta('')}>Ver detalhamento →</button></div>
       </div>
       {semDado ? (
         <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{base.length > 0 && !('empresa_responsavel' in base[0]) ? 'O banco ainda não tem as colunas de responsável: execute a migração supabase/007_responsaveis_chamados.sql no SQL Editor e depois reimporte a base (Importar bases).' : 'A base importada não tem dados de responsável. Reimporte a base (Importar bases) com o CSV que contém as colunas RESPONSÁVEL, EMPRESA RESPONSÁVEL (ou “Empresa Responsável”) e RESPONSÁVEL ROCCO. Se já fez isso, execute antes a migração 007.'}</p>
       ) : emp.length === 0 ? <div className="mt-3"><Empty>Nenhum chamado neste filtro.</Empty></div> : (
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
           {emp.map((g) => (
-            <button key={g.nome} onClick={() => setAberta(g.nome)} className="rounded-2xl border border-slate-200 p-4 text-left transition hover:border-violet-300 hover:shadow-md" style={{ borderTop: `4px solid ${corEmpresa(g.nome)}` }} title="Clique para ver o detalhamento">
+            <button key={g.nome} onClick={() => setAberta(g.nome)} className="rounded-md border border-slate-200 p-4 text-left transition hover:border-violet-300 hover:shadow-md" style={{ borderTop: `4px solid ${corEmpresa(g.nome)}` }} title="Clique para ver o detalhamento">
               <div className="flex items-baseline justify-between"><b style={{ color: corEmpresa(g.nome) }}>{g.nome}</b><span className="text-xs text-slate-500">{g.total} chamados</span></div>
               <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full" style={{ width: (g.total / max) * 100 + '%', background: corEmpresa(g.nome) }} /></div>
               <div className="mt-3 flex items-end justify-between">
@@ -106,7 +106,7 @@ function Detalhe({ itens, filtroTxt, empresa0, onClose }: { itens: Chamado[]; fi
     return [...m.entries()].map(([nome, seg]) => ({ nome, seg })).sort((a, b) => Object.values(b.seg).reduce((x, y) => x + y, 0) - Object.values(a.seg).reduce((x, y) => x + y, 0))
   }, [ref, cat, sub]) // eslint-disable-line react-hooks/exhaustive-deps
   const statusSeries = STAT.filter((s) => roccoRows.some((r) => r.seg[s]))
-  const fases = useMemo(() => agrupar(lista, (c) => (c.fase || '').trim() || '(sem fase)').map((g) => ({ label: g.nome, value: g.total, color: '#8b3fff' })), [lista])
+  const fases = useMemo(() => agrupar(lista, (c) => (c.fase || '').trim() || '(sem fase)').map((g) => ({ label: g.nome, value: g.total, color: '#4f46b5' })), [lista])
   const idade = useMemo(() => {
     const ab = lista.filter(aberto); const b = [['Até 7 dias', 0, 7], ['8 a 30 dias', 8, 30], ['31 a 90 dias', 31, 90], ['Mais de 90 dias', 91, 1e9]] as [string, number, number][]
     return b.map(([label, lo, hi]) => ({ label, value: ab.filter((c) => { const d = diasEmAberto(c, hoje); return d >= lo && d <= hi }).length, color: lo > 30 ? '#dc2626' : lo > 7 ? '#d97706' : '#16a34a' }))
@@ -130,9 +130,9 @@ function Detalhe({ itens, filtroTxt, empresa0, onClose }: { itens: Chamado[]; fi
           </div>
           <span className="text-xs text-slate-500">Filtro do Pareto: {filtroTxt}</span>
           <div className="ml-auto flex flex-wrap items-center gap-2" role="group" aria-label="Empresa">
-            <span className="text-xs font-bold uppercase text-slate-500">Empresa</span>
-            <button className={'rounded-full border px-3 py-1 text-xs font-semibold ' + (!empresa ? 'border-navy bg-navy text-white' : 'border-violet-300 text-navy hover:bg-violet-50')} onClick={() => setEmpresa('')}>Todas</button>
-            {empresas.map((n) => <button key={n} className={'rounded-full border px-3 py-1 text-xs font-semibold ' + (empresa === n ? 'text-white' : 'bg-white hover:bg-violet-50')} style={{ borderColor: corEmpresa(n), background: empresa === n ? corEmpresa(n) : undefined, color: empresa === n ? undefined : corEmpresa(n) }} onClick={() => setEmpresa(empresa === n ? '' : n)}>{n}</button>)}
+            <span className="text-xs font-bold text-slate-500">Empresa</span>
+            <button className={'rounded-md border px-3 py-1 text-xs font-medium ' + (!empresa ? 'border-navy bg-navy text-white' : 'border-violet-300 text-navy hover:bg-violet-50')} onClick={() => setEmpresa('')}>Todas</button>
+            {empresas.map((n) => <button key={n} className={'rounded-md border px-3 py-1 text-xs font-medium ' + (empresa === n ? 'text-white' : 'bg-white hover:bg-violet-50')} style={{ borderColor: corEmpresa(n), background: empresa === n ? corEmpresa(n) : undefined, color: empresa === n ? undefined : corEmpresa(n) }} onClick={() => setEmpresa(empresa === n ? '' : n)}>{n}</button>)}
           </div>
         </div>
 
@@ -144,32 +144,32 @@ function Detalhe({ itens, filtroTxt, empresa0, onClose }: { itens: Chamado[]; fi
             <Kpi t="Idade média dos abertos" v={idadeMed === null ? '—' : idadeMed + ' d'} />
             <Kpi t="Mais antigo aberto" v={abL.length ? Math.max(...abL.map((c) => diasEmAberto(c, hoje))) + ' d' : '—'} />
           </div>
-          {temFiltro && <div className="flex flex-wrap items-center gap-2 text-xs"><span className="font-bold uppercase text-slate-500">Filtros do detalhamento:</span>{pessoa && <Chip color="#5b21b6">{pessoa}</Chip>}{cat && <Chip color="#0e7490">{cat}</Chip>}{sub && <Chip color="#d97706">{sub}</Chip>}<button className="font-semibold text-violet-700 underline" onClick={limpa}>limpar</button></div>}
+          {temFiltro && <div className="flex flex-wrap items-center gap-2 text-xs"><span className="font-bold text-slate-500">Filtros do detalhamento:</span>{pessoa && <Chip color="#5b21b6">{pessoa}</Chip>}{cat && <Chip color="#0e7490">{cat}</Chip>}{sub && <Chip color="#d97706">{sub}</Chip>}<button className="font-semibold text-violet-700 underline" onClick={limpa}>limpar</button></div>}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <section className="rounded-2xl border border-slate-200 p-4" aria-label="Categoria por empresa">
+            <section className="rounded-md border border-slate-200 p-4" aria-label="Categoria por empresa">
               <h4 className="font-bold text-navy">Categoria × empresa responsável</h4>
               <p className="mb-2 text-xs text-slate-500">Clique em uma categoria para cruzar os demais gráficos.</p>
               <Empilhadas linhas={catRows} series={empresas} cor={corEmpresa} sel={cat} onSel={(n) => { setCat(n); setSub(null) }} />
               <Legenda itens={empresas} cor={corEmpresa} />
             </section>
-            <section className="rounded-2xl border border-slate-200 p-4" aria-label="Responsável ROCCO por status">
+            <section className="rounded-md border border-slate-200 p-4" aria-label="Responsável ROCCO por status">
               <h4 className="font-bold text-navy">Responsável ROCCO × status</h4>
               <p className="mb-2 text-xs text-slate-500">Quem está com cada chamado. Clique em uma pessoa para filtrar.</p>
               <Empilhadas linhas={roccoRows} series={statusSeries} cor={corStatus} sel={pessoa} onSel={setPessoa} max={10} />
               <Legenda itens={statusSeries} cor={corStatus} />
             </section>
-            <section className="rounded-2xl border border-slate-200 p-4 lg:col-span-2" aria-label="Pareto de subcategoria">
+            <section className="rounded-md border border-slate-200 p-4 lg:col-span-2" aria-label="Pareto de subcategoria">
               <h4 className="font-bold text-navy">Subcategoria (Pareto)</h4>
               <p className="mb-1 text-xs text-slate-500">Clique em uma barra para listar os chamados dessa subcategoria.{subs.vazios > 0 && ` ${subs.vazios} chamado(s) sem subcategoria não entram.`}</p>
               <ParetoChart barras={subs.barras} titulo="Pareto por subcategoria (detalhamento)" selecionado={sub} onSelect={setSub} />
             </section>
-            <section className="rounded-2xl border border-slate-200 p-4" aria-label="Idade dos abertos">
+            <section className="rounded-md border border-slate-200 p-4" aria-label="Idade dos abertos">
               <h4 className="font-bold text-navy">Idade dos chamados abertos</h4>
               <p className="mb-2 text-xs text-slate-500">Dias desde a abertura até hoje.</p>
               <HBars rows={idade} empty="Nenhum chamado aberto neste recorte." />
             </section>
-            <section className="rounded-2xl border border-slate-200 p-4" aria-label="Fase">
+            <section className="rounded-md border border-slate-200 p-4" aria-label="Fase">
               <h4 className="font-bold text-navy">Fase do chamado</h4>
               <p className="mb-2 text-xs text-slate-500">Em que etapa do fluxo os chamados estão.</p>
               <HBars rows={fases.slice(0, 8)} empty="Sem fase informada." />
@@ -178,11 +178,11 @@ function Detalhe({ itens, filtroTxt, empresa0, onClose }: { itens: Chamado[]; fi
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h4 className="font-bold text-navy">Chamados <span className="text-sm font-normal text-slate-500">({lista.length})</span></h4>
-            <button className={btnG + ' ' + btnSm} onClick={exporta} disabled={!lista.length}>⬇ Exportar (CSV)</button>
+            <button className={btnG + ' ' + btnSm} onClick={exporta} disabled={!lista.length}>Exportar (CSV)</button>
           </div>
           <div className="max-h-[340px] overflow-auto rounded-xl border border-slate-200">
             <table className="w-full min-w-[980px] text-left text-sm [&_th]:pr-2">
-              <thead className="sticky top-0 bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">ID</th><th>Aberto em</th><th>Dias</th><th>Item / sintoma</th><th>Cliente</th><th>Categoria</th><th>Status</th><th>Fase</th><th>Empresa</th><th>Resp. ROCCO</th></tr></thead>
+              <thead className="sticky top-0 bg-slate-50 text-xs text-slate-500"><tr><th className="px-3 py-2">ID</th><th>Aberto em</th><th>Dias</th><th>Item / sintoma</th><th>Cliente</th><th>Categoria</th><th>Status</th><th>Fase</th><th>Empresa</th><th>Resp. ROCCO</th></tr></thead>
               <tbody>
                 {lista.slice(0, 300).map((c) => (
                   <tr key={c.id} className="border-t border-slate-100 align-top">

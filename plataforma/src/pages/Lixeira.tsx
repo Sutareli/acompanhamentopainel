@@ -70,7 +70,7 @@ export default function Lixeira() {
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-navy">🗑️ Lixeira</h1>
+        <h1 className="text-xl font-semibold text-ink">Lixeira</h1>
         <p className="text-sm text-slate-500">O que você exclui fica aqui por <b>48 horas</b> e pode ser restaurado. Depois disso é removido definitivamente. {manager ? 'Como Analista Sr, você vê as exclusões de todos.' : 'Você vê apenas o que você excluiu.'}</p>
       </div>
       {err && <Msg kind="erro">{err}</Msg>}

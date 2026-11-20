@@ -140,8 +140,8 @@ export default function ArquivarAtas({ onClose, onDone }: { onClose: () => void;
         {etapa === 'backup' && zip && (<>
           <Msg kind="ok">Backup gerado: <b>{zip.nome}</b> · {zip.atas} ata(s) · {zip.arquivos} anexo(s) · {fmtBytes(zip.blob.size)}. O download começou automaticamente.</Msg>
           {zip.falhas.length > 0 && <Msg kind="aviso">{zip.falhas.length} ata(s) ficaram fora do arquivo (anexo não baixou) e <b>não serão excluídas</b>: {zip.falhas.join(' · ')}</Msg>}
-          <div className="flex flex-wrap items-center gap-2"><button className={btnG} onClick={() => baixar(zip.blob, zip.nome)}>⬇ Baixar de novo</button><span className="text-xs text-slate-500">Abra o arquivo e confira se está tudo ali antes de excluir.</span></div>
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
+          <div className="flex flex-wrap items-center gap-2"><button className={btnG} onClick={() => baixar(zip.blob, zip.nome)}>Baixar de novo</button><span className="text-xs text-slate-500">Abra o arquivo e confira se está tudo ali antes de excluir.</span></div>
+          <div className="rounded-md border border-red-200 bg-red-50 p-3">
             <p className="font-bold text-red-800">Excluir as {zip.atas} ata(s) do banco</p>
             <p className="mt-1 text-xs text-red-800">Não vão para a Lixeira — a cópia é o arquivo que você baixou. Não dá para desfazer pelo sistema.</p>
             <label className="mt-2 flex items-start gap-2"><input type="checkbox" className="mt-1" checked={guardei} onChange={(e) => setGuardei(e.target.checked)} /><span>Baixei o arquivo, conferi e guardei em local seguro.</span></label>

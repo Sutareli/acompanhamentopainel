@@ -7,7 +7,7 @@ type Dim = 'subcategoria' | 'tipo' | 'categoria'
 const DIMS: [Dim, string][] = [['subcategoria', 'Subcategoria'], ['tipo', 'Tipo'], ['categoria', 'Categoria']]
 const CORES = ['#5b21b6', '#dc2626', '#0f766e', '#d97706', '#2563eb', '#64748b']
 const norm = (s: string | null) => (s ?? '').trim().toLowerCase()
-const chip = (on: boolean) => 'rounded-full border px-3 py-1 text-xs font-semibold transition ' + (on ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')
+const chip = (on: boolean) => 'rounded-md border px-3 py-1 text-xs font-medium transition ' + (on ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')
 
 export default function EvolucaoSubcategorias({ rows, meses }: { rows: Chamado[]; meses: string[] }) {
   const [dim, setDim] = useState<Dim>('subcategoria')
@@ -36,7 +36,7 @@ export default function EvolucaoSubcategorias({ rows, meses }: { rows: Chamado[]
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="font-bold text-navy">📈 Evolução mês a mês — principais {DIMS.find((d) => d[0] === dim)![1].toLowerCase()}s</h3>
+          <h3 className="font-bold text-navy">Evolução mês a mês — principais {DIMS.find((d) => d[0] === dim)![1].toLowerCase()}s</h3>
           <p className="text-xs text-slate-500">Chamados por mês nas {topN} que mais aparecem no período mostrado. Linha que sobe todo mês = problema recorrente; um pico isolado = ocorrência pontual.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Agrupar por">

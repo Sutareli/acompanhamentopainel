@@ -59,7 +59,7 @@ export default function Seguranca() {
     <div className="mx-auto max-w-5xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-navy">🛡️ Segurança</h1>
+          <h1 className="text-xl font-semibold text-ink">Segurança</h1>
           <p className="text-sm text-slate-500">Agente semanal: verifica o banco, corrige sozinho o que é seguro corrigir e lista o que precisa da sua decisão. Visível só para o Analista Sr.</p>
         </div>
         <div className="flex gap-2">
@@ -76,10 +76,10 @@ export default function Seguranca() {
         <Card><Empty>Nenhuma verificação registrada ainda. Clique em “Verificar agora” (a verificação semanal automática passa a rodar depois do agendamento descrito no README).</Empty></Card>
       ) : (<>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Card className="!p-4"><div className="text-xs font-semibold uppercase text-slate-500">Última verificação</div><div className="mt-1 text-lg font-bold text-navy">{fmtDateTime(execs[0].concluida_em || execs[0].iniciada_em)}</div><div className="text-xs text-slate-500">{ORIGEM[execs[0].origem]}</div></Card>
-          <Card className="!p-4"><div className="text-xs font-semibold uppercase text-slate-500">Falhas encontradas</div><div className="mt-1 text-3xl font-bold text-navy">{atual?.total ?? 0}</div><div className="text-xs text-slate-500">na verificação selecionada</div></Card>
-          <Card className="!p-4"><div className="text-xs font-semibold uppercase text-slate-500">Corrigidas sozinhas</div><div className="mt-1 text-3xl font-bold text-green-600">{atual?.corrigidos ?? 0}</div><div className="text-xs text-slate-500">{corrigidosTotal} no histórico</div></Card>
-          <Card className="!p-4"><div className="text-xs font-semibold uppercase text-slate-500">Pendentes (sua decisão)</div><div className={'mt-1 text-3xl font-bold ' + ((atual?.pendentes ?? 0) > 0 ? 'text-red-600' : 'text-green-600')}>{atual?.pendentes ?? 0}</div><div className="text-xs text-slate-500">{(atual?.pendentes ?? 0) > 0 ? 'ver abaixo' : 'nada a fazer'}</div></Card>
+          <Card className="!p-4"><div className="text-xs font-semibold text-slate-500">Última verificação</div><div className="mt-1 text-lg font-bold text-navy">{fmtDateTime(execs[0].concluida_em || execs[0].iniciada_em)}</div><div className="text-xs text-slate-500">{ORIGEM[execs[0].origem]}</div></Card>
+          <Card className="!p-4"><div className="text-xs font-semibold text-slate-500">Falhas encontradas</div><div className="mt-1 text-3xl font-bold text-navy">{atual?.total ?? 0}</div><div className="text-xs text-slate-500">na verificação selecionada</div></Card>
+          <Card className="!p-4"><div className="text-xs font-semibold text-slate-500">Corrigidas sozinhas</div><div className="mt-1 text-3xl font-bold text-green-600">{atual?.corrigidos ?? 0}</div><div className="text-xs text-slate-500">{corrigidosTotal} no histórico</div></Card>
+          <Card className="!p-4"><div className="text-xs font-semibold text-slate-500">Pendentes (sua decisão)</div><div className={'mt-1 text-3xl font-bold ' + ((atual?.pendentes ?? 0) > 0 ? 'text-red-600' : 'text-green-600')}>{atual?.pendentes ?? 0}</div><div className="text-xs text-slate-500">{(atual?.pendentes ?? 0) > 0 ? 'ver abaixo' : 'nada a fazer'}</div></Card>
         </div>
 
 
@@ -88,7 +88,7 @@ export default function Seguranca() {
             <h3 className="font-bold text-navy">Achados {atual && <span className="text-sm font-normal text-slate-500">· {fmtDateTime(atual.iniciada_em)} · {ORIGEM[atual.origem]}</span>}</h3>
             <div className="flex gap-1.5" role="group" aria-label="Filtrar achados">
               {(['todos', 'pendente', 'corrigido'] as const).map((f) => (
-                <button key={f} aria-pressed={filtro === f} onClick={() => setFiltro(f)} className={'rounded-full border px-3 py-1 text-xs font-semibold ' + (filtro === f ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')}>{f === 'todos' ? 'Todos' : f === 'pendente' ? 'Pendentes' : 'Corrigidos'}</button>
+                <button key={f} aria-pressed={filtro === f} onClick={() => setFiltro(f)} className={'rounded-md border px-3 py-1 text-xs font-medium ' + (filtro === f ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')}>{f === 'todos' ? 'Todos' : f === 'pendente' ? 'Pendentes' : 'Corrigidos'}</button>
               ))}
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function Seguranca() {
           <h3 className="mb-2 font-bold text-navy">Histórico de verificações</h3>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-sm">
-              <thead className="text-xs uppercase text-slate-500"><tr><th className="py-2">Quando</th><th>Origem</th><th>Achados</th><th>Corrigidos</th><th>Pendentes</th><th /></tr></thead>
+              <thead className="text-xs text-slate-500"><tr><th className="py-2">Quando</th><th>Origem</th><th>Achados</th><th>Corrigidos</th><th>Pendentes</th><th /></tr></thead>
               <tbody>
                 {execs.map((e) => (
                   <tr key={e.id} className={'border-t border-slate-100 ' + (e.id === sel ? 'bg-violet-50' : '')}>

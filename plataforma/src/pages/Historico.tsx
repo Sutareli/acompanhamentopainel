@@ -30,11 +30,11 @@ export default function Historico() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-navy">Histórico</h1>
+        <h1 className="text-xl font-semibold text-ink">Histórico</h1>
         {tab === 'exec' && <div className="flex flex-wrap gap-2">
           <button className={btnG + (n === 7 ? ' !bg-navy !text-white' : '')} onClick={() => setN(7)}>Semanal</button>
           <button className={btnG + (n === 30 ? ' !bg-navy !text-white' : '')} onClick={() => setN(30)}>Mensal</button>
-          <button className={btnG} onClick={exportCsv} disabled={!days.length}>⬇ Exportar histórico (CSV)</button>
+          <button className={btnG} onClick={exportCsv} disabled={!days.length}>Exportar histórico (CSV)</button>
         </div>}
       </div>
       <div className="flex gap-2" role="tablist">

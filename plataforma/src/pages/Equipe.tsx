@@ -107,7 +107,7 @@ export default function Equipe() {
   if (jornadas) return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-navy">{titulo}</h1>
+        <h1 className="text-xl font-semibold text-ink">{titulo}</h1>
         <button className={btnG + ' !px-3 !py-1.5 !text-xs'} onClick={() => setJornadas(false)}>← Voltar à {isGestor ? 'gestão' : 'visão consolidada'}</button>
       </div>
       <Jornadas embedded />
@@ -115,9 +115,9 @@ export default function Equipe() {
   )
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-navy">{isGestor ? 'Gestão da equipe' : 'Visão consolidada da equipe'}</h1>
+      <h1 className="text-xl font-semibold text-ink">{isGestor ? 'Gestão da equipe' : 'Visão consolidada da equipe'}</h1>
       <div className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex flex-wrap overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" role="tablist" aria-label="Visão dos projetos">
+        <div className="inline-flex flex-wrap overflow-hidden rounded-xl border border-slate-200 bg-white" role="tablist" aria-label="Visão dos projetos">
           {([['', 'Consolidado'], ['macro', 'Projetos'], ['micro', 'Atividades']] as ['' | TipoProjeto, string][]).map(([k, l]) => (
             <button key={k || 'cons'} role="tab" aria-selected={tipo === k} onClick={() => { setTipo(k); setSel(null) }}
               className={'px-4 py-2 text-sm font-semibold transition ' + (tipo === k ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-50')}>
@@ -125,7 +125,7 @@ export default function Equipe() {
             </button>
           ))}
         </div>
-        <button className={btnG + ' !px-3 !py-2 !text-sm'} onClick={() => setJornadas(true)} title="Análise: jornada de trabalho de cada pessoa da equipe (somente consulta)">👀 Análise: Jornadas da equipe</button>
+        <button className={btnG + ' !px-3 !py-2 !text-sm'} onClick={() => setJornadas(true)} title="Análise: jornada de trabalho de cada pessoa da equipe (somente consulta)">Análise: Jornadas da equipe</button>
         <span className="text-xs text-slate-500">{tipo === 'macro' ? 'Projetos maiores: quem é o responsável e com quem cada um está agora.' : tipo === 'micro' ? 'Projetos menores, acompanhados por unidades.' : 'Projetos e Atividades somados, com o comparativo entre os dois.'}</span>
       </div>
       <Card className="!p-4">
@@ -147,14 +147,14 @@ export default function Equipe() {
       {msg && <Msg kind="ok">{msg}</Msg>}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-8">
-        <Kpi icon="📦" label={tipo === 'macro' ? 'Projetos' : tipo === 'micro' ? 'Atividades' : 'Registros cadastrados'} value={rows.length} />
-        <Kpi icon="✅" label="Concluídas" value={cnt('concluido')} color="#16a34a" />
-        <Kpi icon="☑️" label="Concl. c/ cancelamentos" value={cnt('concluido_parcial')} color="#0d9488" />
-        <Kpi icon="🔵" label="Em andamento" value={cnt('em_andamento')} color="#2563eb" />
-        <Kpi icon="⚪" label="A iniciar" value={cnt('a_iniciar')} color="#64748b" />
-        <Kpi icon="🚫" label="Canceladas" value={cnt('cancelado')} color="#f87171" />
-        <Kpi icon="⚠️" label="Atrasadas" value={rows.filter((r) => r.atrasada).length} color="#dc2626" />
-        <Kpi icon="📈" label="% geral de conclusão" value={pctGeral + '%'} pct={pctGeral} color="#8b3fff" sub="unidades concluídas ÷ (total − canceladas)" />
+        <Kpi icon="" label={tipo === 'macro' ? 'Projetos' : tipo === 'micro' ? 'Atividades' : 'Registros cadastrados'} value={rows.length} />
+        <Kpi icon="" label="Concluídas" value={cnt('concluido')} color="#16a34a" />
+        <Kpi icon="" label="Concl. c/ cancelamentos" value={cnt('concluido_parcial')} color="#0d9488" />
+        <Kpi icon="" label="Em andamento" value={cnt('em_andamento')} color="#2563eb" />
+        <Kpi icon="" label="A iniciar" value={cnt('a_iniciar')} color="#64748b" />
+        <Kpi icon="" label="Canceladas" value={cnt('cancelado')} color="#f87171" />
+        <Kpi icon="" label="Atrasadas" value={rows.filter((r) => r.atrasada).length} color="#dc2626" />
+        <Kpi icon="" label="% geral de conclusão" value={pctGeral + '%'} pct={pctGeral} color="#4f46b5" sub="unidades concluídas ÷ (total − canceladas)" />
       </div>
 
       {tipo !== 'macro' && <TendenciaAtividades rows={todas} campo={campo} de={de} ate={ate} />}
@@ -173,10 +173,10 @@ export default function Equipe() {
       )}
 
       <Card className="!p-0">
-        <div className="flex items-center justify-between p-4"><h3 className="font-bold text-navy">Acompanhamento individual</h3><button className={btnG} onClick={exportResumo}>⬇ CSV</button></div>
+        <div className="flex items-center justify-between p-4"><h3 className="font-bold text-navy">Acompanhamento individual</h3><button className={btnG} onClick={exportResumo}>CSV</button></div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-2">Analista</th>{[...(tipo === '' ? ['Projetos', 'Atividades'] : []), 'Total', 'A iniciar', 'Em andamento', 'Concluídas', 'Concl. c/ cancel.', 'Atrasadas', '% conclusão'].map((h) => <th key={h} className="px-4 py-2 text-right">{h}</th>)}</tr></thead>
+            <thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="px-4 py-2">Analista</th>{[...(tipo === '' ? ['Projetos', 'Atividades'] : []), 'Total', 'A iniciar', 'Em andamento', 'Concluídas', 'Concl. c/ cancel.', 'Atrasadas', '% conclusão'].map((h) => <th key={h} className="px-4 py-2 text-right">{h}</th>)}</tr></thead>
             <tbody>
               {porResp.map((a) => (
                 <tr key={a.id} className="border-t border-slate-100">
@@ -201,7 +201,7 @@ export default function Equipe() {
         </form>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500"><tr><th className="py-2">Nome</th><th>E-mail</th><th>Perfil</th><th>Situação</th><th></th></tr></thead>
+            <thead className="text-xs text-slate-500"><tr><th className="py-2">Nome</th><th>E-mail</th><th>Perfil</th><th>Situação</th><th></th></tr></thead>
             <tbody>
               {profiles.map((p) => (
                 <tr key={p.id} className="border-t border-slate-100">
@@ -229,7 +229,7 @@ function Comparativo({ todas }: { todas: Micro[] }) {
   const cols: [string, string, ReturnType<typeof calc>][] = [
     ['Projetos', TIPO_COLOR.macro, calc(todas.filter((r) => r.tipo_projeto === 'macro'))],
     ['Atividades', TIPO_COLOR.micro, calc(todas.filter((r) => r.tipo_projeto === 'micro'))],
-    ['Consolidado', '#8b3fff', calc(todas)],
+    ['Consolidado', '#4f46b5', calc(todas)],
   ]
   const linhas: [string, (c: ReturnType<typeof calc>) => string | number][] = [['Registros', (c) => c.n], ['A iniciar', (c) => c.ini], ['Em andamento', (c) => c.and], ['Concluídos', (c) => c.con], ['Atrasados', (c) => c.atr]]
   return (
@@ -237,7 +237,7 @@ function Comparativo({ todas }: { todas: Micro[] }) {
       <h3 className="mb-3 font-bold text-navy">Comparativo: Projetos × Atividades</h3>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {cols.map(([nome, cor, c]) => (
-          <div key={nome} className="rounded-2xl border border-slate-200 p-4" style={{ borderTop: `4px solid ${cor}` }}>
+          <div key={nome} className="rounded-md border border-slate-200 p-4" style={{ borderTop: `4px solid ${cor}` }}>
             <div className="mb-2 flex items-baseline justify-between"><b style={{ color: cor }}>{nome}</b><span className="text-2xl font-extrabold" style={{ color: cor }}>{c.pct}%</span></div>
             <Bar pct={c.pct} color={cor} />
             <dl className="mt-3 grid grid-cols-2 gap-y-1 text-sm">
@@ -264,7 +264,7 @@ function QuadroMacro({ rows, profiles }: { rows: Micro[]; profiles: { id: string
         <h3 className="p-4 pb-2 font-bold text-navy">Quadro de Projetos</h3>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr>{['Projeto', 'Responsável', 'Com quem está', 'Status', 'Progresso', 'Target'].map((h) => <th key={h} className="px-3 py-2">{h}</th>)}</tr></thead>
+            <thead className="bg-slate-50 text-xs text-slate-500"><tr>{['Projeto', 'Responsável', 'Com quem está', 'Status', 'Progresso', 'Target'].map((h) => <th key={h} className="px-3 py-2">{h}</th>)}</tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-slate-100 align-top">

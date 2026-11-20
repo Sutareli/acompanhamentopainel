@@ -20,12 +20,12 @@ export default function ListaChamadosModal({ titulo, itens, onClose }: { titulo:
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <input className="min-w-[220px] flex-1 rounded-lg border border-violet-300 px-3 py-1.5 text-sm" placeholder="Buscar por ID, item, cliente, tipo…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar nos chamados" />
         <span className="text-xs text-slate-500">{vis.length} exibido(s)</span>
-        <button className={btnG + ' ' + btnSm} onClick={exporta} disabled={!vis.length}>⬇ Exportar (CSV)</button>
+        <button className={btnG + ' ' + btnSm} onClick={exporta} disabled={!vis.length}>Exportar (CSV)</button>
       </div>
       {vis.length === 0 ? <Empty>Nenhum chamado.</Empty> : (
         <div className="max-h-[60vh] overflow-auto">
           <table className="w-full min-w-[820px] text-left text-sm [&_th]:pr-2">
-            <thead className="sticky top-0 bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">ID</th><th>Data</th><th>Item / sintoma</th><th>Cliente</th><th>Tipo</th><th>Status</th><th>Prazo</th></tr></thead>
+            <thead className="sticky top-0 bg-slate-50 text-xs text-slate-500"><tr><th className="px-3 py-2">ID</th><th>Data</th><th>Item / sintoma</th><th>Cliente</th><th>Tipo</th><th>Status</th><th>Prazo</th></tr></thead>
             <tbody>
               {vis.slice(0, 300).map((c) => (
                 <tr key={c.id} className="border-t border-slate-100 align-top">

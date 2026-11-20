@@ -32,7 +32,7 @@ export default function Resumo({ userId, n = 7, version = 0, title }: { userId: 
 
   return (
     <Card>
-      <h3 className="mb-1 font-bold text-navy">📊 {title || (n === 7 ? 'Resumo semanal' : 'Resumo mensal')}</h3>
+      <h3 className="mb-1 font-bold text-navy">{title || (n === 7 ? 'Resumo semanal' : 'Resumo mensal')}</h3>
       <p className="text-xs text-slate-500">Execução das tarefas por dia · verde ≥80%, laranja ≥50%, vermelho abaixo · cinza = sem registro</p>
       {err && <p className="mt-2 text-sm text-red-700">Erro ao carregar: {err}</p>}
       {rows === null ? <p className="py-8 text-center text-sm text-slate-500">Carregando…</p> : (

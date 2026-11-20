@@ -53,12 +53,12 @@ export default function Imprevistos() {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-navy">Imprevistos</h1>
+        <h1 className="text-xl font-semibold text-ink">Imprevistos</h1>
         <input type="date" className={inp + ' !w-auto'} value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
       </div>
       {err && <Msg kind="erro">{err}</Msg>}
       <Card>
-        <h3 className="font-bold text-navy">⚡ Atividades extraordinárias e imprevistos</h3>
+        <h3 className="font-bold text-navy">Atividades extraordinárias e imprevistos</h3>
         <p className="mb-3 text-sm text-slate-500">{fmtMin(ti)} estimados · margem restante {fmtMin(cfg.margem_min - ti)}</p>
         <form onSubmit={addImp} className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Field label="Descrição" className="col-span-2 sm:col-span-4"><input className={inp} value={i.descricao} onChange={(e) => setI({ ...i, descricao: e.target.value })} /></Field>

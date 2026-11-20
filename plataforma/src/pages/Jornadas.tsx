@@ -42,7 +42,7 @@ export default function Jornadas({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <div className="space-y-4">
-      {embedded ? <h2 className="text-lg font-bold text-navy">👀 Análise: Jornadas da equipe</h2> : <h1 className="text-2xl font-bold text-navy">Jornadas da equipe</h1>}
+      {embedded ? <h2 className="text-lg font-bold text-navy">Análise: Jornadas da equipe</h2> : <h1 className="text-xl font-semibold text-ink">Jornadas da equipe</h1>}
       <Msg kind="aviso">Modo somente consulta: as jornadas de outras pessoas podem ser vistas, mas nunca alteradas.</Msg>
       {err && <Msg kind="erro">{err}</Msg>}
 
@@ -51,7 +51,7 @@ export default function Jornadas({ embedded = false }: { embedded?: boolean }) {
         {resumo.length === 0 ? <div className="p-4"><Empty>Nenhuma pessoa cadastrada.</Empty></div> : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-2">Pessoa</th><th>Perfil</th><th className="text-right">Hoje</th><th className="text-right">Média 7 dias</th><th className="px-4 text-right">Dias com registro</th></tr></thead>
+              <thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="px-4 py-2">Pessoa</th><th>Perfil</th><th className="text-right">Hoje</th><th className="text-right">Média 7 dias</th><th className="px-4 text-right">Dias com registro</th></tr></thead>
               <tbody>
                 {resumo.map((p) => (
                   <tr key={p.id} className={'border-t border-slate-100 ' + (sel === p.id ? 'bg-slate-50' : '')}>
@@ -71,7 +71,7 @@ export default function Jornadas({ embedded = false }: { embedded?: boolean }) {
       {who ? (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-xl font-bold text-navy">{who.nome}</h2><Chip color="#64748b">{PERFIL_LABEL[who.perfil as Perfil]}</Chip><Chip color="#8b3fff">somente consulta</Chip>
+            <h2 className="text-xl font-bold text-navy">{who.nome}</h2><Chip color="#64748b">{PERFIL_LABEL[who.perfil as Perfil]}</Chip><Chip color="#4f46b5">somente consulta</Chip>
             <input type="date" className={inp + ' !w-auto'} value={date} max={hoje} onChange={(e) => e.target.value && setDate(e.target.value)} />
             <span className="text-sm text-slate-500">{fmtDate(date)}</span>
           </div>

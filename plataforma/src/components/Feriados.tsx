@@ -37,7 +37,7 @@ export default function Feriados({ pode }: { pode: boolean }) {
       <p className="mb-3 text-sm text-slate-500">Os prazos de SLA contados em <b>dias úteis</b> pulam sábados, domingos e os feriados abaixo. Os nacionais vêm cadastrados até 2028; inclua feriados estaduais, municipais ou pontos facultativos da sua empresa e remova o que não se aplica.</p>
       {err && <Msg kind="erro">{err}</Msg>}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {anos.map((a) => <button key={a} className={'rounded-full border px-3 py-1 text-xs font-semibold ' + (ano === a ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy')} onClick={() => setAno(a)}>{a}</button>)}
+        {anos.map((a) => <button key={a} className={'rounded-md border px-3 py-1 text-xs font-medium ' + (ano === a ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy')} onClick={() => setAno(a)}>{a}</button>)}
       </div>
       <ul className="mb-3 grid gap-1 sm:grid-cols-2">
         {lista.filter((f) => +f.data.slice(0, 4) === ano).map((f) => (

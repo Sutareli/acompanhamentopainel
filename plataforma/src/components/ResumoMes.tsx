@@ -6,7 +6,7 @@ import { Chamado, concluido, improcedente, mesKey, mesLabel, noPrazoPlan, penden
 /** "Resumo Mês" da planilha: 4 gráficos (concluídos, concluídos no prazo, pendentes no prazo, reincidentes) com os últimos meses até o mês escolhido. Mesmas regras da planilha (ver resumoMes em lib/chamados). */
 const ESC = '#3b0a8c', CLA = '#a96bff', LIN = '#0891b2'
 const pf = (v: number | null) => (v === null ? '—' : (v * 100).toFixed(1).replace('.', ',') + '%')
-const chip = (on: boolean) => 'rounded-full border px-3 py-1 text-xs font-semibold transition ' + (on ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')
+const chip = (on: boolean) => 'rounded-md border px-3 py-1 text-xs font-medium transition ' + (on ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')
 
 type Pred = (c: Chamado) => boolean
 interface Cfg { pa: Pred; pb: Pred; titulo: string; nA: string; nB: string; a: (r: Res) => number; b: (r: Res) => number; p: (r: Res) => number | null; nP: string }
@@ -28,7 +28,7 @@ function Grafico({ cfg, dados, abrir }: { cfg: Cfg; dados: Res[]; abrir: (cfg: C
   const pts = dados.map((d, i) => ({ x: PL + gw * i + gw / 2, p: cfg.p(d) }))
   const linha = pts.filter((q) => q.p !== null).map((q) => `${q.x},${yP(q.p as number)}`).join(' ')
   return (
-    <div className="rounded-2xl border border-violet-100 bg-white p-3">
+    <div className="rounded-md border border-violet-100 bg-white p-3">
       <h4 className="text-center font-bold text-violet-600">{cfg.titulo}</h4>
       <div className="mt-1 flex flex-wrap justify-center gap-x-3 text-[11px] text-slate-600">
         <span><i className="mr-1 inline-block h-2 w-2 rounded-sm" style={{ background: ESC }} />{cfg.nA} (q)</span>
@@ -76,7 +76,7 @@ export default function ResumoMes({ rows, meses, mesInicial }: { rows: Chamado[]
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="font-bold text-navy">📊 Resumo do mês</h3>
+          <h3 className="font-bold text-navy">Resumo do mês</h3>
           <p className="text-xs text-slate-500">Mesmos números da aba “Resumo Mês” da planilha. Casos não incluem Improcedentes{improc ? ` (${improc} no período)` : ''}; “no prazo” é sobre os concluídos; os pendentes usam o Status_Prazo da planilha.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

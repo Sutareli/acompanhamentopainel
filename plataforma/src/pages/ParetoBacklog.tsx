@@ -23,15 +23,15 @@ function Delta({ valor, texto, bomSeSobe }: { valor: number | null; texto: strin
 }
 function KpiCard({ titulo, valor, sub, children, onClick }: { titulo: string; valor: string | number; sub?: string; children?: ReactNode; onClick?: () => void }) {
   return (
-    <div className={'rounded-2xl border border-violet-100 bg-white p-4 shadow-sm' + (onClick ? ' cursor-pointer transition hover:border-violet-400 hover:shadow-md' : '')} {...(onClick ? { role: 'button', tabIndex: 0, onClick, onKeyDown: (e: { key: string; preventDefault: () => void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }, title: 'Clique para ver os chamados' } : {})}>
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{titulo}</div>
+    <div className={'rounded-md border border-violet-100 bg-white p-4' + (onClick ? ' cursor-pointer transition hover:border-violet-400 hover:shadow-md' : '')} {...(onClick ? { role: 'button', tabIndex: 0, onClick, onKeyDown: (e: { key: string; preventDefault: () => void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }, title: 'Clique para ver os chamados' } : {})}>
+      <div className="text-xs font-semibold text-slate-500">{titulo}</div>
       <div className="mt-1 text-3xl font-bold text-navy">{valor}{sub && <span className="ml-2 text-base font-semibold text-violet-600">{sub}</span>}</div>
       <div className="mt-1">{children}</div>
       {onClick && <div className="mt-1 text-[11px] font-semibold text-violet-600">Ver chamados →</div>}
     </div>
   )
 }
-const chip = (on: boolean) => 'rounded-full border px-3 py-1 text-xs font-semibold transition ' + (on ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')
+const chip = (on: boolean) => 'rounded-md border px-3 py-1 text-xs font-medium transition ' + (on ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')
 
 export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { profile } = useAuth()
@@ -111,15 +111,15 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-navy to-violet-700 px-6 py-5 text-white shadow-sm">
+      <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold uppercase tracking-wide sm:text-2xl">Análise de chamados</h1>
-            <p className="mt-1 text-sm text-violet-200">Análise qualitativa · chamados de correção e manutenção — principais motivos e ofensores, comparados ao mês anterior</p>
+            <h1 className="text-xl font-semibold text-ink">Análise de chamados</h1>
+            <p className="mt-1 text-sm text-slate-500">Análise qualitativa · chamados de correção e manutenção — principais motivos e ofensores, comparados ao mês anterior</p>
           </div>
-          <div className="text-right text-xs text-violet-200">
+          <div className="text-right text-xs text-slate-500">
             {carga ? <>Base carregada em {fmtDateTime(carga.em)}{carga.nome ? ` por ${carga.nome}` : ''} · {carga.qtd} chamados</> : 'Nenhuma carga registrada'}
-            {canAdmin(profile!.perfil) && <div className="mt-2"><button className={btnG + ' ' + btnSm} onClick={() => onNavigate('importar')}>⬆ Atualizar base (Importar bases)</button></div>}
+            {canAdmin(profile!.perfil) && <div className="mt-2"><button className={btnG + ' ' + btnSm} onClick={() => onNavigate('importar')}>Atualizar base (Importar bases)</button></div>}
           </div>
         </div>
       </div>
@@ -132,29 +132,29 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
         <Card className="!p-4">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Mês de referência">
-              <span className="text-xs font-bold uppercase text-slate-500">Mês</span>
+              <span className="text-xs font-bold text-slate-500">Mês</span>
               {meses.map((m) => <button key={m} className={chip(mesSel === m)} aria-pressed={mesSel === m} onClick={() => escolheMes(m)}>{mesLabel(m)}</button>)}
               <button className={chip(mesSel === '')} aria-pressed={mesSel === ''} onClick={() => escolheMes('')}>Todos</button>
             </div>
             {mesSel && <>
               <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Quinzena">
-                <span className="text-xs font-bold uppercase text-slate-500">Quinzena</span>
+                <span className="text-xs font-bold text-slate-500">Quinzena</span>
                 {([[0, 'Mês inteiro'], [1, '1ª (dias 1–15)'], [2, '2ª (dia 16 em diante)']] as [0 | 1 | 2, string][]).map(([v, l]) => <button key={v} className={chip(quinz === v)} aria-pressed={quinz === v} onClick={() => { setQuinz(v); setSub(null) }}>{l}</button>)}
               </div>
               <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Semana">
-                <span className="text-xs font-bold uppercase text-slate-500">Semana</span>
+                <span className="text-xs font-bold text-slate-500">Semana</span>
                 <button className={chip(sem === 0)} aria-pressed={sem === 0} onClick={() => { setSem(0); setSub(null) }}>Todas</button>
                 {semanas.map((w) => <button key={w.n} className={chip(sem === w.n)} aria-pressed={sem === w.n} title="Semana de segunda a domingo" onClick={() => { setSem(w.n); setSub(null) }}>S{w.n} · {String(w.ini).padStart(2, '0')}–{String(w.fim).padStart(2, '0')}</button>)}
               </div>
             </>}
             {empresas.length > 1 && (
               <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Responsável (empresa)">
-                <span className="text-xs font-bold uppercase text-slate-500">Responsável</span>
+                <span className="text-xs font-bold text-slate-500">Responsável</span>
                 <button className={chip(emp === '')} aria-pressed={emp === ''} onClick={() => { setEmp(''); setSub(null) }}>Todos</button>
                 {empresas.map((e) => <button key={e} className={chip(emp === lc(e))} aria-pressed={emp === lc(e)} onClick={() => { setEmp(lc(e)); setSub(null) }}>{e}</button>)}
               </div>)}
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Tipo de chamado">
-              <span className="text-xs font-bold uppercase text-slate-500">Tipo</span>
+              <span className="text-xs font-bold text-slate-500">Tipo</span>
               {tiposDisp.map((t) => <button key={t} className={chip(tipos.includes(lc(t)))} aria-pressed={tipos.includes(lc(t))} onClick={() => toggleTipo(t)}>{t}</button>)}
               {tipos.length > 0 && <button className={btnG + ' ' + btnSm} onClick={() => { setTipos([]); setSub(null) }}>Limpar tipo</button>}
             </div>
@@ -211,13 +211,13 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
             <h3 className="font-bold text-navy">Chamados{sub ? ` · ${sub}` : ''} <span className="text-sm font-normal text-slate-500">({lista.length})</span></h3>
             <div className="flex gap-2">
               {sub && <button className={btnG + ' ' + btnSm} onClick={() => setSub(null)}>Limpar subcategoria</button>}
-              <button className={btnG + ' ' + btnSm} onClick={exporta} disabled={!lista.length}>⬇ Exportar (CSV)</button>
+              <button className={btnG + ' ' + btnSm} onClick={exporta} disabled={!lista.length}>Exportar (CSV)</button>
             </div>
           </div>
           {lista.length === 0 ? <div className="p-5"><Empty>Nenhum chamado.</Empty></div> : (
             <div className="max-h-[420px] overflow-auto">
               <table className="w-full min-w-[900px] text-left text-sm [&_th]:pr-2">
-                <thead className="sticky top-0 bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">ID</th><th>Data</th><th>Item / sintoma</th><th>Cliente</th><th>Tipo</th><th>Subcategoria</th><th>Prazo</th></tr></thead>
+                <thead className="sticky top-0 bg-slate-50 text-xs text-slate-500"><tr><th className="px-3 py-2">ID</th><th>Data</th><th>Item / sintoma</th><th>Cliente</th><th>Tipo</th><th>Subcategoria</th><th>Prazo</th></tr></thead>
                 <tbody>
                   {lista.slice(0, 200).map((c) => (
                     <tr key={c.id} className="border-t border-slate-100 align-top">

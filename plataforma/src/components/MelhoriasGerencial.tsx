@@ -87,7 +87,7 @@ export default function MelhoriasGerencial({ rows, hoje, nomeResp, onAbrir, onIr
 
   if (!total) return <Empty>Nenhuma melhoria cadastrada ainda.</Empty>
   const Num = ({ v, l, cor, sub, onClick, ativo }: { v: number | string; l: string; cor: string; sub?: string; onClick?: () => void; ativo?: boolean }) => (
-    <button disabled={!onClick} onClick={onClick} aria-pressed={ativo} className={(ativo ? 'ring-2 ring-red-300 ' : '') + "rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm enabled:hover:border-violet-300"}>
+    <button disabled={!onClick} onClick={onClick} aria-pressed={ativo} className={(ativo ? 'ring-2 ring-red-300 ' : '') + "rounded-md border border-slate-200 bg-white p-4 text-left enabled:hover:border-violet-300"}>
       <div className="text-xs text-slate-500">{l}</div><div className="text-3xl font-extrabold" style={{ color: cor }}>{v}</div>{sub && <div className="text-[11px] text-slate-500">{sub}</div>}
     </button>
   )
@@ -97,11 +97,11 @@ export default function MelhoriasGerencial({ rows, hoje, nomeResp, onAbrir, onIr
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-slate-500">Posição em {fmtDate(hoje)} · {total} melhorias no painel.</p>
-        <div className="flex items-center gap-2">{copiado && <span className="text-xs text-emerald-700">{copiado}</span>}<button className={btnG} onClick={copiar}>📋 Copiar resumo (texto)</button></div>
+        <div className="flex items-center gap-2">{copiado && <span className="text-xs text-emerald-700">{copiado}</span>}<button className={btnG} onClick={copiar}>Copiar resumo (texto)</button></div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
-        <Num v={total} l="Melhorias no painel" cor="#2e1a6e" />
+        <Num v={total} l="Melhorias no painel" cor="#26294f" />
         <Num v={producao.length} l="Em produção" cor="#16a34a" sub={`${pct(producao.length, total)}% do total`} onClick={() => onIrParaEtapa('producao')} />
         <Num v={dev.length} l="Desenvolvimento / homologação" cor="#2563eb" sub={dev.length ? `${emDia.length} no prazo · ${dev.length - emDia.length} vencida(s)` : undefined} onClick={() => onIrParaEtapa('em_desenvolvimento')} />
         <Num v={fila.length} l="Na fila" cor="#7c3aed" sub="priorização, especificação e chamado aberto" onClick={() => onIrParaEtapa('priorizada')} />
@@ -113,7 +113,7 @@ export default function MelhoriasGerencial({ rows, hoje, nomeResp, onAbrir, onIr
 
       {painel && (
         <Card>
-          <div className="mb-2 flex items-center justify-between gap-2"><h3 className="font-bold text-navy">{painel === 'prazo' ? '⚠ Melhorias com prazo de entrega vencido' : '⏱ Melhorias com SLA vencido'} ({painel === 'prazo' ? atrasadas.length : slaVenc.length})</h3><button className={btnG + ' !px-3 !py-1 !text-xs'} onClick={() => setPainel('')}>Fechar</button></div>
+          <div className="mb-2 flex items-center justify-between gap-2"><h3 className="font-bold text-navy">{painel === 'prazo' ? 'Melhorias com prazo de entrega vencido' : 'Melhorias com SLA vencido'} ({painel === 'prazo' ? atrasadas.length : slaVenc.length})</h3><button className={btnG + ' !px-3 !py-1 !text-xs'} onClick={() => setPainel('')}>Fechar</button></div>
           {(painel === 'prazo' ? atrasadas.length : slaVenc.length) === 0 ? <p className="text-sm text-emerald-700">Nenhuma melhoria nesta situação.</p> : (
             <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
               <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-2">Melhoria</th><th className="pr-2">Módulo</th><th className="pr-2">Etapa</th><th className="pr-2">Responsável</th><th className="pr-2">Nº chamado</th><th>{painel === 'prazo' ? 'Prazo / atraso' : 'SLA'}</th></tr></thead>
@@ -186,7 +186,7 @@ export default function MelhoriasGerencial({ rows, hoje, nomeResp, onAbrir, onIr
       </div>
 
       <Card>
-        <h3 className="mb-2 font-bold text-navy">🛠️ Em desenvolvimento / homologação agora ({dev.length})</h3>
+        <h3 className="mb-2 font-bold text-navy">Em desenvolvimento / homologação agora ({dev.length})</h3>
         {dev.length === 0 ? <p className="text-sm text-slate-500">Nenhuma melhoria em desenvolvimento.</p> : (
           <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-sm">
             <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-2">Melhoria</th><th className="pr-2">Módulo</th><th className="pr-2">Etapa</th><th className="pr-2">Responsável</th><th className="w-36 pr-2">Andamento</th><th className="pr-2">Chamado</th><th>Prazo</th></tr></thead>
@@ -196,17 +196,17 @@ export default function MelhoriasGerencial({ rows, hoje, nomeResp, onAbrir, onIr
                 <td className="pr-2 text-xs text-slate-600">{r.modulo}</td><td className="pr-2 text-xs font-semibold" style={{ color: faseInfo(fase(r)).cor }}>{faseInfo(fase(r)).label}</td><td className={'pr-2 text-xs ' + (r.responsavel_id ? 'text-slate-600' : 'font-semibold text-amber-600')}>{nomeResp(r) || 'sem responsável'}</td>
                 <td className="pr-2"><div className="flex items-center gap-2"><div className="flex-1"><Bar pct={pctDaFase(fase(r))} color={faseInfo(fase(r)).cor} /></div><span className="text-xs font-semibold">{pctDaFase(fase(r))}%</span></div></td>
                 <td className="pr-2 text-xs text-slate-600">{r.numero_chamado || '—'}</td>
-                <td className={'whitespace-nowrap text-xs font-semibold ' + (v ? 'text-red-600' : !r.data_termino ? 'text-amber-600' : 'text-slate-700')}>{v ? '⚠ ' : ''}{r.data_termino ? fmtDate(r.data_termino) : 'sem prazo'}</td>
+                <td className={'whitespace-nowrap text-xs font-semibold ' + (v ? 'text-red-600' : !r.data_termino ? 'text-amber-600' : 'text-slate-700')}>{v ? '' : ''}{r.data_termino ? fmtDate(r.data_termino) : 'sem prazo'}</td>
               </tr>) })}</tbody>
           </table></div>
         )}
       </Card>
 
       <Card>
-        <h3 className="mb-1 font-bold text-navy">⏱ SLA das etapas</h3>
+        <h3 className="mb-1 font-bold text-navy">SLA das etapas</h3>
         <p className="mb-2 text-xs text-slate-500">Cada melhoria tem o seu SLA (padrão: chamado aberto → desenvolvimento em 3 dias úteis; desenvolvimento → homologação em 15 dias corridos; feriados cadastrados são descontados).</p>
         <div className="mb-3 grid gap-2 sm:grid-cols-2">
-          {([['🎫 Chamado → Desenvolvimento', cumprCham], ['🛠️ Desenvolvimento → Homologação', cumprDev]] as [string, { n: number; ok: number }][]).map(([l, c]) => (
+          {([['Chamado → Desenvolvimento', cumprCham], ['Desenvolvimento → Homologação', cumprDev]] as [string, { n: number; ok: number }][]).map(([l, c]) => (
             <div key={l} className="rounded-xl bg-slate-50 p-3 text-sm"><div className="text-xs text-slate-500">{l} — cumprimento nas etapas já concluídas</div><div className="text-xl font-extrabold text-navy">{c.n ? `${pct(c.ok, c.n)}%` : '—'} <span className="text-xs font-normal text-slate-500">{c.n ? `(${c.ok} de ${c.n} dentro do SLA)` : '(sem dados)'}</span></div></div>
           ))}
         </div>
@@ -218,7 +218,7 @@ export default function MelhoriasGerencial({ rows, hoje, nomeResp, onAbrir, onIr
       </Card>
 
       <Card>
-        <h3 className="mb-2 font-bold text-navy">👤 Por responsável</h3>
+        <h3 className="mb-2 font-bold text-navy">Por responsável</h3>
         <div className="overflow-x-auto"><table className="w-full min-w-[480px] text-sm">
           <thead><tr className="text-left text-xs text-slate-500"><th className="py-1 pr-2">Responsável</th><th className="pr-2 text-right">Total</th><th className="pr-2 text-right">Abertas</th><th className="pr-2 text-right">Em desenv./homolog.</th><th className="pr-2 text-right">Em produção</th><th className="text-right">Prazo vencido</th></tr></thead>
           <tbody>{resps.map((r) => (
@@ -229,9 +229,9 @@ export default function MelhoriasGerencial({ rows, hoje, nomeResp, onAbrir, onIr
 
       <div className="grid gap-4 lg:grid-cols-3">
         {([
-          ['🗳️ Aguardando abertura de chamado', aguardandoChamado, (r: Melhoria) => `${faseInfo(fase(r)).label} desde ${fmtDate(dataDaFase(r, fase(r)))} · espera ${nomeDias(dataDaFase(r, fase(r)))}`],
-          ['🎫 Chamado aberto aguardando desenvolvimento', aguardandoDev, (r: Melhoria) => `chamado ${r.numero_chamado || ''} em ${fmtDate(r.data_abertura)} · espera ${nomeDias(r.data_abertura)}`],
-          ['✅ Últimas em produção', ultimasAplicadas, (r: Melhoria) => `em produção desde ${fmtDate(r.data_conclusao)}`],
+          ['Aguardando abertura de chamado', aguardandoChamado, (r: Melhoria) => `${faseInfo(fase(r)).label} desde ${fmtDate(dataDaFase(r, fase(r)))} · espera ${nomeDias(dataDaFase(r, fase(r)))}`],
+          ['Chamado aberto aguardando desenvolvimento', aguardandoDev, (r: Melhoria) => `chamado ${r.numero_chamado || ''} em ${fmtDate(r.data_abertura)} · espera ${nomeDias(r.data_abertura)}`],
+          ['Últimas em produção', ultimasAplicadas, (r: Melhoria) => `em produção desde ${fmtDate(r.data_conclusao)}`],
         ] as [string, Melhoria[], (r: Melhoria) => string][]).map(([t, l, f]) => (
           <Card key={t}>
             <h3 className="mb-2 font-bold text-navy">{t} <span className="text-sm font-normal text-slate-500">({l.length})</span></h3>

@@ -51,9 +51,9 @@ export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onN
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Enviar tarefas para Projetos" onClick={onClose}>
-      <div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-md bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         {ok !== null ? (<>
-          <h3 className="mb-2 text-lg font-bold text-navy">✅ {ok} projeto(s) criado(s)</h3>
+          <h3 className="mb-2 text-lg font-bold text-navy">{ok} projeto(s) criado(s)</h3>
           <p className="mb-4 text-sm text-slate-600">Eles já estão em <b>Projetos</b> como <b>atividade</b>, criticidade <b>Média</b>, status <b>A iniciar</b> e data target <b>{fmtDate(alvo)}</b>.</p>
           {err && <Msg kind="aviso">{err}</Msg>}
           <div className="flex justify-end gap-2">
@@ -61,7 +61,7 @@ export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onN
             {onNavigate && <button className={btnP} onClick={() => { onClose(); onNavigate('micro') }}>Ver em Projetos</button>}
           </div>
         </>) : (<>
-          <h3 className="mb-1 text-lg font-bold text-navy">📦 Enviar tarefas para Projetos</h3>
+          <h3 className="mb-1 text-lg font-bold text-navy">Enviar tarefas para Projetos</h3>
           <p className="mb-3 text-sm text-slate-600">Marque as tarefas de {fmtDate(data)}. Cada uma vira um <b>atividade</b> com: criticidade <b>Média</b> · status <b>A iniciar</b> · data target <b>{fmtDate(alvo)}</b> (dia seguinte) · você como responsável.</p>
           {todas.length === 0 ? <p className="py-6 text-center text-sm text-slate-400">Não há tarefas neste dia.</p> : (
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
@@ -71,7 +71,7 @@ export default function EnviarProjetos({ blocos, data, uid, onClose, onDone, onN
               </div>
               {blocos.filter((b) => b.daily_tasks.some((t) => t.descricao.trim())).map((b) => (
                 <div key={b.id}>
-                  <div className="mb-1 text-xs font-bold uppercase text-slate-500">Bloco {b.numero} · {b.nome}</div>
+                  <div className="mb-1 text-xs font-bold text-slate-500">Bloco {b.numero} · {b.nome}</div>
                   <ul className="space-y-1">
                     {b.daily_tasks.filter((t) => t.descricao.trim()).map((t) => (
                       <li key={t.id}>

@@ -164,11 +164,11 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Correção/manutenção</h1>
+          <h1 className="text-xl font-semibold text-ink">Correção/manutenção</h1>
           <p className="text-sm text-slate-500">Correções e manutenções: atividades (inclusive as geradas pelos chamados), etapas, prazos e histórico de status.</p>
         </div>
         <div className="flex gap-2">
-          <button className={btnG} onClick={exportCsv} disabled={!filtered.length}>⬇ Exportar (CSV)</button>
+          <button className={btnG} onClick={exportCsv} disabled={!filtered.length}>Exportar (CSV)</button>
           <button className={btnP} onClick={() => setEdit({ status: 'A Iniciar', prioridade: 3, percentual_concluido: 0 })}>+ Nova atividade</button>
         </div>
       </div>
@@ -177,7 +177,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
       {/* ===== Período (topo da página): mês vigente por padrão ===== */}
       <Card className="!p-4">
         <div className="flex flex-wrap items-end gap-3">
-          <span className="pb-2 text-sm font-bold text-navy">📅 Período</span>
+          <span className="pb-2 text-sm font-bold text-navy">Período</span>
           <Field label="Criação/início (de)" className="min-w-[150px]"><input className={inp} type="date" value={iDe} max={iAte || undefined} onChange={(e) => setIDe(e.target.value)} /></Field>
           <Field label="Criação/início (até)" className="min-w-[150px]"><input className={inp} type="date" value={iAte} min={iDe || undefined} onChange={(e) => setIAte(e.target.value)} /></Field>
           <Field label="Finalização (de)" className="min-w-[150px]"><input className={inp} type="date" value={cDe} max={cAte || undefined} onChange={(e) => setCDe(e.target.value)} /></Field>
@@ -224,11 +224,11 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
           <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-[auto_1fr]">
             <div className="flex flex-wrap items-start gap-3 text-sm">
               {([[chMes.length, 'chamados no mês'], [(chMes.length ? Math.round((chMes.filter((c) => noPrazo(c as Chamado)).length / chMes.length) * 100) : 0) + '%', 'no prazo'], [chamados.length, 'na base']] as [string | number, string][]).map(([v, l]) => (
-                <div key={l} className="min-w-[110px] rounded-2xl bg-violet-50 px-4 py-3"><div className="text-3xl font-extrabold text-navy">{v}</div><div className="text-xs text-slate-500">{l}</div></div>
+                <div key={l} className="min-w-[110px] rounded-md bg-violet-50 px-4 py-3"><div className="text-3xl font-extrabold text-navy">{v}</div><div className="text-xs text-slate-500">{l}</div></div>
               ))}
               <p className="basis-full text-xs text-slate-500">Dos {chamados.length} chamados, {chamados.filter((c) => /(cancel|improced)/i.test(c.status || '') || !c.status).length} (Cancelado/Improcedente) não viram atividade; os {chamados.filter((c) => c.status && !/(cancel|improced)/i.test(c.status)).length} restantes alimentam o painel “Status das Atividades” junto com as melhorias cadastradas.</p>
             </div>
-            <div><div className="mb-1 text-xs font-semibold uppercase text-slate-500">Principais subcategorias do mês</div><HBars rows={chTop} empty="Sem subcategorias." /></div>
+            <div><div className="mb-1 text-xs font-semibold text-slate-500">Principais subcategorias do mês</div><HBars rows={chTop} empty="Sem subcategorias." /></div>
           </div>
         )}
       </Card>
@@ -252,7 +252,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
         <Card className="hidden !p-0 md:block">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] text-left text-sm [&_th]:pr-2">
-              <thead className="bg-violet-50/70 text-xs font-bold uppercase tracking-wide text-navy">
+              <thead className="bg-violet-50/70 text-xs font-bold text-navy">
                 <tr><th className="px-3 py-3">Prior.</th><th>Módulo</th><th>Melhoria</th><th>Descrição</th><th>Objetivo</th><th>AS IS → TO BE</th><th>Status</th><th>%</th><th>Etapas</th><th>Prazo</th><th className="pr-3">Responsável</th></tr>
               </thead>
               <tbody>
@@ -285,7 +285,7 @@ export default function Backlog({ onNavigate }: { onNavigate: (p: string) => voi
                 <div className="font-semibold text-navy">{r.melhoria}</div>
                 {r.descricao && <p className="mt-1 text-sm text-slate-600" style={clamp(2)}>{r.descricao}</p>}
                 <div className="mt-2"><Bar pct={Number(r.percentual_concluido)} color={STATUS_COLOR[r.status]} /></div>
-                <div className="mt-1 flex justify-between text-xs text-slate-500"><span>{Math.round(Number(r.percentual_concluido))}% · etapas {prog(r)} · {r.responsavel || 'sem responsável'}</span><span>até {fmtDate(r.data_termino)}{melhoriaVencida(r, hoje) ? ' ⚠' : ''}</span></div>
+                <div className="mt-1 flex justify-between text-xs text-slate-500"><span>{Math.round(Number(r.percentual_concluido))}% · etapas {prog(r)} · {r.responsavel || 'sem responsável'}</span><span>até {fmtDate(r.data_termino)}{melhoriaVencida(r, hoje) ? ' ' : ''}</span></div>
               </button>
             </Card>
           ))}

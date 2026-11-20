@@ -55,7 +55,7 @@ export default function Comentarios({ entidade, id }: { entidade: 'melhoria' | '
 
   return (
     <Card className="!p-4">
-      <h4 className="mb-2 font-bold text-navy">💬 Comentários {lista.length > 0 && <span className="text-sm font-normal text-slate-500">({lista.length})</span>}</h4>
+      <h4 className="mb-2 font-bold text-navy">Comentários {lista.length > 0 && <span className="text-sm font-normal text-slate-500">({lista.length})</span>}</h4>
       {err && <Msg kind="erro">{err}</Msg>}
       {lista.length === 0 ? <p className="mb-3 text-sm text-slate-400">Nenhum comentário ainda. Use para registrar decisões, dúvidas e combinados.</p> : (
         <ul className="mb-3 space-y-2">

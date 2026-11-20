@@ -443,3 +443,7 @@ Na Análise de chamados, o grupo **Responsável** do filtro restringe todo o pai
 
 ### Pedidos na Semanal Italo
 Cada etapa da agenda tem o quadro **Pedidos desta etapa** (adicionar, editar, remover, marcar como atendido). A aba final **Consolidado de pedidos** reúne todos, agrupados por etapa, com contagem de abertos/atendidos e botão **Copiar lista**. Ao duplicar a última semanal, os pedidos ainda em aberto vêm junto. Fica no mesmo campo `blocos` (sem migração nova).
+
+
+### Identidade visual (revisão de design)
+Paleta neutra (fundo cinza-frio, texto `ink`, bordas `linha`) com um único índigo de marca (`turq`) em ações e seleção; os tons `violet` do Tailwind foram redefinidos em `tailwind.config.js` para um índigo acinzentado. Menu lateral claro, agrupado, sem ícones; cartões e botões com cantos de 6–8 px e sem sombra; sem emojis decorativos; sem texto em caixa alta; login liso. Etapas do funil de melhorias usam uma única rampa de cor (verde só em Produção).

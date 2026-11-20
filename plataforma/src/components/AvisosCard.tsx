@@ -39,14 +39,14 @@ export default function AvisosCard() {
   if (!cfg) return err ? <Card><Msg kind="erro">{err}</Msg></Card> : null
   return (
     <Card>
-      <h3 className="font-bold text-navy">✉️ Aviso semanal por e-mail</h3>
+      <h3 className="font-bold text-navy">Aviso semanal por e-mail</h3>
       <p className="mb-2 text-sm text-slate-500">Toda segunda-feira, às 08:00, os endereços abaixo recebem um resumo: melhorias e correções com prazo vencido, SLA estourado, itens sem responsável e atividades com data target vencida (só títulos e números, sem dados pessoais).</p>
       {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}
       <label className="block text-sm"><span className="mb-1 block font-medium text-slate-600">Destinatários (separe por vírgula)</span><input className={inp} value={txt} onChange={(e) => setTxt(e.target.value)} /></label>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button className={btnP + ' ' + btnSm} disabled={busy} onClick={() => salvar(cfg.ativo)}>Salvar destinatários</button>
         <button className={btnG + ' ' + btnSm} disabled={busy} onClick={() => salvar(!cfg.ativo)}>{cfg.ativo ? 'Pausar avisos' : 'Reativar avisos'}</button>
-        <button className={btnG + ' ' + btnSm} disabled={busy} onClick={testar}>✉ Enviar agora (teste)</button>
+        <button className={btnG + ' ' + btnSm} disabled={busy} onClick={testar}>Enviar agora (teste)</button>
         <span className={'text-xs font-semibold ' + (cfg.ativo ? 'text-green-700' : 'text-amber-700')}>{cfg.ativo ? '● ativo' : '● pausado'}</span>
       </div>
       <p className="mt-2 text-xs text-slate-500">{cfg.ultimo_envio ? `Último envio: ${fmtDateTime(cfg.ultimo_envio)} — ${cfg.ultimo_resultado || ''}` : 'Nenhum envio registrado ainda.'}</p>

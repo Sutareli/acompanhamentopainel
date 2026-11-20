@@ -22,7 +22,7 @@ export default function ImportarBases({ onNavigate }: { onNavigate: (p: string) 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-navy">Importar bases</h1>
+        <h1 className="text-xl font-semibold text-ink">Importar bases</h1>
         <p className="text-sm text-slate-500">Exclusivo do Analista Sr. Envie arquivos CSV (no Excel: Salvar como → CSV UTF-8, separador ; ou ,).</p>
       </div>
       <ChamadosCard onNavigate={onNavigate} />
@@ -133,7 +133,7 @@ function MicroCard({ onNavigate }: { onNavigate: (p: string) => void }) {
           <p className="text-sm text-slate-600">Adiciona projetos em lote (não apaga as existentes; linhas iguais — mesma demanda, responsável e data target — são puladas). O histórico de criação é gravado como no cadastro manual.</p>
         </div>
         <div className="flex gap-2">
-          <button className={btnG + ' ' + btnSm} onClick={() => download('modelo-projetos.csv', modeloMicroCsv())}>⬇ Baixar modelo CSV</button>
+          <button className={btnG + ' ' + btnSm} onClick={() => download('modelo-projetos.csv', modeloMicroCsv())}>Baixar modelo CSV</button>
           <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('micro')}>Abrir Projetos →</button>
         </div>
       </div>
