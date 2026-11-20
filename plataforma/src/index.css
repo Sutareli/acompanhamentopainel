@@ -23,3 +23,7 @@ html.tela-cheia .app-main { margin-left: 0; padding-bottom: 1.5rem; }
 /* Tabelas: títulos e dados centralizados; só a 1ª coluna (nome/identificação do item) fica à esquerda */
 table th, table td { text-align: center !important; }
 table th:first-child, table td:first-child, table [data-esq] { text-align: left !important; }   /* data-esq: exceção para um rótulo fora da 1ª coluna */
+
+/* Cabeçalho de cada módulo: título maior com filete de marca à esquerda (único ponto de destaque do visual) */
+.app-main h1 { border-left: 4px solid #4f46b5; padding-left: .75rem; font-size: 1.5rem; line-height: 1.2; font-weight: 650; }
+.app-main h1 + p { padding-left: calc(.75rem + 4px); }
