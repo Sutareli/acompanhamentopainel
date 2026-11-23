@@ -14,6 +14,23 @@ async function lerArquivo(f: File): Promise<string> {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf) } catch { return new TextDecoder('windows-1252').decode(buf) }
 }
 
+/** Tira as margens transparentes ou brancas em volta do logotipo, para ele preencher o quadro e ficar centralizado. */
+function recortarMargens(c: HTMLCanvasElement): HTMLCanvasElement {
+  try {
+    const ctx = c.getContext('2d')!, { width: w, height: h } = c, d = ctx.getImageData(0, 0, w, h).data
+    const vazio = (i: number) => d[i + 3] < 12 || (d[i] > 244 && d[i + 1] > 244 && d[i + 2] > 244)
+    let x0 = w, y0 = h, x1 = -1, y1 = -1
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!vazio((y * w + x) * 4)) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y }
+    if (x1 < 0) return c
+    const m = 2; x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(w - 1, x1 + m); y1 = Math.min(h - 1, y1 + m)
+    const nw = x1 - x0 + 1, nh = y1 - y0 + 1
+    if (nw >= w - 2 && nh >= h - 2) return c
+    const o = document.createElement('canvas'); o.width = nw; o.height = nh
+    o.getContext('2d')!.drawImage(c, x0, y0, nw, nh, 0, 0, nw, nh)
+    return o
+  } catch { return c }
+}
+
 /** Reduz a imagem escolhida (máx. 320×160) e devolve como data URL. SVG é mantido como veio. */
 async function reduzirLogo(f: File): Promise<string> {
   if (!f.type.startsWith('image/')) throw new Error('Escolha um arquivo de imagem (PNG, JPG ou SVG).')
@@ -21,8 +38,9 @@ async function reduzirLogo(f: File): Promise<string> {
   if (f.type === 'image/svg+xml') { if (url.length > 250000) throw new Error('SVG muito pesado (máximo ~180 KB). Use PNG.'); return url }
   const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Imagem inválida.')); i.src = url })
   const k = Math.min(1, 320 / img.width, 160 / img.height)
-  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k))
+  let c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k))
   c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
+  c = recortarMargens(c)
   const out = c.toDataURL('image/png')
   if (out.length > 280000) throw new Error('Imagem muito complexa. Use um logotipo mais simples ou menor.')
   return out
@@ -35,7 +53,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
   const [err, setErr] = useState(''); const [ok, setOk] = useState('')
   const [editando, setEditando] = useState(false)                     // modo "editar números"
   const [rascunho, setRascunho] = useState<Record<string, { h: string; a: string; d: string }>>({})
-  const [form, setForm] = useState<{ id?: string; nome: string; logo: string | null; site: Site | null } | null>(null)   // cadastro/edição de produto
+  const [form, setForm] = useState<{ id?: string; nome: string; logo: string | null; sites: Site[] } | null>(null)   // cadastro/edição de produto
   const [evol, setEvol] = useState<Produto | null>(null)
   const [hist, setHist] = useState<Record<string, Snapshot[]>>({})   // instantâneos por produto (mini evolução ao lado de cada linha)
   const [imp, setImp] = useState<{ nome: string; r: LeituraMetas } | null>(null)
@@ -69,8 +87,8 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
     if (!form) return
     const nome = form.nome.trim(); if (!nome) { setErr('Informe o nome do produto.'); return }
     const r = form.id
-      ? await supabase.from('metas_produtos').update({ nome, logo: form.logo, site: form.site }).eq('id', form.id)
-      : await supabase.from('metas_produtos').insert({ nome, logo: form.logo, site: form.site, ordem: (lista.reduce((m, p) => Math.max(m, p.ordem), 0) || 0) + 1 })
+      ? await supabase.from('metas_produtos').update({ nome, logo: form.logo, sites: form.sites }).eq('id', form.id)
+      : await supabase.from('metas_produtos').insert({ nome, logo: form.logo, sites: form.sites, ordem: (lista.reduce((m, p) => Math.max(m, p.ordem), 0) || 0) + 1 })
     if (r.error) { setErr(r.error.code === '23505' ? 'Já existe um produto com esse nome.' : 'Não foi possível salvar: ' + r.error.message); return }
     setForm(null); setErr(''); setOk(form.id ? 'Produto atualizado.' : 'Produto cadastrado. Preencha os números em “Editar números” ou importe a base.'); load()
   }
@@ -99,12 +117,17 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
     setImp(null); setErr(''); setOk(`Base importada: ${d.atualizados} produto(s) atualizado(s) e ${d.criados} novo(s). Os novos ficaram sem logotipo: use “Editar” na linha para enviar a imagem.`); load()
   }
 
-  const visiveis = filtroSite ? lista.filter((p) => (filtroSite === 'SEM' ? !p.site : p.site === filtroSite)) : lista
-  const contar = (f: '' | Site | 'SEM') => (f ? lista.filter((p) => (f === 'SEM' ? !p.site : p.site === f)).length : lista.length)
+  const visiveis = filtroSite ? lista.filter((p) => (filtroSite === 'SEM' ? !(p.sites || []).length : (p.sites || []).includes(filtroSite))) : lista
+  const contar = (f: '' | Site | 'SEM') => (f ? lista.filter((p) => (f === 'SEM' ? !(p.sites || []).length : (p.sites || []).includes(f))).length : lista.length)
   const nomeLogo = (p: Produto) => (
-    <div className="relative grid h-[56px] w-[116px] place-items-center rounded-xl bg-white px-2 shadow-[0_1px_2px_rgba(15,23,42,.08)] ring-1 ring-slate-200/80">
-      {p.logo ? <img src={p.logo} alt={p.nome} title={p.nome} style={{ maxHeight: 44, maxWidth: 100, objectFit: 'contain' }} /> : <span className="text-center text-[12px] font-semibold leading-tight text-slate-600">{p.nome}</span>}
-    {p.site && <span title={`Site ${p.site}`} className="absolute -right-2 -top-2 rounded-full bg-[#0b2461] px-2 py-0.5 text-[10px] font-bold leading-none text-white ring-2 ring-[#f3f4f6]">{p.site}</span>}
+    <div className="relative grid h-[60px] w-[116px] place-items-stretch rounded-xl bg-white p-2 shadow-[0_1px_2px_rgba(15,23,42,.08)] ring-1 ring-slate-200/80">
+      {p.logo
+        ? <span className="relative block h-full w-full"><img src={p.logo} alt={p.nome} title={p.nome} className="absolute inset-0 h-full w-full rounded-md object-contain object-center" /></span>
+        : <span className="grid place-items-center text-center text-[12px] font-semibold leading-tight text-slate-600">{p.nome}</span>}
+      {(p.sites || []).length > 0 && (
+        <span className="absolute -top-2 right-1 flex gap-0.5" title={`Site${(p.sites || []).length > 1 ? 's' : ''}: ${(p.sites || []).join(', ')}`}>
+          {SITES.filter((s) => (p.sites || []).includes(s)).map((s) => <span key={s} className="rounded-full bg-[#0b2461] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white ring-2 ring-[#f3f4f6]">{s}</span>)}
+        </span>)}
     </div>)
   // cada linha tem um filete branco por cima (menos a primeira) para separar os produtos dentro da coluna contínua
   const celula = (extra: string, children: ReactNode, key: string, i = 1, fio = 'border-white/70') => <div key={key} className={'flex items-center justify-center ' + (i > 0 ? 'border-t ' + fio + ' ' : '') + extra} style={{ height: ALT }}>{children}</div>
@@ -125,7 +148,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
           <p className="text-sm text-slate-500">Por produto: quantos indicadores estão habilitados e quantos têm meta, antes e depois da validação. {podeEditar ? 'Atualize importando uma base ou editando os números; cada mudança fica no histórico.' : 'Somente consulta.'}</p>
         </div>
         {podeEditar && !editando && (<>
-          <button className={btnP} onClick={() => setForm({ nome: '', logo: null, site: null })}>+ Novo produto</button>
+          <button className={btnP} onClick={() => setForm({ nome: '', logo: null, sites: [] })}>+ Novo produto</button>
           <button className={btnG} onClick={iniciarEdicao} disabled={!lista.length}>Editar números</button>
         </>)}
         {podeEditar && editando && (<>
@@ -161,7 +184,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
         <>
         <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar por site">
           <span className="mr-1 text-sm font-semibold text-ink">Site</span>
-          {(['', ...SITES, ...(lista.some((p) => !p.site) && lista.some((p) => p.site) ? ['SEM'] : [])] as ('' | Site | 'SEM')[]).map((f) => (
+          {(['', ...SITES, ...(lista.some((p) => !(p.sites || []).length) && lista.some((p) => (p.sites || []).length) ? ['SEM'] : [])] as ('' | Site | 'SEM')[]).map((f) => (
             <button key={f || 'todos'} type="button" aria-pressed={filtroSite === f} onClick={() => setFiltroSite(f)}
               className={'rounded-full border px-3 py-1 text-sm ' + (filtroSite === f ? 'border-[#0b2461] bg-[#0b2461] font-semibold text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}>
               {f === '' ? 'Todos' : f === 'SEM' ? 'Sem site' : f} <span className={filtroSite === f ? 'text-white/70' : 'text-slate-400'}>{contar(f)}</span>
@@ -189,7 +212,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
               <details className="relative">
                 <summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label={`Ações de ${p.nome}`}>⋯</summary>
                 <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border border-slate-200 bg-white p-1 text-sm shadow-lg" onClick={(e) => (e.currentTarget.parentElement as HTMLDetailsElement).removeAttribute('open')}>
-                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100" onClick={() => setForm({ id: p.id, nome: p.nome, logo: p.logo, site: p.site })}>Editar produto</button>
+                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100" onClick={() => setForm({ id: p.id, nome: p.nome, logo: p.logo, sites: p.sites || [] })}>Editar produto</button>
                   <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === 0} onClick={() => mover(p, -1)}>Subir</button>
                   <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === visiveis.length - 1} onClick={() => mover(p, 1)}>Descer</button>
                   <button className="block w-full rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50" onClick={() => excluir(p)}>Excluir</button>
@@ -205,11 +228,13 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
         <Modal title={form.id ? 'Editar produto' : 'Novo produto'} onClose={() => setForm(null)}>
           <div className="space-y-3">
             <Field label="Nome do produto / cliente"><input className={inp} maxLength={80} autoFocus value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); salvarProduto() } }} /></Field>
-            <Field label="Site">
-              <select className={inp} aria-label="Site do produto" value={form.site ?? ''} onChange={(e) => setForm({ ...form, site: (e.target.value || null) as Site | null })}>
-                <option value="">Sem site</option>
-                {SITES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
+            <Field label="Sites (marque todos em que o produto existe)">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Sites do produto">
+                {SITES.map((s) => { const on = form.sites.includes(s); return (
+                  <label key={s} className={'flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm ' + (on ? 'border-[#0b2461] bg-[#0b2461] font-semibold text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}>
+                    <input type="checkbox" className="sr-only" checked={on} onChange={() => setForm({ ...form, sites: on ? form.sites.filter((x) => x !== s) : SITES.filter((x) => x === s || form.sites.includes(x)) })} />{s}
+                  </label>) })}
+              </div>
             </Field>
             <Field label="Logotipo (PNG, JPG ou SVG)">
               <div className="flex items-center gap-3">
