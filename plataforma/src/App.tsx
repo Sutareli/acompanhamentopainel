@@ -3,7 +3,7 @@ import { useFeriados } from './lib/feriados'
 import { ConfirmHost } from './components/Confirm'
 import { LogoHorizontal, LogoIcone } from './components/Logo'
 import { useAuth } from './auth/AuthContext'
-import { Login, SetPassword } from './auth/Login'
+import { ConfirmarLink, Login, SetPassword } from './auth/Login'
 import { configured } from './lib/supabase'
 import { btnG, Card, Msg } from './components/ui'
 import Painel from './pages/Painel'
@@ -37,7 +37,7 @@ const BACKLOG_ITEMS: [string, string, string][] = [['melhorias', '', 'Melhorias'
 const grupoMenu = (k: string) => (['atencao'].includes(k) ? 0 : ['equipe', 'semanal', 'metas'].includes(k) ? 2 : ['melhorias', 'backlog', 'pareto'].includes(k) ? 3 : k === 'importar' ? 4 : 1)
 
 export default function App() {
-  const { session, profile, loading, authError, needsPassword, signOut } = useAuth()
+  const { session, profile, loading, authError, needsPassword, pendingLink, signOut } = useAuth()
   const [pg, setPage] = useState<string | null>(null)   // null = tela inicial do perfil (viewers: Atenção · demais: To do diário)
   useFeriados(!!profile)   // carrega os feriados do SLA e re-renderiza quando chegam
 
@@ -52,6 +52,7 @@ export default function App() {
     )
   }
   if (loading) return <div className="flex min-h-screen items-center justify-center text-slate-500">Carregando…</div>
+  if (pendingLink) return <ConfirmarLink />
   if (!session) return <Login />
   if (needsPassword) return <SetPassword />
   if (!profile) {

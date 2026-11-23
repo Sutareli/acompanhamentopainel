@@ -132,6 +132,12 @@ Nas telas **Melhorias** e **Correção/manutenção** há dois filtros de perío
 - **Chamados da base não têm data de finalização** (a planilha não traz essa coluna), então não aparecem quando o filtro de finalização está ativo, a menos que a data seja informada na atividade.
 - Ordem: execute a 009 depois da 008. Instalação nova: apenas o `001_schema.sql`.
 
+## Recuperação de senha e convite
+
+- **Mensagens claras:** se o link do e-mail estiver expirado, já usado ou substituído por um pedido mais novo, a tela abre em *Recuperar senha* com o aviso "Este link expirou ou já foi usado…" (antes caía no login sem explicar). Isso acontece porque cada novo pedido de reset invalida o link anterior e o link vale 1 hora.
+- **Anti-clique repetido:** depois de enviar o pedido, o botão fica bloqueado por 60 s, para a pessoa não invalidar o próprio link pedindo de novo.
+- **Link à prova de antivírus:** o app aceita `?token_hash=…&type=recovery|invite` (tela *Continuar* que só valida o link quando a pessoa clica). Modelo de e-mail e passo a passo em `docs/email-redefinir-senha.md`. O link padrão antigo continua funcionando.
+
 ## Análise de chamados (análise dos chamados)
 
 Menu **Análise de chamados** (os itens de backlog ficam sempre por último no menu), com a visão da planilha "Análise de backlog": filtros de **mês** e **tipo**; KPIs (total de chamados, no prazo e %, tipos, subcategorias) com comparação ao mês anterior; **Pareto por tipo** e **por subcategoria** (barras + % acumulado + linha de 80%); chamados por dia; rosquinhas de categoria e de tipo; lista dos chamados (clique numa barra de subcategoria para listar só os dela) e exportação CSV.
