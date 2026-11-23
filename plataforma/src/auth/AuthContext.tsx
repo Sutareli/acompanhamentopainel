@@ -50,12 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session)
+      if (data.session?.user.user_metadata?.trocar_senha === true) setNeedsPassword(true)   // entrou com senha temporária
       if (data.session) await loadProfile(data.session.user.id)
       setLoading(false)
     })
     const { data: sub } = supabase.auth.onAuthStateChange((ev, s) => {
       setSession(s)
-      if (ev === 'PASSWORD_RECOVERY') setNeedsPassword(true)
+      if (ev === 'PASSWORD_RECOVERY' || s?.user.user_metadata?.trocar_senha === true) setNeedsPassword(true)
       if (s) setTimeout(() => loadProfile(s.user.id), 0)
       else setProfile(null)
     })
@@ -80,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return error ? error.message : null
     },
     async setPassword(password) {
-      const { error } = await supabase.auth.updateUser({ password })
+      const { error } = await supabase.auth.updateUser({ password, data: { trocar_senha: false } })
       if (!error) { setNeedsPassword(false); window.history.replaceState(null, '', window.location.pathname) }
       return error ? error.message : null
     },

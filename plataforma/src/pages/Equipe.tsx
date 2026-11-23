@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { useMicros } from '../lib/useMicros'
 import { canAdmin, canSeeAdmin, CRIT_COLOR, CRIT_LABEL, download, fmtDate, Perfil, PERFIL_LABEL, PERFIS, STATUS_COLOR, STATUS_LABEL, StatusGeral, TIPO_COLOR, TipoProjeto, toCSV, todayStr, TZ, Micro } from '../lib/rules'
-import { Bar, btnG, btnP, Card, Chip, Empty, Field, HBars, inp, Kpi, Msg, StackBar, VBars } from '../components/ui'
+import { Bar, btnG, btnP, Card, Chip, Empty, Field, HBars, inp, Kpi, Modal, Msg, StackBar, VBars } from '../components/ui'
 import Microentregas, { Seg } from './Microentregas'
 import { confirmar } from '../components/Confirm'
 import TendenciaAtividades from '../components/TendenciaAtividades'
@@ -84,6 +84,16 @@ export default function Equipe() {
     setMsg(`Usuário ${p.nome} excluído. Dá para restaurar na Lixeira por 48 h.`); reload()
   }
 
+  const [senhaTemp, setSenhaTemp] = useState<{ nome: string; email: string; senha: string } | null>(null)
+  async function senhaTemporaria(p: { id: string; nome: string; email: string }) {
+    setErr(''); setMsg('')
+    if (!(await confirmar({ titulo: 'Gerar senha temporária?', mensagem: <>A senha atual de <b>{p.nome}</b> deixa de valer. Será gerada uma senha temporária, que você passa ao usuário; ele troca por uma própria no primeiro acesso.</>, confirmar: 'Gerar senha' }))) return
+    const r = await supabase.functions.invoke('definir-senha', { body: { user_id: p.id } })
+    const d = r.data as { error?: string; senha?: string } | null
+    if (r.error || d?.error || !d?.senha) return setErr('Não foi possível gerar a senha: ' + (d?.error || r.error?.message || 'sem resposta'))
+    setSenhaTemp({ nome: p.nome, email: p.email, senha: d.senha })
+  }
+
   async function invite(e: FormEvent) {
     e.preventDefault(); setErr(''); setMsg('')
     if (!inv.nome.trim() || !/^\S+@\S+\.\S+$/.test(inv.email)) return setErr('Informe nome e um e-mail válido.')
@@ -158,6 +168,20 @@ export default function Equipe() {
       {error && <Msg kind="erro">{error}</Msg>}
       {err && <Msg kind="erro">{err}</Msg>}
       {msg && <Msg kind="ok">{msg}</Msg>}
+      {senhaTemp && (
+        <Modal title="Senha temporária gerada" onClose={() => setSenhaTemp(null)}>
+          <p className="text-sm text-slate-600">Passe estes dados a <b>{senhaTemp.nome}</b> (por mensagem, não por e-mail). No primeiro acesso a plataforma pede que ele crie a própria senha.</p>
+          <dl className="mt-3 space-y-2 text-sm">
+            <div><dt className="text-xs text-slate-500">Usuário (e-mail)</dt><dd className="font-semibold">{senhaTemp.email}</dd></div>
+            <div><dt className="text-xs text-slate-500">Senha temporária</dt><dd className="select-all rounded bg-slate-100 px-3 py-2 font-mono text-lg font-bold tracking-wider text-navy">{senhaTemp.senha}</dd></div>
+          </dl>
+          <p className="mt-3 text-xs text-amber-700">Esta senha aparece só agora. Se perder, gere outra.</p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button className={btnG} onClick={() => { try { navigator.clipboard.writeText(senhaTemp.senha) } catch { /* sem permissão */ } }}>Copiar senha</button>
+            <button className={btnP} onClick={() => setSenhaTemp(null)}>Fechar</button>
+          </div>
+        </Modal>
+      )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-8">
         <Kpi icon="" label={tipo === 'macro' ? 'Projetos' : tipo === 'micro' ? 'Atividades' : 'Registros cadastrados'} value={rows.length} />
@@ -221,7 +245,7 @@ export default function Equipe() {
                   <td className="py-2">{p.nome}</td><td>{p.email}</td>
                   <td><select className={inp + ' !w-auto !py-1'} value={p.perfil} disabled={!isGestor || p.id === profile!.id} onChange={(e) => patch(p.id, { perfil: e.target.value })}>{PERFIS.map((k) => <option key={k} value={k}>{PERFIL_LABEL[k as Perfil]}</option>)}</select></td>
                   <td>{p.id === profile!.id ? <Chip color="#16a34a">Você</Chip> : !isGestor ? <span className="text-xs text-slate-500">{p.ativo ? 'Ativo' : 'Inativo'}</span> : <button className={btnG + ' !px-3 !py-1 !text-xs'} onClick={() => patch(p.id, { ativo: !p.ativo })}>{p.ativo ? 'Ativo · desativar' : 'Inativo · reativar'}</button>}</td>
-                  <td className="text-right">{isGestor && p.id !== profile!.id && <button className={btnG + ' !px-3 !py-1 !text-xs !border-red-200 !text-red-600 hover:!bg-red-50'} onClick={() => excluirUsuario(p)}>Excluir</button>}</td>
+                  <td className="space-x-1 whitespace-nowrap text-right">{isGestor && p.id !== profile!.id && p.ativo && <button className={btnG + ' !px-3 !py-1 !text-xs'} onClick={() => senhaTemporaria(p)}>Senha temporária</button>}{isGestor && p.id !== profile!.id && <button className={btnG + ' !px-3 !py-1 !text-xs !border-red-200 !text-red-600 hover:!bg-red-50'} onClick={() => excluirUsuario(p)}>Excluir</button>}</td>
                 </tr>
               ))}
             </tbody>
