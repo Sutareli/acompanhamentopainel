@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { download, fmtDate, fmtDateTime } from '../lib/rules'
 import { fmtPct, lerMetas, LeituraMetas, modeloMetasCsv, pct, Produto, serieEvolucao, Site, SITES, Snapshot, validarNumeros } from '../lib/metas'
@@ -98,6 +98,8 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
   const [rascunho, setRascunho] = useState<Record<string, { h: string; a: string; d: string }>>({})
   const [form, setForm] = useState<{ id?: string; nome: string; logo: string | null; sites: Site[] } | null>(null)   // cadastro/edição de produto
   const [evol, setEvol] = useState<Produto | null>(null)
+  const [apres, setApres] = useState(false)   // modo apresentação (tela cheia, sem menus nem botões de edição)
+  const [escala, setEscala] = useState(1)
   const [fundos, setFundos] = useState<Record<string, string | null>>({})   // cor de fundo do cartão de cada logotipo (chave = o próprio data URL)
   const [hist, setHist] = useState<Record<string, Snapshot[]>>({})   // instantâneos por produto (mini evolução ao lado de cada linha)
   const [imp, setImp] = useState<{ nome: string; r: LeituraMetas } | null>(null)
@@ -166,8 +168,30 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
     lista.forEach((p) => { if (p.logo && !(p.logo in fundos)) corDoFundo(p.logo).then((c) => { if (vivo) setFundos((f) => (p.logo! in f ? f : { ...f, [p.logo!]: c })) }) })
     return () => { vivo = false }
   }, [lista, fundos])
+  // tela cheia: o menu some (classe no <html>, tratada no index.css, igual ao Status Rocco); ao sair ou fechar a tela ele volta
+  useEffect(() => {
+    const h = () => { const on = !!document.fullscreenElement; document.documentElement.classList.toggle('tela-cheia', on); setApres(on) }
+    document.addEventListener('fullscreenchange', h); h()
+    return () => { document.removeEventListener('fullscreenchange', h); document.documentElement.classList.remove('tela-cheia'); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}) }
+  }, [])
+  const alternarApresentacao = () => { (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {}) }
   const visiveis = filtroSite ? lista.filter((p) => (filtroSite === 'SEM' ? !(p.sites || []).length : (p.sites || []).includes(filtroSite))) : lista
   const contar = (f: '' | Site | 'SEM') => (f ? lista.filter((p) => (f === 'SEM' ? !(p.sites || []).length : (p.sites || []).includes(f))).length : lista.length)
+  // na apresentação o quadro é ampliado para ocupar a tela (largura e altura) e ← → passam de um site para o outro
+  useEffect(() => {
+    if (!apres) { setEscala(1); return }
+    const ajustar = () => setEscala(Math.max(0.8, Math.min(2.2, (window.innerWidth - 64) / 1090, (window.innerHeight - 120) / (250 + visiveis.length * ALT))))
+    ajustar(); window.addEventListener('resize', ajustar); return () => window.removeEventListener('resize', ajustar)
+  }, [apres, visiveis.length])
+  useEffect(() => {
+    if (!apres) return
+    const h = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+      const op = (['', ...SITES, 'SEM'] as ('' | Site | 'SEM')[]).filter((f) => f === '' || contar(f) > 0)
+      const i = Math.max(0, op.indexOf(filtroSite)); setFiltroSite(op[(i + (e.key === 'ArrowRight' ? 1 : op.length - 1)) % op.length])
+    }
+    window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h)
+  })
   const nomeLogo = (p: Produto) => (
     <div className="relative grid h-[60px] w-[116px] place-items-stretch rounded-xl p-2 shadow-[0_1px_2px_rgba(15,23,42,.08)] ring-1 ring-slate-200/80" style={{ background: (p.logo && fundos[p.logo]) || '#fff' }}>
       {p.logo
@@ -194,9 +218,10 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
       <div className="flex flex-wrap items-start gap-3">
         <div className="min-w-[240px] flex-1">
           <h1 className="text-xl font-semibold text-ink">Validação de metas</h1>
-          <p className="text-sm text-slate-500">Por produto: quantos indicadores estão habilitados e quantos têm meta, antes e depois da validação. {podeEditar ? 'Atualize importando uma base ou editando os números; cada mudança fica no histórico.' : 'Somente consulta.'}</p>
+          <p className={'text-sm text-slate-500' + (apres ? ' hidden' : '')}>Por produto: quantos indicadores estão habilitados e quantos têm meta, antes e depois da validação. {podeEditar ? 'Atualize importando uma base ou editando os números; cada mudança fica no histórico.' : 'Somente consulta.'}</p>
         </div>
-        {podeEditar && !editando && (<>
+        <button className={apres ? btnP : btnG} onClick={alternarApresentacao}>{apres ? 'Sair da apresentação' : 'Apresentar em tela cheia'}</button>
+        {podeEditar && !editando && !apres && (<>
           <button className={btnP} onClick={() => setForm({ nome: '', logo: null, sites: [] })}>+ Novo produto</button>
           <button className={btnG} onClick={iniciarEdicao} disabled={!lista.length}>Editar números</button>
         </>)}
@@ -205,9 +230,9 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
           <button className={btnG} onClick={() => { setEditando(false); setErr('') }}>Cancelar</button>
         </>)}
       </div>
-      {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}
+      {!apres && err && <Msg kind="erro">{err}</Msg>}{!apres && ok && <Msg kind="ok">{ok}</Msg>}
 
-      {podeEditar && !editando && (
+      {podeEditar && !editando && !apres && (
         <Card>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <b className="text-ink">Atualizar por base</b>
@@ -230,7 +255,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
       {loading ? <p className="py-10 text-center text-slate-500">Carregando…</p> : lista.length === 0 ? (
         <Card><Empty>{podeEditar ? 'Nenhum produto cadastrado. Use “Novo produto” (com o logotipo) ou importe uma base.' : 'Nenhum produto cadastrado ainda.'}</Empty></Card>
       ) : (
-        <>
+        <div style={apres ? ({ zoom: escala } as CSSProperties) : undefined}>
         <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar por site">
           <span className="mr-1 text-sm font-semibold text-ink">Site</span>
           {(['', ...SITES, ...(lista.some((p) => !(p.sites || []).length) && lista.some((p) => (p.sites || []).length) ? ['SEM'] : [])] as ('' | Site | 'SEM')[]).map((f) => (
@@ -241,7 +266,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
         </div>
         {visiveis.length === 0 ? <Card><Empty>Nenhum produto neste site. {podeEditar ? 'Defina o site em “Editar produto” (menu ⋯ da linha).' : ''}</Empty></Card> : (
         <div className="overflow-x-auto rounded-2xl border border-linha bg-[#f3f4f6] p-5">
-          <div className="grid min-w-[1030px]" style={{ gridTemplateColumns: colunas, gap: '8px 0' }}>
+          <div className="grid min-w-[1030px]" style={{ gridTemplateColumns: colunas, gap: '8px 0', justifyContent: apres ? 'center' : undefined }}>
             {/* cabeçalhos e corpo posicionados na grade: 1 logo · 2 habilitados · 3 vão · 4–5 antes · 6 vão · 7–8 depois · 9 vão · 10 evolução · 11 ações */}
             <div className="flex items-center justify-center rounded-2xl px-2 py-3 text-center text-xs font-bold leading-tight text-white shadow-sm" style={{ background: AZUL, gridColumn: 2, gridRow: '1 / span 2' }}>Indicadores<br />Habilitados</div>
             {cab('Antes', '!rounded-lg !py-1.5', { gridColumn: '4 / span 2', gridRow: 1 })}
@@ -257,7 +282,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
             <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 7, gridRow: 3 }}>{visiveis.map((p, i) => celula('', num(p, 'd', p.depois, VERDE, 24), p.id, i))}</div>
             <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 8, gridRow: 3 }}>{visiveis.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'd')}</span>, p.id, i))}</div>
             <div className="mt-2 flex flex-col" style={{ gridColumn: 10, gridRow: 3 }}>{visiveis.map((p, i) => celula('', <MiniEvolucao p={p} h={hist[p.id] || []} onAbrir={() => setEvol(p)} />, p.id, i, 'border-slate-200'))}</div>
-            <div className="mt-2 flex flex-col" style={{ gridColumn: 11, gridRow: 3 }}>{visiveis.map((p, i) => celula('', podeEditar && !editando ? (
+            <div className="mt-2 flex flex-col" style={{ gridColumn: 11, gridRow: 3 }}>{visiveis.map((p, i) => celula('', podeEditar && !editando && !apres ? (
               <details className="relative">
                 <summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label={`Ações de ${p.nome}`}>⋯</summary>
                 <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border border-slate-200 bg-white p-1 text-sm shadow-lg" onClick={(e) => (e.currentTarget.parentElement as HTMLDetailsElement).removeAttribute('open')}>
@@ -270,7 +295,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
           </div>
           <p className="mt-3 text-xs text-slate-500">Última atualização: {fmtDateTime(lista.reduce((m, p) => (p.atualizado_em > m ? p.atualizado_em : m), ''))}. Percentual = indicadores com meta ÷ indicadores habilitados.</p>
         </div>)}
-        </>
+        </div>
       )}
 
       {form && (
