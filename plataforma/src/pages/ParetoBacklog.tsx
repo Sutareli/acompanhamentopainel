@@ -4,14 +4,14 @@ import { useAuth } from '../auth/AuthContext'
 import { canAdmin, download, fmtDate, fmtDateTime, toCSV, TZ } from '../lib/rules'
 import { btnG, btnSm, Card, Empty, HBars, Msg } from '../components/ui'
 import ParetoChart from '../components/ParetoChart'
-import { AreaDias, Rosca } from '../components/Charts2'
+import ParetoComparativo from '../components/ParetoComparativo'
+import { Rosca } from '../components/Charts2'
 import Responsaveis from '../components/Responsaveis'
 import ComparativoChamados, { Metas } from '../components/ComparativoChamados'
 import ResumoMes from '../components/ResumoMes'
-import EvolucaoSubcategorias from '../components/EvolucaoSubcategorias'
 import { podeAjustarSla } from '../lib/sla'
 import ListaChamadosModal from '../components/ListaChamadosModal'
-import { Chamado, SEM_RESP, empresaDe, contar, foraPrazo, improcedente, kpis, noPrazoPlan, pendente, mesAnterior, mesKey, mesLabel, noPrazo, porDia, quinzenaDe, semanaDe, semanasDoMes } from '../lib/chamados'
+import { Chamado, SEM_RESP, empresaDe, contar, foraPrazo, improcedente, kpis, noPrazoPlan, pendente, mesAnterior, mesKey, mesLabel, noPrazo, quinzenaDe, semanaDe, semanasDoMes } from '../lib/chamados'
 
 /** "Análise de chamados" (antes "Pareto backlog") — análise qualitativa dos chamados de correção/manutenção (visão da planilha "Análise de backlog"). Leitura para todos; carga só do Analista Sr. */
 const lc = (s: string | null) => (s ?? '').trim().toLowerCase()
@@ -33,6 +33,15 @@ function KpiCard({ titulo, valor, sub, children, onClick }: { titulo: string; va
 }
 const chip = (on: boolean) => 'rounded-md border px-3 py-1 text-xs font-medium transition ' + (on ? 'border-navy bg-navy text-white' : 'border-violet-300 bg-white text-navy hover:bg-violet-50')
 
+/** Alternador do pareto: visão normal × comparativo com o mês anterior. */
+function Alterna({ ligado, onChange }: { ligado: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="inline-flex overflow-hidden rounded-md border border-violet-300 text-xs font-medium" role="group" aria-label="Visão do pareto">
+      <button className={'px-3 py-1 ' + (!ligado ? 'bg-navy text-white' : 'bg-white text-navy hover:bg-violet-50')} aria-pressed={!ligado} onClick={() => onChange(false)}>Mês selecionado</button>
+      <button className={'px-3 py-1 ' + (ligado ? 'bg-navy text-white' : 'bg-white text-navy hover:bg-violet-50')} aria-pressed={ligado} onClick={() => onChange(true)}>Comparar com mês anterior</button>
+    </div>)
+}
+
 export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { profile } = useAuth()
   const [todas, setTodas] = useState<Chamado[]>([])   // base inteira; `rows` abaixo é a base já filtrada pela empresa responsável
@@ -45,6 +54,8 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
   const [quinz, setQuinz] = useState<0 | 1 | 2>(0)       // 0 = mês inteiro · 1 = dias 1–15 · 2 = dia 16 em diante
   const [sem, setSem] = useState(0)                       // 0 = todas as semanas do mês · n = semana n (segunda a domingo)
   const [metas, setMetas] = useState<Metas>({ meta_total_mes: null, meta_pct_prazo: null })
+  const [compTipo, setCompTipo] = useState(false)   // Pareto de tipo: comparar com o mês anterior
+  const [compSub, setCompSub] = useState(false)    // Pareto de subcategoria: comparar com o mês anterior
   const [det, setDet] = useState<{ titulo: string; itens: Chamado[] } | null>(null)   // lista aberta ao clicar num card
   const [carga, setCarga] = useState<{ em: string; qtd: number; nome: string } | null>(null)
 
@@ -92,11 +103,16 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
   const kp = useMemo(() => kpis(anterior), [anterior])
   const temAnt = !!mesSel && !sem && anterior.length > 0
 
+  // mesma janela do mês atual (quinzena e, no mês corrente, até o mesmo dia); o pareto de tipo não aplica o filtro de tipo
+  const anteriorTodosTipos = useMemo(() => (mesSel ? rows.filter((r) => mesKey(r.data_ref) === mesAnterior(mesSel) && (!quinz || quinzenaDe(r.data_ref) === quinz) && +r.data_ref.slice(8, 10) <= diaCorte) : []), [rows, mesSel, quinz, diaCorte])
+  const parTipoAnt = useMemo(() => contar(anteriorTodosTipos, (c) => c.tipo).barras, [anteriorTodosTipos])
+  const scAnt = useMemo(() => contar(anterior, (c) => c.subcategoria).barras, [anterior])
+  const podeComparar = !!mesSel && !sem && anteriorTodosTipos.length > 0
+  const rotAtu = mesSel ? mesLabel(mesSel) : '', rotAnt = mesSel ? mesLabel(mesAnterior(mesSel)) : ''
   const parTipo = useMemo(() => contar(doMes, (c) => c.tipo).barras, [doMes])            // o gráfico de tipo mostra todos os tipos (é ele que filtra)
   const sc = useMemo(() => contar(filtrado, (c) => c.subcategoria), [filtrado])
   const cat = useMemo(() => contar(filtrado, (c) => c.categoria), [filtrado])
   const tipoRosca = useMemo(() => contar(filtrado, (c) => c.tipo).barras, [filtrado])
-  const dias = useMemo(() => (mesSel ? porDia(filtrado, mesSel) : []), [filtrado, mesSel])
   const porMes = useMemo(() => meses.map((m) => ({ label: mesLabel(m), value: rows.filter((r) => mesKey(r.data_ref) === m).filter(filtraTipo).length })), [rows, meses, tipos]) // eslint-disable-line react-hooks/exhaustive-deps
   const lista = useMemo(() => filtrado.filter((c) => !sub || lc(c.subcategoria) === lc(sub)), [filtrado, sub])
 
@@ -173,7 +189,6 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
         {det && <ListaChamadosModal titulo={det.titulo} itens={det.itens} onClose={() => setDet(null)} />}
         <ResumoMes key={'rm' + (mesSel || meses[meses.length - 1])} rows={rows} meses={meses} mesInicial={mesSel || meses[meses.length - 1]} />
         <ComparativoChamados key={mesSel || meses[meses.length - 1]} rows={rows.filter(filtraTipo)} meses={meses} mesInicial={mesSel || meses[meses.length - 1]} filtroTxt={tipos.length ? `Tipo: ${tipos.join(', ')}. ` : ''} metas={metas} podeMetas={podeAjustarSla(profile!.perfil)} onSalvarMetas={salvarMetas} />
-        <EvolucaoSubcategorias rows={rows.filter(filtraTipo)} meses={meses} />
         {!mesSel && <p className="text-xs text-slate-500">Com “Todos” os meses não há comparação com o mês anterior; os filtros de quinzena e semana aparecem ao escolher um mês.</p>}
         {!!mesSel && !!sem && <p className="text-xs text-slate-500">Filtro de semana: sem comparação com o mês anterior. Semanas vão de segunda a domingo (a 1ª e a última podem ser parciais).</p>}
 
@@ -181,21 +196,32 @@ export default function ParetoBacklog({ onNavigate }: { onNavigate: (p: string) 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <div className="space-y-4 xl:col-span-2">
               <Card>
-                <h3 className="font-bold text-navy">Tipo de chamado</h3>
-                <p className="mb-2 text-xs text-slate-500">Clique em uma barra para filtrar os demais painéis por esse tipo.</p>
-                <ParetoChart barras={parTipo} titulo="Pareto por tipo de chamado" destaque={tipos} onSelect={(n) => n && toggleTipo(n)} />
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-bold text-navy">Tipo de chamado</h3>
+                    <p className="mb-2 text-xs text-slate-500">Clique em uma barra para filtrar os demais painéis por esse tipo.</p>
+                  </div>
+                  {podeComparar && <Alterna ligado={compTipo} onChange={setCompTipo} />}
+                </div>
+                {podeComparar && compTipo
+                  ? <ParetoComparativo atual={parTipo} anterior={parTipoAnt} rotAtual={rotAtu} rotAnterior={rotAnt + (emAndamento ? ` (até dia ${diaCorte})` : '')} titulo="Pareto por tipo de chamado: mês anterior × mês atual" destaque={tipos} onSelect={(n) => n && toggleTipo(n)} />
+                  : <ParetoChart barras={parTipo} titulo="Pareto por tipo de chamado" destaque={tipos} onSelect={(n) => n && toggleTipo(n)} />}
               </Card>
               <Card>
-                <h3 className="font-bold text-navy">Subcategoria de chamado</h3>
-                <p className="mb-2 text-xs text-slate-500">Clique em uma barra para listar os chamados dessa subcategoria abaixo.{sc.vazios > 0 && ` ${sc.vazios} chamado(s) sem subcategoria preenchida não entram neste gráfico.`}</p>
-                <ParetoChart barras={sc.barras} titulo="Pareto por subcategoria" selecionado={sub} onSelect={setSub} />
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-bold text-navy">Subcategoria de chamado</h3>
+                    <p className="mb-2 text-xs text-slate-500">Clique em uma barra para listar os chamados dessa subcategoria abaixo.{sc.vazios > 0 && ` ${sc.vazios} chamado(s) sem subcategoria preenchida não entram neste gráfico.`}</p>
+                  </div>
+                  {podeComparar && <Alterna ligado={compSub} onChange={setCompSub} />}
+                </div>
+                {podeComparar && compSub
+                  ? <ParetoComparativo atual={sc.barras} anterior={scAnt} rotAtual={rotAtu} rotAnterior={rotAnt + (emAndamento ? ` (até dia ${diaCorte})` : '')} titulo="Pareto por subcategoria: mês anterior × mês atual" selecionado={sub} onSelect={setSub} />
+                  : <ParetoChart barras={sc.barras} titulo="Pareto por subcategoria" selecionado={sub} onSelect={setSub} />}
               </Card>
             </div>
             <div className="space-y-4">
-              <Card>
-                <h3 className="mb-2 font-bold text-navy">{mesSel ? 'Distribuição de chamados por dia' : 'Chamados por mês'}</h3>
-                {mesSel ? <AreaDias valores={dias} mes={mesLabel(mesSel)} /> : <HBars rows={porMes} />}
-              </Card>
+              {!mesSel && <Card><h3 className="mb-2 font-bold text-navy">Chamados por mês</h3><HBars rows={porMes} /></Card>}
               <Card><h3 className="mb-2 font-bold text-navy">Categoria</h3><Rosca titulo="Chamados por categoria" dados={cat.barras} total={filtrado.length - cat.vazios} rotulo="chamados" /></Card>
               <Card><h3 className="mb-2 font-bold text-navy">Tipo</h3><Rosca titulo="Chamados por tipo" dados={tipoRosca} total={filtrado.length} rotulo="chamados" /></Card>
             </div>

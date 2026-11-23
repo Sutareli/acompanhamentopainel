@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { contar, diasNoMes, kpis, lerBase, mesAnterior, mesLabel, porDia, quinzenaDe, resumoMes, semanaDe, semanasDoMes } from '../src/lib/chamados'
+import { compararPareto, contar, diasNoMes, kpis, lerBase, mesAnterior, mesLabel, porDia, quinzenaDe, resumoMes, semanaDe, semanasDoMes } from '../src/lib/chamados'
 import type { Chamado } from '../src/lib/chamados'
 import { compara, fatorPeriodo, naPeriodo } from '../src/lib/comparativo'
 
@@ -83,4 +83,17 @@ test('veredito: sinais opostos = misto; diferença pequena = estável', () => {
 })
 test('veredito: sem chamados na base de comparação = sem base', () => {
   assert.equal(compara({ total: 10, pctPrazo: 0.5 }, { total: 0, pctPrazo: null }).veredito, 'sem_base')
+})
+
+test('pareto comparativo: une categorias dos dois meses, ordena pelo mês atual e acumula só o atual', () => {
+  const r = compararPareto(
+    [{ nome: 'Dados', qtd: 6 }, { nome: 'Acesso', qtd: 3 }, { nome: 'Layout', qtd: 1 }],
+    [{ nome: 'acesso', qtd: 5 }, { nome: 'Dados', qtd: 2 }, { nome: 'Integração', qtd: 4 }])
+  assert.deepEqual(r.map((x) => x.nome), ['Dados', 'Acesso', 'Layout', 'Integração'])        // sem diferenciar maiúsculas; só do mês anterior vai para o fim
+  assert.deepEqual(r.map((x) => [x.atual, x.anterior, x.delta]), [[6, 2, 4], [3, 5, -2], [1, 0, 1], [0, 4, -4]])
+  assert.deepEqual(r.map((x) => Math.round(x.acum)), [60, 90, 100, 100])                       // acumulado sobre o total do mês atual (10)
+})
+test('pareto comparativo: mês atual vazio não gera divisão por zero', () => {
+  const r = compararPareto([], [{ nome: 'A', qtd: 2 }])
+  assert.deepEqual(r.map((x) => [x.atual, x.anterior, x.delta, x.acum]), [[0, 2, -2, 0]])
 })

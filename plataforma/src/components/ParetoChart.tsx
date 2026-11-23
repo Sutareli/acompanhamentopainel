@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Barra, pareto } from '../lib/chamados'
 
-function quebra(t: string, max = 13, linhas = 3): string[] {
+export function quebra(t: string, max = 13, linhas = 3): string[] {
   const out: string[] = []; let cur = ''
   for (let w of t.replace(/\//g, '/ ').split(/\s+/)) {
     if (w.length > max) w = w.slice(0, max - 1) + '…'

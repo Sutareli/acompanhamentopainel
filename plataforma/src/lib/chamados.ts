@@ -138,6 +138,17 @@ export function pareto(barras: Barra[]) {
   const total = barras.reduce((a, b) => a + b.qtd, 0); let ac = 0
   return barras.map((b) => { ac += b.qtd; return { ...b, pct: total ? (b.qtd / total) * 100 : 0, acum: total ? (ac / total) * 100 : 0 } })
 }
+/** Pareto comparativo (mês anterior × mês atual): une as categorias dos dois meses (sem diferenciar maiúsculas), ordena pelo mês ATUAL
+ *  (maior → menor; empate e categorias que só existiam no mês anterior pelo anterior) e calcula o % acumulado do mês atual. */
+export interface BarraComp { nome: string; atual: number; anterior: number; delta: number; acum: number }
+export function compararPareto(atual: Barra[], anterior: Barra[]): BarraComp[] {
+  const m = new Map<string, { nome: string; atual: number; anterior: number }>()
+  for (const b of atual) { const key = k(b.nome); const o = m.get(key); if (o) o.atual += b.qtd; else m.set(key, { nome: b.nome.trim(), atual: b.qtd, anterior: 0 }) }
+  for (const b of anterior) { const key = k(b.nome); const o = m.get(key); if (o) o.anterior += b.qtd; else m.set(key, { nome: b.nome.trim(), atual: 0, anterior: b.qtd }) }
+  const L = [...m.values()].sort((a, b) => b.atual - a.atual || b.anterior - a.anterior || a.nome.localeCompare(b.nome, 'pt-BR'))
+  const total = L.reduce((s, x) => s + x.atual, 0); let ac = 0
+  return L.map((x) => { ac += x.atual; return { ...x, delta: x.atual - x.anterior, acum: total ? (ac / total) * 100 : 0 } })
+}
 export function porDia(items: Chamado[], mes: string): number[] {
   const a = new Array(diasNoMes(mes)).fill(0)
   for (const c of items) if (mesKey(c.data_ref) === mes) a[+c.data_ref.slice(8, 10) - 1]++
