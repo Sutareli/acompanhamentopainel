@@ -135,6 +135,7 @@ Nas telas **Melhorias** e **Correção/manutenção** há dois filtros de perío
 ## Recuperação de senha e convite
 
 - **Mensagens claras:** se o link do e-mail estiver expirado, já usado ou substituído por um pedido mais novo, a tela abre em *Recuperar senha* com o aviso "Este link expirou ou já foi usado…" (antes caía no login sem explicar). Isso acontece porque cada novo pedido de reset invalida o link anterior e o link vale 1 hora.
+- **Ver a senha:** nos campos de senha (login e definição de senha) há o botão do olho para mostrar/ocultar o que foi digitado.
 - **Anti-clique repetido:** depois de enviar o pedido, o botão fica bloqueado por 60 s, para a pessoa não invalidar o próprio link pedindo de novo.
 - **Link à prova de antivírus:** o app aceita `?token_hash=…&type=recovery|invite` (tela *Continuar* que só valida o link quando a pessoa clica). Modelo de e-mail e passo a passo em `docs/email-redefinir-senha.md`. O link padrão antigo continua funcionando.
 
