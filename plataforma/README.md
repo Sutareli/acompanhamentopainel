@@ -23,7 +23,7 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 | 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
 | 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
 | 007 | responsável e fase nos chamados (detalhamento “Quem é responsável” do Pareto) | uma vez, **depois** de 006, e reimporte a base de chamados |
-| 008 → 027 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_035_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
+| 008 → 027 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_036_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
 | 006 | Atividades futuras (por bloco) e Projetos macro/micro (“com quem está”) | uma vez (se ainda não rodou) |
 
 **Atalho:** quem rodou só a 002 pode executar **`supabase/003_a_006_tudo_junto.sql`** (003 + 004 + 005 + 006 em um arquivo, uma única vez) em vez de rodar um por um.
@@ -98,7 +98,7 @@ O antigo backlog foi dividido em dois menus (mesma tabela, coluna `tipo_backlog`
 
 **Importar a base de melhorias** (só Analista Sr): Importar bases → "3 · Base de melhorias" (CSV com ID;Módulo;Melhoria;Descrição;…;Prioridade;Status;10 PRIMEIRAS). Colunas **opcionais**: `RESPONSÁVEL` (nome igual ao de um usuário ativo da plataforma; sem correspondência, defina na tela), `DATA DE ABERTURA`, `Nº DO CHAMADO`, `DATA DA IDEIA`. Etapa inicial: Concluído → Produção · Em andamento → Desenvolvimento · A iniciar com chamado/data de abertura → Chamado aberto · A iniciar na lista "10 primeiras" → Priorização · demais → Ideia. Linhas "Cancelado" não entram; "VOLTAR À CAPA" é ignorada. **Reimportar** atualiza textos, prioridade e posição, mas **não desfaz** etapa, datas, prazo, % nem responsável definidos no sistema (a base só faz a melhoria avançar de status).
 
-**Migração:** quem já rodou até a 019 executa `020_melhorias_e_correcao.sql` e depois `021_melhorias_data_abertura.sql` (a 021 pode ser rodada de novo sem problema, mesmo que uma versão anterior já tenha sido aplicada (as etapas antigas "Aplicada" viram "Produção")). O arquivo `008_a_035_tudo_junto.sql` reúne tudo.
+**Migração:** quem já rodou até a 019 executa `020_melhorias_e_correcao.sql` e depois `021_melhorias_data_abertura.sql` (a 021 pode ser rodada de novo sem problema, mesmo que uma versão anterior já tenha sido aplicada (as etapas antigas "Aplicada" viram "Produção")). O arquivo `008_a_036_tudo_junto.sql` reúne tudo.
 
 **Sem etapas “COMO?” nas Melhorias (migração 023):** o andamento (%) agora acompanha a etapa do funil — Ideia 0% · Priorização 17% · Especificação 33% · Chamado aberto 50% · Desenvolvimento 67% · Homologação 83% · Produção 100% — e não é mais digitado. A tela de detalhe das melhorias não mostra mais as etapas “COMO?” (as já cadastradas ficam guardadas no banco, sem efeito no status/%). A **Correção/manutenção** continua com etapas e % calculado por elas. Quem já rodou até a 022 executa apenas `023_melhorias_andamento_pela_etapa.sql`.
 
@@ -409,7 +409,7 @@ A importação de Projetos lê o CSV da aba **Microprojetos** exatamente como a 
 - **Responsável** aceita e-mail, nome completo, **primeiro nome/sobrenome** (ex.: “Higor”) ou **iniciais** (ex.: “MA”), desde que resolva para uma única pessoa ativa.
 
 ## Novidades da migração 025 (feriados, metas, comentários, backup, avisos)
-Aplique `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_035_tudo_junto.sql`). É idempotente e **não apaga dados**.
+Aplique `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_036_tudo_junto.sql`). É idempotente e **não apaga dados**.
 
 - **🔔 Atenção** (Diretor, Gerente, Analista Sr; é a tela inicial deles): cartões clicáveis com melhorias de prazo vencido, SLA vencido, sem responsável, correções vencidas e atividades com data target vencida, mais suas **menções**.
 - **Feriados no SLA:** *Configurações → Feriados*. Os nacionais já vêm até 2028; Analista Sr e Gerente incluem/removem. O SLA em dias úteis pula fim de semana **e** feriados (tela e banco usam a mesma regra).
@@ -436,7 +436,7 @@ A Análise de chamados ganhou o bloco **Resumo do mês**, com os mesmos quatro g
 
 **Para importar:** a base precisa ter as colunas `Status_Prazo` e `REINCIDENTE ?` (além das de sempre). Sem elas a importação avisa o que ficará incompleto.
 
-**Migração:** aplique `supabase/027_chamados_reincidente.sql` (ou o `008_a_035_tudo_junto.sql`). Cria a coluna `reincidente` e atualiza a função de importação; não apaga dados.
+**Migração:** aplique `supabase/027_chamados_reincidente.sql` (ou o `008_a_036_tudo_junto.sql`). Cria a coluna `reincidente` e atualiza a função de importação; não apaga dados.
 
 ## Instalar no celular (PWA)
 O painel é um aplicativo instalável, sem loja e sem custo: abra o endereço do site no celular e instale.
@@ -446,7 +446,7 @@ Arquivos: `public/manifest.webmanifest`, `public/sw.js` (service worker mínimo:
 
 ## Status Rocco — antiga Semanal Italo (migração 028; renomeada na 029)
 Menu **Status Rocco** (só Analista Sr; cada um vê apenas as suas semanais). Lista as reuniões por data, com **Nova semanal** e **Duplicar a última** (copia os textos, sem marcações e sem imagens).
-Dentro da semanal: os 5 blocos (Básico, Implantações, Melhorias e customizações, Atualização das atividades, Próximos passos), um de cada vez em tela grande (setas ← → do teclado). Em cada bloco: textos editáveis, **imagens** (botão ou Ctrl+V; reduzidas a 1400 px) com legenda, reordenar/remover, a **flag “já discutido”** em cada texto e a **flag “bloco visto”**. “Modo reunião” esconde os controles de edição; “Tela cheia” para projetar. Salva sozinho. Tabela `semanais` (RLS só do dono); rode `028_semanal.sql` (ou o `008_a_035_tudo_junto.sql`).
+Dentro da semanal: os 5 blocos (Básico, Implantações, Melhorias e customizações, Atualização das atividades, Próximos passos), um de cada vez em tela grande (setas ← → do teclado). Em cada bloco: textos editáveis, **imagens** (botão ou Ctrl+V; reduzidas a 1400 px) com legenda, reordenar/remover, a **flag “já discutido”** em cada texto e a **flag “bloco visto”**. “Modo reunião” esconde os controles de edição; “Tela cheia” para projetar. Salva sozinho. Tabela `semanais` (RLS só do dono); rode `028_semanal.sql` (ou o `008_a_036_tudo_junto.sql`).
 
 
 ### Filtro por responsável (Almawave / Almaviva)
@@ -486,3 +486,6 @@ Menu **Validação de metas** (Diretor, Gerente e Analista Sr veem; só o Analis
 - **Atualizar por base:** CSV com `Produto;Habilitados;Antes;Depois` (*Antes* é opcional; o botão *Baixar modelo CSV* traz o formato). Produto que já existe é atualizado pelo nome; o que não existe é criado (sem logotipo). Linhas com erro são ignoradas e listadas; a importação é tudo-ou-nada no banco.
 - **Acompanhar o desenvolvimento:** cada mudança de números grava um instantâneo em `metas_historico` (data, origem: cadastro/edição manual/importação). A coluna **Evolução**, à direita de cada produto, mostra um mini gráfico, a variação em pontos percentuais e *de X% para Y%*; clicar nela abre o gráfico completo (antes tracejado, depois cheio) e a tabela do histórico.
 - O banco impede indicadores com meta maiores que os habilitados.
+
+## Fila de ideias (migração 036)
+Na coluna **Ideia** de Melhorias cada cartão mostra sua posição na fila (**#1** = próxima a ser priorizada). O Analista Sr reordena com **⤒ Topo**, **↑**, **↓** ou **#…** (digitar a posição). A fila é gravada em `backlog_melhorias.fila_ideia` (a coluna `ordem_top`, das "10 primeiras", continua separada). Ideia nova entra no fim; ao avançar para Priorização a posição é limpa e a fila se renumera pela função `melhorias_fila_ideias`, restrita ao Analista Sr. A posição é sempre a da fila inteira, mesmo com filtros aplicados.

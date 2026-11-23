@@ -11,7 +11,7 @@ export interface Melhoria {
   data_inicio: string | null; data_termino: string | null; data_conclusao?: string | null; observacoes: string | null
   criado_por: string | null; criado_em: string; atualizado_em: string
   origem?: 'manual' | 'chamado'; chamado_chave?: string | null; chamado_status?: string | null
-  tipo_backlog?: 'melhoria' | 'correcao'; codigo_base?: number | null; ordem_top?: number | null
+  tipo_backlog?: 'melhoria' | 'correcao'; codigo_base?: number | null; ordem_top?: number | null; fila_ideia?: number | null
   fase?: Fase; data_ideia?: string | null; data_priorizacao?: string | null; data_especificacao?: string | null; data_abertura?: string | null
   data_homologacao?: string | null; numero_chamado?: string | null; responsavel_id?: string | null; sla_chamado_dias_uteis?: number | null; sla_dev_dias_corridos?: number | null
 }

@@ -40,7 +40,7 @@ function ordenar(k: Fase) {
   return (a: Melhoria, b: Melhoria) => {
     if (emDev(k)) return (a.data_termino || '9999').localeCompare(b.data_termino || '9999') || a.prioridade - b.prioridade || nome(a, b)
     if (k === 'producao') return (b.data_conclusao || '').localeCompare(a.data_conclusao || '') || nome(a, b)
-    if (k === 'ideia') return (a.ordem_top ?? 9999) - (b.ordem_top ?? 9999) || a.prioridade - b.prioridade || nome(a, b)
+    if (k === 'ideia') return (a.fila_ideia ?? 9999) - (b.fila_ideia ?? 9999) || (a.ordem_top ?? 9999) - (b.ordem_top ?? 9999) || a.prioridade - b.prioridade || nome(a, b)
     const c = k === 'priorizada' ? 'data_priorizacao' : k === 'especificacao' ? 'data_especificacao' : 'data_abertura'
     return a.prioridade - b.prioridade || ((a[c] as string) || '9999').localeCompare((b[c] as string) || '9999') || nome(a, b)
   }
@@ -226,11 +226,29 @@ export default function Melhorias() {
       </Card>
     )
   }
+  /** Fila de ideias: ordem global (sem filtros) e reordenação pelo Analista Sr. */
+  const filaGlobal = useMemo(() => rows.filter((r) => faseDe(r) === 'ideia').sort(ordenar('ideia')), [rows])
+  const posFila = (r: Melhoria) => filaGlobal.findIndex((x) => x.id === r.id) + 1
+  const podeFila = canAdmin(profile!.perfil)
+  async function moverFila(r: Melhoria, dest: 'topo' | 'sobe' | 'desce' | number) {
+    const ids = filaGlobal.map((x) => x.id); const i = ids.indexOf(r.id); if (i < 0) return
+    let j = dest === 'topo' ? 0 : dest === 'sobe' ? i - 1 : dest === 'desce' ? i + 1 : Math.min(Math.max(dest - 1, 0), ids.length - 1)
+    if (j < 0 || j >= ids.length || j === i) return
+    ids.splice(i, 1); ids.splice(j, 0, r.id)
+    const { error } = await supabase.rpc('melhorias_fila_ideias', { p_ids: ids })
+    if (error) return setErr('Não foi possível reordenar a fila: ' + error.message + ' (a migração 036 foi executada?)')
+    setErr(''); await load()
+  }
+  async function posicaoManual(r: Melhoria) {
+    const v = window.prompt(`Posição de “${r.melhoria}” na fila (1 a ${filaGlobal.length}):`, String(posFila(r)))
+    const n = Number(v); if (v && Number.isInteger(n) && n >= 1) await moverFila(r, n)
+  }
   const mini = (r: Melhoria) => {
     const pi = prazoInfo(r, hoje); const dias = naEtapa(r); const resumo = resumoDe(r)
     return (
       <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-3">
         <div className="flex flex-wrap items-center gap-1">
+          {faseDe(r) === 'ideia' && <span className="rounded bg-navy px-1.5 py-0.5 text-[10px] font-bold text-white" title="Posição na fila de ideias">#{posFila(r)}</span>}
           <span className="rounded bg-violet-100 px-1 py-0.5 text-[10px] font-bold text-violet-700">{r.modulo}</span>
           <span className="text-[10px] text-slate-500">prior. {r.prioridade}</span>
           {r.numero_chamado && <span className="rounded bg-cyan-50 px-1 py-0.5 text-[10px] font-bold text-cyan-700">{r.numero_chamado}</span>}
@@ -244,6 +262,14 @@ export default function Melhorias() {
           <span className="text-slate-500">{fase(r) === 'producao' ? pi.txt : dias ? `Na etapa ${dias}` : ''}</span>
           {(emDev(fase(r)) || r.data_termino) && fase(r) !== 'producao' && <span className="font-semibold" style={{ color: pi.cor }}>{pi.txt}</span>}
         </div>
+        {faseDe(r) === 'ideia' && podeFila && (
+          <div className="mt-2 flex flex-wrap gap-1" role="group" aria-label={`Fila: ${r.melhoria}`}>
+            <button className={btnG + ' ' + btnSm} onClick={() => moverFila(r, 'topo')} disabled={posFila(r) === 1} title="Levar para o topo da fila">⤒ Topo</button>
+            <button className={btnG + ' ' + btnSm} onClick={() => moverFila(r, 'sobe')} disabled={posFila(r) === 1} aria-label="Subir na fila">↑</button>
+            <button className={btnG + ' ' + btnSm} onClick={() => moverFila(r, 'desce')} disabled={posFila(r) === filaGlobal.length} aria-label="Descer na fila">↓</button>
+            <button className={btnG + ' ' + btnSm} onClick={() => posicaoManual(r)} title="Escolher a posição">#…</button>
+          </div>
+        )}
         {proxima(r) && canEdit(r) && <div className="mt-2 text-right">{botaoAvancar(r, true)}</div>}
       </div>
     )
@@ -378,6 +404,7 @@ export default function Melhorias() {
           {colunas.map((k) => { const f = faseInfo(k); const l = visiveis(k); return (
             <section key={k} aria-label={f.label} className="flex min-h-[8rem] w-[250px] shrink-0 flex-col rounded-md bg-slate-50 p-2 xl:min-w-[230px] xl:flex-1">
               <h2 className="mb-2 flex items-center gap-1.5 px-1 text-sm font-bold" style={{ color: f.cor }}><span>{f.icon}</span>{f.label}<span className="ml-auto rounded-full bg-white px-2 text-xs text-slate-600">{l.length}</span></h2>
+              {k === 'ideia' && <p className="mb-2 px-1 text-[11px] text-slate-500">Fila: #1 é a próxima a ser priorizada.{podeFila ? '' : ' Só o Analista Sr reordena.'}</p>}
               <div className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto pr-0.5">{l.length ? l.map((r) => mini(r)) : <p className="px-1 py-4 text-center text-xs text-slate-400">Nada nesta etapa.</p>}</div>
             </section>
           ) })}
