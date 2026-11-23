@@ -13,7 +13,7 @@ const DIAS = [[1, 'Seg'], [2, 'Ter'], [3, 'Qua'], [4, 'Qui'], [5, 'Sex'], [6, 'S
 const JANELA = 14   // dias de histórico usados no acompanhamento
 
 /** Atividades fixas por pessoa: o Analista Sr define; no To do diário da pessoa elas aparecem travadas (só marcar como feita). */
-export default function AtividadesFixas() {
+export default function AtividadesFixas({ somenteLeitura = false }: { somenteLeitura?: boolean }) {
   const { profile } = useAuth()
   const [pessoas, setPessoas] = useState<Pessoa[]>([])
   const [fixas, setFixas] = useState<Fixa[]>([])
@@ -73,7 +73,7 @@ export default function AtividadesFixas() {
     <div className="space-y-4">
       {err && <Msg kind="erro">{err}</Msg>}
       {ok && <Msg kind="ok">{ok}</Msg>}
-      <Card>
+      {!somenteLeitura && <Card>
         <h2 className="mb-1 font-semibold text-ink">Nova atividade fixa</h2>
         <p className="mb-3 text-sm text-slate-500">Aparece no To do diário da pessoa, no bloco escolhido e nos dias marcados. Ela só consegue marcar como feita; não edita, não move e não exclui.</p>
         <div className="grid gap-3 md:grid-cols-4">
@@ -97,7 +97,8 @@ export default function AtividadesFixas() {
           <Field label="Até (opcional)"><input type="date" className={inp + ' !w-auto'} value={fim} onChange={(e) => setFim(e.target.value)} /></Field>
           <button className={btnP} onClick={adicionar}>Adicionar atividade</button>
         </div>
-      </Card>
+      </Card>}
+      {somenteLeitura && <Msg kind="aviso">Somente consulta: só o Analista Sr cria, pausa ou exclui atividades fixas.</Msg>}
 
       {porPessoa.length === 0 ? <Card><Empty>Nenhuma atividade fixa cadastrada.</Empty></Card> : porPessoa.map(({ p, itens }) => (
         <Card key={p.id} className="!p-0 overflow-x-auto">
@@ -113,7 +114,7 @@ export default function AtividadesFixas() {
                   <td>{fmtDate(f.data_inicio)}{f.data_fim ? ` a ${fmtDate(f.data_fim)}` : ' em diante'}</td>
                   <td>{situacaoHoje(f)}</td>
                   <td>{resumo(f)}</td>
-                  <td className="whitespace-nowrap pr-4 text-right"><button className={btnG + ' ' + btnSm} onClick={() => alternar(f)}>{f.ativa ? 'Pausar' : 'Reativar'}</button> <button className={btnG + ' ' + btnSm} onClick={() => excluir(f)}>Excluir</button></td>
+                  <td className="whitespace-nowrap pr-4 text-right">{!somenteLeitura && <><button className={btnG + ' ' + btnSm} onClick={() => alternar(f)}>{f.ativa ? 'Pausar' : 'Reativar'}</button> <button className={btnG + ' ' + btnSm} onClick={() => excluir(f)}>Excluir</button></>}</td>
                 </tr>))}
             </tbody>
           </table>

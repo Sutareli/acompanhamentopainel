@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { useMicros } from '../lib/useMicros'
-import { canAdmin, CRIT_COLOR, CRIT_LABEL, download, fmtDate, Perfil, PERFIL_LABEL, PERFIS, STATUS_COLOR, STATUS_LABEL, StatusGeral, TIPO_COLOR, TipoProjeto, toCSV, todayStr, TZ, Micro } from '../lib/rules'
+import { canAdmin, canSeeAdmin, CRIT_COLOR, CRIT_LABEL, download, fmtDate, Perfil, PERFIL_LABEL, PERFIS, STATUS_COLOR, STATUS_LABEL, StatusGeral, TIPO_COLOR, TipoProjeto, toCSV, todayStr, TZ, Micro } from '../lib/rules'
 import { Bar, btnG, btnP, Card, Chip, Empty, Field, HBars, inp, Kpi, Msg, StackBar, VBars } from '../components/ui'
 import Microentregas, { Seg } from './Microentregas'
 import { confirmar } from '../components/Confirm'
@@ -28,6 +28,7 @@ export default function Equipe() {
   }
   const [tipo, setTipo] = useState<'' | TipoProjeto>('')   // '' = consolidado
   const rows = useMemo(() => todas.filter((r) => !tipo || r.tipo_projeto === tipo), [todas, tipo])
+  const veAdmin = canSeeAdmin(profile!.perfil)   // Analista Sr e Gerente abrem a gestão; só o Analista Sr altera
   const isGestor = canAdmin(profile!.perfil) // administração de usuários: só Analista Sr (e o banco também exige)
   const [sel, setSel] = useState<string | null>(null)
   const [hist, setHist] = useState<any[]>([])
@@ -105,28 +106,28 @@ export default function Equipe() {
   }
 
   if (loading) return <p className="py-10 text-center text-slate-500">Carregando painel gerencial…</p>
-  const titulo = isGestor ? 'Gestão da equipe' : 'Visão consolidada da equipe'
+  const titulo = veAdmin ? 'Gestão da equipe' : 'Visão consolidada da equipe'
   if (fixasTela) return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold text-ink">Atividades fixas</h1>
         <button className={btnG + ' !px-3 !py-1.5 !text-xs'} onClick={() => setFixasTela(false)}>← Voltar à gestão</button>
       </div>
-      <AtividadesFixas />
+      <AtividadesFixas somenteLeitura={!isGestor} />
     </div>
   )
   if (jornadas) return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold text-ink">{titulo}</h1>
-        <button className={btnG + ' !px-3 !py-1.5 !text-xs'} onClick={() => setJornadas(false)}>← Voltar à {isGestor ? 'gestão' : 'visão consolidada'}</button>
+        <button className={btnG + ' !px-3 !py-1.5 !text-xs'} onClick={() => setJornadas(false)}>← Voltar à {veAdmin ? 'gestão' : 'visão consolidada'}</button>
       </div>
       <Jornadas embedded />
     </div>
   )
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-ink">{isGestor ? 'Gestão da equipe' : 'Visão consolidada da equipe'}</h1>
+      <h1 className="text-xl font-semibold text-ink">{veAdmin ? 'Gestão da equipe' : 'Visão consolidada da equipe'}</h1>
       <div className="flex flex-wrap items-center gap-3">
         <div className="inline-flex flex-wrap overflow-hidden rounded-xl border border-slate-200 bg-white" role="tablist" aria-label="Visão dos projetos">
           {([['', 'Consolidado'], ['macro', 'Projetos'], ['micro', 'Atividades']] as ['' | TipoProjeto, string][]).map(([k, l]) => (
@@ -136,7 +137,7 @@ export default function Equipe() {
             </button>
           ))}
         </div>
-        {isGestor && <button className={btnG + ' !px-3 !py-2 !text-sm'} onClick={() => setFixasTela(true)} title="Definir atividades que aparecem travadas no To do diário de cada pessoa (ela só marca como feita)">Atividades fixas</button>}
+        {veAdmin && <button className={btnG + ' !px-3 !py-2 !text-sm'} onClick={() => setFixasTela(true)} title="Definir atividades que aparecem travadas no To do diário de cada pessoa (ela só marca como feita)">Atividades fixas</button>}
         <button className={btnG + ' !px-3 !py-2 !text-sm'} onClick={() => setJornadas(true)} title="Análise: jornada de trabalho de cada pessoa da equipe (somente consulta)">Análise: Jornadas da equipe</button>
         <span className="text-xs text-slate-500">{tipo === 'macro' ? 'Projetos maiores: quem é o responsável e com quem cada um está agora.' : tipo === 'micro' ? 'Projetos menores, acompanhados por unidades.' : 'Projetos e Atividades somados, com o comparativo entre os dois.'}</span>
       </div>
@@ -203,14 +204,14 @@ export default function Equipe() {
       </Card>
       {sel && <div><h3 className="mb-2 font-bold text-navy">Projetos de {porResp.find((a) => a.id === sel)?.nome}</h3><Microentregas key={sel + tipo} presetResp={sel} presetTipo={tipo || undefined} /></div>}
 
-      {isGestor && <Card>
-        <h3 className="mb-3 font-bold text-navy">Usuários</h3>
-        <form onSubmit={invite} className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-4">
+      {veAdmin && <Card>
+        <h3 className="mb-3 font-bold text-navy">Usuários{!isGestor && <span className="ml-2 text-xs font-normal text-slate-500">somente consulta</span>}</h3>
+        {isGestor && <form onSubmit={invite} className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-4">
           <Field label="Nome"><input className={inp} value={inv.nome} onChange={(e) => setInv({ ...inv, nome: e.target.value })} /></Field>
           <Field label="E-mail"><input type="email" className={inp} value={inv.email} onChange={(e) => setInv({ ...inv, email: e.target.value })} /></Field>
           <Field label="Perfil"><select className={inp} value={inv.perfil} onChange={(e) => setInv({ ...inv, perfil: e.target.value })}>{PERFIS.map((k) => <option key={k} value={k}>{PERFIL_LABEL[k as Perfil]}</option>)}</select></Field>
           <button className={btnP + ' self-end'} disabled={busy}>{busy ? 'Enviando…' : 'Convidar por e-mail'}</button>
-        </form>
+        </form>}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="text-xs text-slate-500"><tr><th className="py-2">Nome</th><th>E-mail</th><th>Perfil</th><th>Situação</th><th></th></tr></thead>
@@ -218,9 +219,9 @@ export default function Equipe() {
               {profiles.map((p) => (
                 <tr key={p.id} className="border-t border-slate-100">
                   <td className="py-2">{p.nome}</td><td>{p.email}</td>
-                  <td><select className={inp + ' !w-auto !py-1'} value={p.perfil} disabled={p.id === profile!.id} onChange={(e) => patch(p.id, { perfil: e.target.value })}>{PERFIS.map((k) => <option key={k} value={k}>{PERFIL_LABEL[k as Perfil]}</option>)}</select></td>
-                  <td>{p.id === profile!.id ? <Chip color="#16a34a">Você</Chip> : <button className={btnG + ' !px-3 !py-1 !text-xs'} onClick={() => patch(p.id, { ativo: !p.ativo })}>{p.ativo ? 'Ativo · desativar' : 'Inativo · reativar'}</button>}</td>
-                  <td className="text-right">{p.id !== profile!.id && <button className={btnG + ' !px-3 !py-1 !text-xs !border-red-200 !text-red-600 hover:!bg-red-50'} onClick={() => excluirUsuario(p)}>Excluir</button>}</td>
+                  <td><select className={inp + ' !w-auto !py-1'} value={p.perfil} disabled={!isGestor || p.id === profile!.id} onChange={(e) => patch(p.id, { perfil: e.target.value })}>{PERFIS.map((k) => <option key={k} value={k}>{PERFIL_LABEL[k as Perfil]}</option>)}</select></td>
+                  <td>{p.id === profile!.id ? <Chip color="#16a34a">Você</Chip> : !isGestor ? <span className="text-xs text-slate-500">{p.ativo ? 'Ativo' : 'Inativo'}</span> : <button className={btnG + ' !px-3 !py-1 !text-xs'} onClick={() => patch(p.id, { ativo: !p.ativo })}>{p.ativo ? 'Ativo · desativar' : 'Inativo · reativar'}</button>}</td>
+                  <td className="text-right">{isGestor && p.id !== profile!.id && <button className={btnG + ' !px-3 !py-1 !text-xs !border-red-200 !text-red-600 hover:!bg-red-50'} onClick={() => excluirUsuario(p)}>Excluir</button>}</td>
                 </tr>
               ))}
             </tbody>

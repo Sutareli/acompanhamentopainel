@@ -2,7 +2,7 @@ import { confirmar } from '../components/Confirm'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
-import { canAdmin, download, fmtDate, fmtDateTime } from '../lib/rules'
+import { canAdmin, canSeeAdmin, download, fmtDate, fmtDateTime } from '../lib/rules'
 import { btnG, btnP, btnSm, Card, Msg } from '../components/ui'
 import { ChamadoImport, lerBase } from '../lib/chamados'
 import { LeituraMicro, lerMicro, modeloMicroCsv, PessoaRef } from '../lib/microImport'
@@ -18,16 +18,19 @@ const MAX_ARQ = 15 * 1024 * 1024   // limite de tamanho dos CSVs importados
 
 export default function ImportarBases({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { profile } = useAuth()
-  if (!canAdmin(profile?.perfil)) return <Msg kind="aviso">Esta janela é exclusiva do Analista Sr.</Msg>
+  if (!canSeeAdmin(profile?.perfil)) return <Msg kind="aviso">Esta janela é exclusiva do Analista Sr.</Msg>
+  const ro = !canAdmin(profile?.perfil)   // Gerente: vê a tela, mas não importa nada (o banco também recusa)
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold text-ink">Importar bases</h1>
-        <p className="text-sm text-slate-500">Exclusivo do Analista Sr. Envie arquivos CSV (no Excel: Salvar como → CSV UTF-8, separador ; ou ,).</p>
+        <p className="text-sm text-slate-500">{ro ? 'Somente consulta: só o Analista Sr importa bases.' : 'Exclusivo do Analista Sr.'} Envie arquivos CSV (no Excel: Salvar como → CSV UTF-8, separador ; ou ,).</p>
       </div>
-      <ChamadosCard onNavigate={onNavigate} />
-      <MicroCard onNavigate={onNavigate} />
-      <MelhoriasCard onNavigate={onNavigate} />
+      <fieldset disabled={ro} className="min-w-0 space-y-4 border-0 p-0">
+        <ChamadosCard onNavigate={onNavigate} />
+        <MicroCard onNavigate={onNavigate} />
+        <MelhoriasCard onNavigate={onNavigate} />
+      </fieldset>
     </div>
   )
 }

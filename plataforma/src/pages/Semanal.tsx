@@ -37,7 +37,7 @@ function Edita({ valor, onChange, className = '', ativo }: { valor: string; onCh
     onPaste={(e) => { if (e.clipboardData.files.length) return; e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')) }} />
 }
 
-export default function Semanal() {
+export default function Semanal({ somenteLeitura = false }: { somenteLeitura?: boolean }) {
   const [lista, setLista] = useState<Sem[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -62,14 +62,14 @@ export default function Semanal() {
     load()
   }
 
-  if (aberta) return <Condutor id={aberta} onVoltar={() => { setAberta(null); load() }} />
+  if (aberta) return <Condutor ro={somenteLeitura} id={aberta} onVoltar={() => { setAberta(null); load() }} />
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-[220px] flex-1"><h1 className="text-xl font-semibold text-ink">Status Rocco</h1>
-          <p className="text-sm text-slate-500">Acompanhamento semanal com o diretor: Básico, Implantações, Melhorias e customizações, Atualização das atividades e Próximos passos. Só você vê.</p></div>
-        <button className={btnP} onClick={() => criar()}>+ Nova semanal</button>
-        {lista[0] && <button className={btnG} onClick={() => criar(lista[0])} title="Copia os textos da última semanal (sem marcações e sem imagens)">Duplicar a última</button>}
+          <p className="text-sm text-slate-500">Acompanhamento semanal com o diretor: Básico, Implantações, Melhorias e customizações, Atualização das atividades e Próximos passos. {somenteLeitura ? 'Somente consulta.' : 'Só você e o gerente veem.'}</p></div>
+        {!somenteLeitura && <button className={btnP} onClick={() => criar()}>+ Nova semanal</button>}
+        {!somenteLeitura && lista[0] && <button className={btnG} onClick={() => criar(lista[0])} title="Copia os textos da última semanal (sem marcações e sem imagens)">Duplicar a última</button>}
       </div>
       {err && <Msg kind="erro">{err}</Msg>}
       {loading ? <p className="py-10 text-center text-slate-500">Carregando…</p> : lista.length === 0 ? <Empty>Nenhuma semanal ainda. Clique em “Nova semanal” para começar.</Empty> : (
@@ -81,17 +81,17 @@ export default function Semanal() {
                 <div className="text-lg font-bold text-navy">{s.titulo}</div>
                 <div className="mt-1 text-xs text-slate-500">{r.vistos}/5 blocos vistos · {r.textos} texto(s) · {r.imagens} imagem(ns) · {r.pedidos} pedido(s){r.pedidosAbertos ? ` (${r.pedidosAbertos} em aberto)` : ''}</div>
               </button>
-              <div className="mt-auto flex gap-2 pt-2"><button className={btnP + ' ' + btnSm} onClick={() => setAberta(s.id)}>Abrir</button><button className={btnG + ' ' + btnSm + ' !text-red-600'} onClick={() => excluir(s)}>Excluir</button></div>
+              <div className="mt-auto flex gap-2 pt-2"><button className={btnP + ' ' + btnSm} onClick={() => setAberta(s.id)}>Abrir</button>{!somenteLeitura && <button className={btnG + ' ' + btnSm + ' !text-red-600'} onClick={() => excluir(s)}>Excluir</button>}</div>
             </Card>) })}
         </div>)}
     </div>
   )
 }
 
-function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
+function Condutor({ id, onVoltar, ro = false }: { id: string; onVoltar: () => void; ro?: boolean }) {
   const [titulo, setTitulo] = useState(''); const [data, setData] = useState(todayStr())
   const [blocos, setBlocos] = useState<Bloco[]>(blocosNovos())
-  const [cur, setCur] = useState(0); const [edit, setEdit] = useState(true)
+  const [cur, setCur] = useState(0); const [editSt, setEdit] = useState(true); const edit = !ro && editSt
   const [carregado, setCarregado] = useState(false); const [err, setErr] = useState('')
   const [estado, setEstado] = useState<'salvo' | 'salvando' | 'erro'>('salvo')
   const [novo, setNovo] = useState(''); const [novoPed, setNovoPed] = useState(''); const [zoom, setZoom] = useState<string | null>(null)
@@ -109,7 +109,7 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
     setTitulo(r.data.titulo); setData(r.data.data_reuniao); const bl0 = lerBlocos(r.data.blocos); setBlocos(bl0); setCur(bl0.some((x) => x.pedidos.some((q) => q.ant)) ? -1 : 0); setCarregado(true)
   })() }, [id])
 
-  const alterar = (fn: (b: Bloco[]) => Bloco[]) => { sujo.current = true; setEstado('salvando'); setBlocos(fn) }
+  const alterar = (fn: (b: Bloco[]) => Bloco[]) => { if (ro) return; sujo.current = true; setEstado('salvando'); setBlocos(fn) }
   const doBloco = (fn: (b: Bloco) => Bloco) => alterar((bs) => bs.map((b, i) => (i === cur ? fn(b) : b)))
 
   // salvamento automático (aguarda 1 s sem alterações)
@@ -169,10 +169,10 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <button className={btnG + ' ' + btnSm} onClick={onVoltar}>← Semanais</button>
-        <input className={inp + ' !w-auto min-w-[200px] flex-1 !py-1.5 font-semibold'} value={titulo} onChange={(e) => { sujo.current = true; setEstado('salvando'); setTitulo(e.target.value) }} aria-label="Título" maxLength={200} />
-        <input type="date" className={inp + ' !w-auto !py-1.5'} value={data} onChange={(e) => { sujo.current = true; setEstado('salvando'); setData(e.target.value) }} aria-label="Data da reunião" />
+        <input className={inp + ' !w-auto min-w-[200px] flex-1 !py-1.5 font-semibold'} value={titulo} onChange={(e) => { sujo.current = true; setEstado('salvando'); setTitulo(e.target.value) }} aria-label="Título" disabled={ro} maxLength={200} />
+        <input type="date" className={inp + ' !w-auto !py-1.5'} value={data} onChange={(e) => { sujo.current = true; setEstado('salvando'); setData(e.target.value) }} aria-label="Data da reunião" disabled={ro} />
         <span className={'text-xs ' + (estado === 'erro' ? 'text-red-600' : 'text-slate-500')} aria-live="polite">{estado === 'salvo' ? 'Salvo' : estado === 'salvando' ? 'Salvando…' : 'Erro ao salvar'}</span>
-        <button className={btnG + ' ' + btnSm} aria-pressed={edit} onClick={() => setEdit(!edit)}>{edit ? 'Editando' : 'Modo reunião'}</button>
+        <button className={btnG + ' ' + btnSm} aria-pressed={edit} hidden={ro} onClick={() => setEdit(!edit)}>{edit ? 'Editando' : 'Modo reunião'}</button>
         <button className={btnG + ' ' + btnSm} onClick={() => { (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {}) }}>Tela cheia</button>
       </div>
       {err && <Msg kind="erro">{err}</Msg>}
@@ -209,7 +209,7 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
                   <ul className="space-y-2">
                     {x.pedidos.map((q, pi) => q.ant && (
                       <li key={pi} className="flex items-start gap-3.5 text-lg leading-snug sm:text-xl">
-                        <input type="checkbox" checked={q.ok} onChange={(e) => alterarPedidos(bi, (a) => a.map((y, j) => (j === pi ? { ...y, ok: e.target.checked } : y)))} className="mt-1 h-5 w-5 flex-none accent-green-600" aria-label="Pedido atendido" title="Marcar como atendido" />
+                        <input type="checkbox" checked={q.ok} onChange={(e) => alterarPedidos(bi, (a) => a.map((y, j) => (j === pi ? { ...y, ok: e.target.checked } : y)))} className="mt-1 h-5 w-5 flex-none accent-green-600" aria-label="Pedido atendido" disabled={ro} title="Marcar como atendido" />
                         <span className={q.ok ? 'text-slate-400 line-through' : 'text-slate-900'}>{q.v}</span>
                       </li>))}
                   </ul>
@@ -236,7 +236,7 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
                         <ul className="space-y-2">
                           {itens.filter((q) => q.b === bi).map((q) => (
                             <li key={q.i} className="flex items-start gap-3.5 text-lg leading-snug sm:text-xl">
-                              <input type="checkbox" checked={q.ok} onChange={(e) => alterarPedidos(bi, (a) => a.map((y, j) => (j === q.i ? { ...y, ok: e.target.checked } : y)))} className="mt-1 h-5 w-5 flex-none accent-green-600" aria-label="Pedido atendido" title="Marcar como atendido" />
+                              <input type="checkbox" checked={q.ok} onChange={(e) => alterarPedidos(bi, (a) => a.map((y, j) => (j === q.i ? { ...y, ok: e.target.checked } : y)))} className="mt-1 h-5 w-5 flex-none accent-green-600" aria-label="Pedido atendido" disabled={ro} title="Marcar como atendido" />
                               <span className={q.ok ? 'text-slate-400 line-through' : 'text-slate-900'}>{q.v}</span>
                             </li>))}
                         </ul>
@@ -279,7 +279,7 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
             <ul className="mt-2 space-y-2">
               {b.pedidos.map((p, pi) => p.ant ? null : (
                 <li key={pi} className="flex items-start gap-3 text-lg leading-snug">
-                  <input type="checkbox" checked={p.ok} onChange={(e) => alterarPedidos(cur, (a) => a.map((q, j) => (j === pi ? { ...q, ok: e.target.checked } : q)))} className="mt-1 h-5 w-5 flex-none accent-green-600" aria-label="Pedido atendido" title="Marcar como atendido" />
+                  <input type="checkbox" checked={p.ok} onChange={(e) => alterarPedidos(cur, (a) => a.map((q, j) => (j === pi ? { ...q, ok: e.target.checked } : q)))} className="mt-1 h-5 w-5 flex-none accent-green-600" aria-label="Pedido atendido" disabled={ro} title="Marcar como atendido" />
                   <Edita valor={p.v} ativo={edit} onChange={(v) => alterarPedidos(cur, (a) => a.map((q, j) => (j === pi ? { ...q, v } : q)))} className={'min-w-0 flex-1 ' + (p.ok ? 'text-slate-400 line-through' : 'text-slate-900')} />
                   {edit && <button className="rounded px-1.5 text-slate-400 hover:bg-white hover:text-red-600" onClick={() => alterarPedidos(cur, (a) => a.filter((_, j) => j !== pi))} aria-label="Remover pedido">✕</button>}
                 </li>))}
@@ -293,7 +293,7 @@ function Condutor({ id, onVoltar }: { id: string; onVoltar: () => void }) {
         )}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-violet-100 px-5 py-3 sm:px-9">
           <button className={btnG} onClick={() => go(cur - 1)} disabled={cur === -1}>← Anterior</button>
-          <button className={(b.done ? btnG : btnG + ' !border-green-600 !text-green-700') + ' !px-4'} onClick={() => doBloco((x) => ({ ...x, done: !x.done }))} aria-pressed={b.done} hidden={consol || abertura}>{b.done ? '✓ Bloco visto (reabrir)' : 'Marcar bloco como visto'}</button>
+          <button className={(b.done ? btnG : btnG + ' !border-green-600 !text-green-700') + ' !px-4'} onClick={() => doBloco((x) => ({ ...x, done: !x.done }))} aria-pressed={b.done} disabled={ro} hidden={consol || abertura}>{b.done ? '✓ Bloco visto (reabrir)' : 'Marcar bloco como visto'}</button>
           <button className={btnP} onClick={() => go(cur + 1)} disabled={cur === blocos.length}>Próximo →</button>
         </div>
       </section>

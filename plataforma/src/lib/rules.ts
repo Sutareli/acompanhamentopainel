@@ -39,6 +39,8 @@ export const PERFIS = Object.keys(PERFIL_LABEL) as Perfil[]
 export const canViewAll = (p?: Perfil) => p === 'diretor' || p === 'gerente' || p === 'analista_sr'
 /** Administração (usuários, perfis, configuração global, auditoria): só Analista Sr. Espelha is_manager() no banco. */
 export const canAdmin = (p?: Perfil) => p === 'analista_sr'
+/** Abre as telas administrativas (Status Rocco, Importar bases, Segurança, Atividades fixas): Analista Sr edita; Gerente só consulta. Espelha is_manager() + is_gerente() (leitura) no banco. */
+export const canSeeAdmin = (p?: Perfil) => p === 'analista_sr' || p === 'gerente'
 export const CRIT_LABEL: Record<Crit, string> = { alta: 'Alta', media: 'Média', baixa: 'Baixa', recorrente: 'Recorrente' }
 export const CRIT_COLOR: Record<Crit, string> = { alta: '#dc2626', media: '#f59e0b', baixa: '#3b82f6', recorrente: '#4f46b5' }
 export const STATUS_LABEL: Record<StatusGeral, string> = { a_iniciar: 'A iniciar', em_andamento: 'Em andamento', concluido: 'Concluído', concluido_parcial: 'Concluído c/ cancelamentos', cancelado: 'Cancelado' }

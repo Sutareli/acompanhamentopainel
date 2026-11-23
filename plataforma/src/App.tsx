@@ -23,7 +23,7 @@ import Seguranca from './pages/Seguranca'
 import Atencao from './pages/Atencao'
 import Semanal from './pages/Semanal'
 import { AvisoCapacidade } from './components/AvisoCapacidade'
-import { canAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
+import { canAdmin, canSeeAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
 const ITEMS: [string, string, string][] = [
   ['painel', '', 'To do diário'], ['micro', '', 'Projetos e atividades'], ['ideias', '', 'Ideias'], ['historico', '', 'Histórico'],
@@ -69,7 +69,7 @@ export default function App() {
   const viewer = canViewAll(profile.perfil)
   const page = pg ?? (viewer ? 'atencao' : 'painel')
   const items: [string, string, string][] = viewer
-    ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canAdmin(profile.perfil) ? [['semanal', '', 'Status Rocco'] as [string, string, string]] : []), ...BACKLOG_ITEMS, ...(canAdmin(profile.perfil) ? IMPORT_ITEM : [])]
+    ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canSeeAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canSeeAdmin(profile.perfil) ? [['semanal', '', 'Status Rocco'] as [string, string, string]] : []), ...BACKLOG_ITEMS, ...(canSeeAdmin(profile.perfil) ? IMPORT_ITEM : [])]
     : [...ITEMS, ...BACKLOG_ITEMS]
   const pag = page === 'jornadas' ? 'equipe' : page   // 'Jornadas da equipe' agora é um gatilho de análise dentro de Equipe
   const view = (pag === 'equipe' && !viewer) || ((pag === 'importar' || pag === 'seguranca' || pag === 'semanal') && !canAdmin(profile.perfil)) ? 'painel' : pag
@@ -87,7 +87,7 @@ export default function App() {
             </button>
           ))}
         </nav>
-        {canAdmin(profile.perfil) && (
+        {canSeeAdmin(profile.perfil) && (
           <button onClick={() => setPage('seguranca')} className={'mb-3 mt-4 w-full rounded-md border px-3 py-2 text-left text-sm ' + (view === 'seguranca' ? 'border-turq bg-slate-100 font-semibold text-ink' : 'border-slate-300 text-slate-600 hover:bg-slate-50')}>Segurança</button>
         )}
         <div className="border-t border-linha px-2 pt-3 text-xs text-slate-500">
@@ -100,7 +100,7 @@ export default function App() {
 
       <header className="app-menu flex items-center justify-between border-b border-linha bg-white px-4 py-2 md:hidden">
         <span className="flex items-center gap-2 text-sm font-semibold text-ink"><LogoIcone size={26} />Gestão de atividades</span>
-        <span className="flex items-center gap-3 text-xs">{canAdmin(profile.perfil) && <button onClick={() => setPage('seguranca')} className="underline">Segurança</button>}<button onClick={signOut} className="underline">Sair ({profile.nome.split(' ')[0]})</button></span>
+        <span className="flex items-center gap-3 text-xs">{canSeeAdmin(profile.perfil) && <button onClick={() => setPage('seguranca')} className="underline">Segurança</button>}<button onClick={signOut} className="underline">Sair ({profile.nome.split(' ')[0]})</button></span>
       </header>
 
       <main className="app-main px-3 pb-24 pt-4 md:ml-56 md:px-8 md:pb-10 md:pt-6">
@@ -114,13 +114,13 @@ export default function App() {
         {view === 'melhorias' && <Melhorias />}
         {view === 'backlog' && <Backlog onNavigate={setPage} />}
         {view === 'pareto' && <ParetoBacklog onNavigate={setPage} />}
-        {view === 'importar' && canAdmin(profile.perfil) && <ImportarBases onNavigate={setPage} />}
+        {view === 'importar' && canSeeAdmin(profile.perfil) && <ImportarBases onNavigate={setPage} />}
         {view === 'historico' && <Historico />}
         {view === 'lixeira' && <Lixeira />}
-        {view === 'seguranca' && canAdmin(profile.perfil) && <Seguranca />}
+        {view === 'seguranca' && canSeeAdmin(profile.perfil) && <Seguranca />}
         {view === 'config' && <Configuracoes />}
         {view === 'equipe' && viewer && <Equipe />}
-        {view === 'semanal' && canAdmin(profile.perfil) && <Semanal />}
+        {view === 'semanal' && canSeeAdmin(profile.perfil) && <Semanal somenteLeitura={!canAdmin(profile.perfil)} />}
       </main>
 
       <nav className="app-menu fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">

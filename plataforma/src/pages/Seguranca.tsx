@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { fmtDateTime } from '../lib/rules'
+import { useAuth } from '../auth/AuthContext'
+import { canAdmin, fmtDateTime } from '../lib/rules'
 import { CapacidadeCard } from '../components/AvisoCapacidade'
 import BackupCard from '../components/BackupCard'
 import AvisosCard from '../components/AvisosCard'
@@ -15,6 +16,8 @@ const ST_COR = { corrigido: '#16a34a', pendente: '#dc2626', informativo: '#64748
 const ST_NOME = { corrigido: 'Corrigido', pendente: 'Pendente', informativo: 'Informativo' }
 
 export default function Seguranca() {
+  const { profile } = useAuth()
+  const ro = !canAdmin(profile?.perfil)   // Gerente: só consulta
   const [execs, setExecs] = useState<Exec[]>([])
   const [sel, setSel] = useState<string | null>(null)
   const [achados, setAchados] = useState<Achado[]>([])
@@ -60,15 +63,13 @@ export default function Seguranca() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-ink">Segurança</h1>
-          <p className="text-sm text-slate-500">Agente semanal: verifica o banco, corrige sozinho o que é seguro corrigir e lista o que precisa da sua decisão. Visível só para o Analista Sr.</p>
+          <p className="text-sm text-slate-500">Agente semanal: verifica o banco, corrige sozinho o que é seguro corrigir e lista o que precisa da sua decisão. {ro ? 'Somente consulta: o Gerente vê as verificações e os achados.' : 'Visível para o Analista Sr (e, só para consulta, para o Gerente).'}</p>
         </div>
-        <div className="flex gap-2">
+        {!ro && <div className="flex gap-2">
           <button className={btnP} disabled={!!busy} onClick={verificar}>{busy === 'manual' ? 'Verificando…' : 'Verificar agora'}</button>
-        </div>
+        </div>}
       </div>
-      <CapacidadeCard />
-      <BackupCard />
-      <AvisosCard />
+      {!ro && <><CapacidadeCard /><BackupCard /><AvisosCard /></>}
       {err && <Msg kind="erro">{err}</Msg>}
       {ok && <Msg kind="ok">{ok}</Msg>}
 
