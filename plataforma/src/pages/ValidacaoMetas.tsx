@@ -30,6 +30,7 @@ async function reduzirLogo(f: File): Promise<string> {
 
 export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) {
   const [lista, setLista] = useState<Produto[]>([])
+  const [filtroSite, setFiltroSite] = useState<'' | Site | 'SEM'>('')   // '' = todos os sites
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState(''); const [ok, setOk] = useState('')
   const [editando, setEditando] = useState(false)                     // modo "editar números"
@@ -78,8 +79,9 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
     const r = await supabase.from('metas_produtos').delete().eq('id', p.id)
     if (r.error) setErr('Não foi possível excluir: ' + r.error.message); else load()
   }
+  // com filtro de site ativo, subir/descer troca de lugar com o vizinho que está à vista
   async function mover(p: Produto, delta: -1 | 1) {
-    const i = lista.findIndex((x) => x.id === p.id), o = lista[i + delta]; if (!o) return
+    const i = visiveis.findIndex((x) => x.id === p.id), o = visiveis[i + delta]; if (!o) return
     const a = await supabase.from('metas_produtos').update({ ordem: o.ordem }).eq('id', p.id)
     const b = await supabase.from('metas_produtos').update({ ordem: p.ordem }).eq('id', o.id)
     if (a.error || b.error) setErr('Não foi possível reordenar.'); else load()
@@ -97,6 +99,8 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
     setImp(null); setErr(''); setOk(`Base importada: ${d.atualizados} produto(s) atualizado(s) e ${d.criados} novo(s). Os novos ficaram sem logotipo: use “Editar” na linha para enviar a imagem.`); load()
   }
 
+  const visiveis = filtroSite ? lista.filter((p) => (filtroSite === 'SEM' ? !p.site : p.site === filtroSite)) : lista
+  const contar = (f: '' | Site | 'SEM') => (f ? lista.filter((p) => (f === 'SEM' ? !p.site : p.site === f)).length : lista.length)
   const nomeLogo = (p: Produto) => (
     <div className="relative grid h-[56px] w-[116px] place-items-center rounded-xl bg-white px-2 shadow-[0_1px_2px_rgba(15,23,42,.08)] ring-1 ring-slate-200/80">
       {p.logo ? <img src={p.logo} alt={p.nome} title={p.nome} style={{ maxHeight: 44, maxWidth: 100, objectFit: 'contain' }} /> : <span className="text-center text-[12px] font-semibold leading-tight text-slate-600">{p.nome}</span>}
@@ -154,6 +158,16 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
       {loading ? <p className="py-10 text-center text-slate-500">Carregando…</p> : lista.length === 0 ? (
         <Card><Empty>{podeEditar ? 'Nenhum produto cadastrado. Use “Novo produto” (com o logotipo) ou importe uma base.' : 'Nenhum produto cadastrado ainda.'}</Empty></Card>
       ) : (
+        <>
+        <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar por site">
+          <span className="mr-1 text-sm font-semibold text-ink">Site</span>
+          {(['', ...SITES, ...(lista.some((p) => !p.site) && lista.some((p) => p.site) ? ['SEM'] : [])] as ('' | Site | 'SEM')[]).map((f) => (
+            <button key={f || 'todos'} type="button" aria-pressed={filtroSite === f} onClick={() => setFiltroSite(f)}
+              className={'rounded-full border px-3 py-1 text-sm ' + (filtroSite === f ? 'border-[#0b2461] bg-[#0b2461] font-semibold text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50')}>
+              {f === '' ? 'Todos' : f === 'SEM' ? 'Sem site' : f} <span className={filtroSite === f ? 'text-white/70' : 'text-slate-400'}>{contar(f)}</span>
+            </button>))}
+        </div>
+        {visiveis.length === 0 ? <Card><Empty>Nenhum produto neste site. {podeEditar ? 'Defina o site em “Editar produto” (menu ⋯ da linha).' : ''}</Empty></Card> : (
         <div className="overflow-x-auto rounded-2xl border border-linha bg-[#f3f4f6] p-5">
           <div className="grid min-w-[1030px]" style={{ gridTemplateColumns: colunas, gap: '8px 0' }}>
             {/* cabeçalhos e corpo posicionados na grade: 1 logo · 2 habilitados · 3 vão · 4–5 antes · 6 vão · 7–8 depois · 9 vão · 10 evolução · 11 ações */}
@@ -164,26 +178,27 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
             {cab('Indicadores com metas', '', { gridColumn: 7, gridRow: 2 })}{cab('% com meta', '', { gridColumn: 8, gridRow: 2 })}
             {cab('Evolução (% com meta depois)', '!rounded-lg !py-1.5', { gridColumn: 10, gridRow: '1 / span 2' })}
             {/* corpo: cada coluna é uma peça contínua com cantos arredondados, como no layout de referência */}
-            <div className="mt-2 flex flex-col" style={{ gridColumn: 1, gridRow: 3 }}>{lista.map((p, i) => celula('', nomeLogo(p), p.id, 0))}</div>
-            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl text-white shadow-sm" style={{ background: AZUL, gridColumn: 2, gridRow: 3 }}>{lista.map((p, i) => celula('', num(p, 'h', p.habilitados, '#fff', 24), p.id, i, 'border-white/15'))}</div>
-            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 4, gridRow: 3 }}>{lista.map((p, i) => celula('', num(p, 'a', p.antes, VERDE, 24), p.id, i))}</div>
-            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 5, gridRow: 3 }}>{lista.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'a')}</span>, p.id, i))}</div>
-            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 7, gridRow: 3 }}>{lista.map((p, i) => celula('', num(p, 'd', p.depois, VERDE, 24), p.id, i))}</div>
-            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 8, gridRow: 3 }}>{lista.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'd')}</span>, p.id, i))}</div>
-            <div className="mt-2 flex flex-col" style={{ gridColumn: 10, gridRow: 3 }}>{lista.map((p, i) => celula('', <MiniEvolucao p={p} h={hist[p.id] || []} onAbrir={() => setEvol(p)} />, p.id, i, 'border-slate-200'))}</div>
-            <div className="mt-2 flex flex-col" style={{ gridColumn: 11, gridRow: 3 }}>{lista.map((p, i) => celula('', podeEditar && !editando ? (
+            <div className="mt-2 flex flex-col" style={{ gridColumn: 1, gridRow: 3 }}>{visiveis.map((p, i) => celula('', nomeLogo(p), p.id, 0))}</div>
+            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl text-white shadow-sm" style={{ background: AZUL, gridColumn: 2, gridRow: 3 }}>{visiveis.map((p, i) => celula('', num(p, 'h', p.habilitados, '#fff', 24), p.id, i, 'border-white/15'))}</div>
+            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 4, gridRow: 3 }}>{visiveis.map((p, i) => celula('', num(p, 'a', p.antes, VERDE, 24), p.id, i))}</div>
+            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 5, gridRow: 3 }}>{visiveis.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'a')}</span>, p.id, i))}</div>
+            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 7, gridRow: 3 }}>{visiveis.map((p, i) => celula('', num(p, 'd', p.depois, VERDE, 24), p.id, i))}</div>
+            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 8, gridRow: 3 }}>{visiveis.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'd')}</span>, p.id, i))}</div>
+            <div className="mt-2 flex flex-col" style={{ gridColumn: 10, gridRow: 3 }}>{visiveis.map((p, i) => celula('', <MiniEvolucao p={p} h={hist[p.id] || []} onAbrir={() => setEvol(p)} />, p.id, i, 'border-slate-200'))}</div>
+            <div className="mt-2 flex flex-col" style={{ gridColumn: 11, gridRow: 3 }}>{visiveis.map((p, i) => celula('', podeEditar && !editando ? (
               <details className="relative">
                 <summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label={`Ações de ${p.nome}`}>⋯</summary>
                 <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border border-slate-200 bg-white p-1 text-sm shadow-lg" onClick={(e) => (e.currentTarget.parentElement as HTMLDetailsElement).removeAttribute('open')}>
                   <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100" onClick={() => setForm({ id: p.id, nome: p.nome, logo: p.logo, site: p.site })}>Editar produto</button>
                   <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === 0} onClick={() => mover(p, -1)}>Subir</button>
-                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === lista.length - 1} onClick={() => mover(p, 1)}>Descer</button>
+                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === visiveis.length - 1} onClick={() => mover(p, 1)}>Descer</button>
                   <button className="block w-full rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50" onClick={() => excluir(p)}>Excluir</button>
                 </div>
               </details>) : null, p.id, i, 'border-slate-200'))}</div>
           </div>
           <p className="mt-3 text-xs text-slate-500">Última atualização: {fmtDateTime(lista.reduce((m, p) => (p.atualizado_em > m ? p.atualizado_em : m), ''))}. Percentual = indicadores com meta ÷ indicadores habilitados.</p>
-        </div>
+        </div>)}
+        </>
       )}
 
       {form && (
