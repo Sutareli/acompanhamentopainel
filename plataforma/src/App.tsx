@@ -69,7 +69,7 @@ export default function App() {
   const viewer = canViewAll(profile.perfil)
   const page = pg ?? (viewer ? 'atencao' : 'painel')
   const items: [string, string, string][] = viewer
-    ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canAdmin(profile.perfil) ? [['semanal', '', 'Semanal Italo'] as [string, string, string]] : []), ...BACKLOG_ITEMS, ...(canAdmin(profile.perfil) ? IMPORT_ITEM : [])]
+    ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canAdmin(profile.perfil) ? [['semanal', '', 'Status Rocco'] as [string, string, string]] : []), ...BACKLOG_ITEMS, ...(canAdmin(profile.perfil) ? IMPORT_ITEM : [])]
     : [...ITEMS, ...BACKLOG_ITEMS]
   const pag = page === 'jornadas' ? 'equipe' : page   // 'Jornadas da equipe' agora é um gatilho de análise dentro de Equipe
   const view = (pag === 'equipe' && !viewer) || ((pag === 'importar' || pag === 'seguranca' || pag === 'semanal') && !canAdmin(profile.perfil)) ? 'painel' : pag
@@ -126,7 +126,7 @@ export default function App() {
       <nav className="app-menu fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
         {items.map(([k, , l]) => (
           <button key={k} onClick={() => setPage(k)} className={'flex min-w-[76px] flex-1 flex-col items-center justify-center border-t-2 py-3 text-[11px] ' + (view === k ? 'border-turq font-semibold text-ink' : 'border-transparent text-slate-500')}>
-            {l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Correção/manutenção', 'Correção').replace('Análise de chamados', 'Análise').replace('Importar bases', 'Importar').replace('Semanal Italo', 'Semanal')}
+            {l.replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Correção/manutenção', 'Correção').replace('Análise de chamados', 'Análise').replace('Importar bases', 'Importar').replace('Status Rocco', 'Semanal')}
           </button>
         ))}
       </nav>

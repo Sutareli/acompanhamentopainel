@@ -16,7 +16,7 @@ h1, h2, h3 { letter-spacing: -0.01em; }
   .print\:hidden { display: none !important; }
 }
 
-/* Tela cheia da Semanal Italo: some o menu e fica só a semanal */
+/* Tela cheia do Status Rocco: some o menu e fica só a semanal */
 html.tela-cheia .app-menu { display: none !important; }
 html.tela-cheia .app-main { margin-left: 0; padding-bottom: 1.5rem; }
 
