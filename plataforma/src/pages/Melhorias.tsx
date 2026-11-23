@@ -6,6 +6,7 @@ import { canAdmin, canViewAll, download, fmtDate, toCSV, todayStr } from '../lib
 import { Bar, btnD, btnG, btnP, btnSm, Card, Chip, Empty, Field, inp, Msg } from '../components/ui'
 import BacklogDetalhe from '../components/BacklogDetalhe'
 import { MelhoriaForm } from '../components/BacklogForms'
+import OrganizarFila from '../components/OrganizarFila'
 import AvancarFase from '../components/AvancarFase'
 import FunilLinha from '../components/FunilLinha'
 import MelhoriasGerencial from '../components/MelhoriasGerencial'
@@ -71,6 +72,7 @@ export default function Melhorias() {
   const [selId, setSelId] = useState<string | null>(null)
   const [edit, setEdit] = useState<Partial<Melhoria> | null>(null)
   const [avancar, setAvancar] = useState<Melhoria | null>(null)
+  const [filaAberta, setFilaAberta] = useState(false)
   const canEdit = (m: Melhoria) => m.criado_por === uid || m.responsavel_id === uid || canViewAll(profile!.perfil)
   const trocaModo = (m: Modo) => { setModo(m); try { localStorage.setItem('melhorias-modo', m) } catch { /* sem armazenamento */ } }
 
@@ -227,21 +229,13 @@ export default function Melhorias() {
     )
   }
   /** Fila de ideias: ordem global (sem filtros) e reordenação pelo Analista Sr. */
-  const filaGlobal = useMemo(() => rows.filter((r) => faseDe(r) === 'ideia').sort(ordenar('ideia')), [rows])
+  const filaGlobal = rows.filter((r) => faseDe(r) === 'ideia').sort(ordenar('ideia'))
   const posFila = (r: Melhoria) => filaGlobal.findIndex((x) => x.id === r.id) + 1
   const podeFila = canAdmin(profile!.perfil)
-  async function moverFila(r: Melhoria, dest: 'topo' | 'sobe' | 'desce' | number) {
-    const ids = filaGlobal.map((x) => x.id); const i = ids.indexOf(r.id); if (i < 0) return
-    let j = dest === 'topo' ? 0 : dest === 'sobe' ? i - 1 : dest === 'desce' ? i + 1 : Math.min(Math.max(dest - 1, 0), ids.length - 1)
-    if (j < 0 || j >= ids.length || j === i) return
-    ids.splice(i, 1); ids.splice(j, 0, r.id)
+  async function salvarFila(ids: string[]): Promise<string> {
     const { error } = await supabase.rpc('melhorias_fila_ideias', { p_ids: ids })
-    if (error) return setErr('Não foi possível reordenar a fila: ' + error.message + ' (a migração 036 foi executada?)')
-    setErr(''); await load()
-  }
-  async function posicaoManual(r: Melhoria) {
-    const v = window.prompt(`Posição de “${r.melhoria}” na fila (1 a ${filaGlobal.length}):`, String(posFila(r)))
-    const n = Number(v); if (v && Number.isInteger(n) && n >= 1) await moverFila(r, n)
+    if (error) return 'Não foi possível salvar a fila: ' + error.message + ' (a migração 036 foi executada?)'
+    setFilaAberta(false); setErr(''); await load(); return ''
   }
   const mini = (r: Melhoria) => {
     const pi = prazoInfo(r, hoje); const dias = naEtapa(r); const resumo = resumoDe(r)
@@ -262,14 +256,6 @@ export default function Melhorias() {
           <span className="text-slate-500">{fase(r) === 'producao' ? pi.txt : dias ? `Na etapa ${dias}` : ''}</span>
           {(emDev(fase(r)) || r.data_termino) && fase(r) !== 'producao' && <span className="font-semibold" style={{ color: pi.cor }}>{pi.txt}</span>}
         </div>
-        {faseDe(r) === 'ideia' && podeFila && (
-          <div className="mt-2 flex flex-wrap gap-1" role="group" aria-label={`Fila: ${r.melhoria}`}>
-            <button className={btnG + ' ' + btnSm} onClick={() => moverFila(r, 'topo')} disabled={posFila(r) === 1} title="Levar para o topo da fila">⤒ Topo</button>
-            <button className={btnG + ' ' + btnSm} onClick={() => moverFila(r, 'sobe')} disabled={posFila(r) === 1} aria-label="Subir na fila">↑</button>
-            <button className={btnG + ' ' + btnSm} onClick={() => moverFila(r, 'desce')} disabled={posFila(r) === filaGlobal.length} aria-label="Descer na fila">↓</button>
-            <button className={btnG + ' ' + btnSm} onClick={() => posicaoManual(r)} title="Escolher a posição">#…</button>
-          </div>
-        )}
         {proxima(r) && canEdit(r) && <div className="mt-2 text-right">{botaoAvancar(r, true)}</div>}
       </div>
     )
@@ -404,7 +390,7 @@ export default function Melhorias() {
           {colunas.map((k) => { const f = faseInfo(k); const l = visiveis(k); return (
             <section key={k} aria-label={f.label} className="flex min-h-[8rem] w-[250px] shrink-0 flex-col rounded-md bg-slate-50 p-2 xl:min-w-[230px] xl:flex-1">
               <h2 className="mb-2 flex items-center gap-1.5 px-1 text-sm font-bold" style={{ color: f.cor }}><span>{f.icon}</span>{f.label}<span className="ml-auto rounded-full bg-white px-2 text-xs text-slate-600">{l.length}</span></h2>
-              {k === 'ideia' && <p className="mb-2 px-1 text-[11px] text-slate-500">Fila: #1 é a próxima a ser priorizada.{podeFila ? '' : ' Só o Analista Sr reordena.'}</p>}
+              {k === 'ideia' && <div className="mb-2 px-1 text-[11px] text-slate-500">Fila: #1 é a próxima a ser priorizada.{podeFila && <button className={btnG + ' ' + btnSm + ' mt-1 w-full'} onClick={() => setFilaAberta(true)}>⇅ Organizar fila de ideias</button>}</div>}
               <div className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto pr-0.5">{l.length ? l.map((r) => mini(r)) : <p className="px-1 py-4 text-center text-xs text-slate-400">Nada nesta etapa.</p>}</div>
             </section>
           ) })}
@@ -421,6 +407,7 @@ export default function Melhorias() {
       </>)}
 
       {edit && <MelhoriaForm funil usuarios={usuarios} init={edit} modulos={modulos} temEtapas={false} onClose={() => setEdit(null)} onSave={save} />}
+      {filaAberta && <OrganizarFila ideias={filaGlobal} nomeResp={nomeResp} onClose={() => setFilaAberta(false)} onSave={salvarFila} />}
       {avancar && <AvancarFase m={avancar} onClose={() => setAvancar(null)} onConfirm={(p) => confirmarAvanco(avancar, p)} />}
     </div>
   )
