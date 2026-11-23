@@ -21,6 +21,7 @@ import Lixeira from './pages/Lixeira'
 import Seguranca from './pages/Seguranca'
 import Atencao from './pages/Atencao'
 import Semanal from './pages/Semanal'
+import ValidacaoMetas from './pages/ValidacaoMetas'
 import { AvisoCapacidade } from './components/AvisoCapacidade'
 import { canAdmin, canSeeAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
@@ -33,7 +34,7 @@ const IMPORT_ITEM: [string, string, string][] = [['importar', '', 'Importar base
 const BACKLOG_ITEMS: [string, string, string][] = [['melhorias', '', 'Melhorias'], ['backlog', '', 'Correção/manutenção'], ['pareto', '', 'Análise de chamados']]
 
 /** Agrupa o menu: uma folga entre grupos (rotina pessoal · equipe · chamados e melhorias · administração). */
-const grupoMenu = (k: string) => (['atencao'].includes(k) ? 0 : ['equipe', 'semanal'].includes(k) ? 2 : ['melhorias', 'backlog', 'pareto'].includes(k) ? 3 : k === 'importar' ? 4 : 1)
+const grupoMenu = (k: string) => (['atencao'].includes(k) ? 0 : ['equipe', 'semanal', 'metas'].includes(k) ? 2 : ['melhorias', 'backlog', 'pareto'].includes(k) ? 3 : k === 'importar' ? 4 : 1)
 
 export default function App() {
   const { session, profile, loading, authError, needsPassword, signOut } = useAuth()
@@ -68,10 +69,10 @@ export default function App() {
   const viewer = canViewAll(profile.perfil)
   const page = pg ?? (viewer ? 'atencao' : 'painel')
   const items: [string, string, string][] = viewer
-    ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canSeeAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canSeeAdmin(profile.perfil) ? [['semanal', '', 'Status Rocco'] as [string, string, string]] : []), ...BACKLOG_ITEMS, ...(canSeeAdmin(profile.perfil) ? IMPORT_ITEM : [])]
+    ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canSeeAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canSeeAdmin(profile.perfil) ? [['semanal', '', 'Status Rocco'] as [string, string, string]] : []), ...(canViewAll(profile.perfil) ? [['metas', '', 'Validação de metas'] as [string, string, string]] : []), ...BACKLOG_ITEMS, ...(canSeeAdmin(profile.perfil) ? IMPORT_ITEM : [])]
     : [...ITEMS, ...BACKLOG_ITEMS]
   const pag = page === 'jornadas' ? 'equipe' : page   // 'Jornadas da equipe' agora é um gatilho de análise dentro de Equipe
-  const view = (pag === 'equipe' && !viewer) || ((pag === 'importar' || pag === 'seguranca' || pag === 'semanal') && !canAdmin(profile.perfil)) ? 'painel' : pag
+  const view = ((pag === 'equipe' || pag === 'metas') && !viewer) || ((pag === 'importar' || pag === 'seguranca' || pag === 'semanal') && !canAdmin(profile.perfil)) ? 'painel' : pag
 
   return (
     <div className="min-h-screen">
@@ -118,6 +119,7 @@ export default function App() {
         {view === 'seguranca' && canSeeAdmin(profile.perfil) && <Seguranca />}
         {view === 'config' && <Configuracoes />}
         {view === 'equipe' && viewer && <Equipe />}
+        {view === 'metas' && viewer && <ValidacaoMetas podeEditar={canAdmin(profile.perfil)} />}
         {view === 'semanal' && canSeeAdmin(profile.perfil) && <Semanal somenteLeitura={!canAdmin(profile.perfil)} />}
       </main>
 
