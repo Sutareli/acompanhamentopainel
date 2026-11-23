@@ -71,9 +71,9 @@ export default function App() {
   const page = pg ?? (viewer ? 'atencao' : 'painel')
   const items: [string, string, string][] = viewer
     ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canSeeAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canSeeAdmin(profile.perfil) ? [['semanal', '', 'Status Rocco'] as [string, string, string]] : []), ...(canViewAll(profile.perfil) ? [['metas', '', 'Validação de metas'] as [string, string, string]] : []), ...BACKLOG_ITEMS, ...(canSeeAdmin(profile.perfil) ? IMPORT_ITEM : [])]
-    : [...ITEMS, ...BACKLOG_ITEMS]
+    : [...ITEMS.filter(([k]) => k !== 'config'), ...BACKLOG_ITEMS]   // Analistas e Guardiões não veem Configurações
   const pag = page === 'jornadas' ? 'equipe' : page   // 'Jornadas da equipe' agora é um gatilho de análise dentro de Equipe
-  const view = ((pag === 'equipe' || pag === 'metas') && !viewer) || ((pag === 'importar' || pag === 'seguranca' || pag === 'semanal') && !canAdmin(profile.perfil)) ? 'painel' : pag
+  const view = ((pag === 'equipe' || pag === 'metas' || pag === 'config' || pag === 'imprevistos') && !viewer) || ((pag === 'importar' || pag === 'seguranca' || pag === 'semanal') && !canAdmin(profile.perfil)) ? 'painel' : pag
 
   return (
     <div className="min-h-screen">

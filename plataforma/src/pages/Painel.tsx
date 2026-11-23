@@ -2,7 +2,7 @@ import MencoesCard from '../components/MencoesCard'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
-import { addDays, BLOCK_COLORS, BLOCK_ICONS, DEFAULT_BLOCKS, chk, fmtDate, fmtMin, hhmm, todayStr } from '../lib/rules'
+import { addDays, BLOCK_COLORS, BLOCK_ICONS, DEFAULT_BLOCKS, canViewAll, chk, fmtDate, fmtMin, hhmm, todayStr } from '../lib/rules'
 import { ensureDay } from '../lib/journal'
 import { DEFAULT_SETTINGS, loadSettings, Settings } from '../lib/settings'
 import { Bar, btnG, btnP, btnS, btnSm, Card, Chip, inp, Kpi, Msg } from '../components/ui'
@@ -109,7 +109,7 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {onNavigate && <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('imprevistos')}>Imprevistos</button>}
+          {onNavigate && canViewAll(profile?.perfil) && <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('imprevistos')}>Imprevistos</button>}
           <button className={btnS + ' ' + btnSm} onClick={() => setEnviando(true)} disabled={all.length === 0}>Enviar para Projetos</button>
           <button className={btnG + ' ' + btnSm} onClick={() => setClearing(true)} disabled={all.length === 0}>Limpar lista do dia</button>
         </div>
