@@ -464,8 +464,8 @@ A tela **Ideias** saiu do menu e do código. Os dados antigos continuam guardado
 
 ## Validação de metas (migração 032)
 Menu **Validação de metas** (Diretor, Gerente e Analista Sr veem; só o Analista Sr altera). Quadro no layout combinado: por produto/cliente, **Indicadores habilitados**, e **Antes** e **Depois** da validação, cada um com *indicadores com metas* e *% com meta* (calculado: com meta ÷ habilitados, ex.: 16 de 48 = 33,3%).
-- **Cadastro com logotipo:** *Novo produto* (nome + imagem PNG/JPG/SVG, reduzida automaticamente). *Editar* troca nome/logotipo; ↑ ↓ reordenam; ✕ exclui (com confirmação).
+- **Cadastro com logotipo:** *Novo produto* (nome + imagem PNG/JPG/SVG, reduzida automaticamente). No menu **⋯** de cada linha: *Editar produto* (nome/logotipo), *Subir*/*Descer* (ordem) e *Excluir* (com confirmação).
 - **Atualizar manualmente:** *Editar números* abre os campos de todos os produtos; *Salvar alterações* grava só o que mudou.
 - **Atualizar por base:** CSV com `Produto;Habilitados;Antes;Depois` (*Antes* é opcional; o botão *Baixar modelo CSV* traz o formato). Produto que já existe é atualizado pelo nome; o que não existe é criado (sem logotipo). Linhas com erro são ignoradas e listadas; a importação é tudo-ou-nada no banco.
-- **Acompanhar o desenvolvimento:** cada mudança de números grava um instantâneo em `metas_historico` (data, origem: cadastro/edição manual/importação). O botão *Evolução* mostra o gráfico de % com meta (antes tracejado, depois cheio) e a tabela do histórico.
+- **Acompanhar o desenvolvimento:** cada mudança de números grava um instantâneo em `metas_historico` (data, origem: cadastro/edição manual/importação). A coluna **Evolução**, à direita de cada produto, mostra um mini gráfico, a variação em pontos percentuais e *de X% para Y%*; clicar nela abre o gráfico completo (antes tracejado, depois cheio) e a tabela do histórico.
 - O banco impede indicadores com meta maiores que os habilitados.

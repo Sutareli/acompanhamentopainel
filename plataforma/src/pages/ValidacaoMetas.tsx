@@ -7,7 +7,7 @@ import { confirmar } from '../components/Confirm'
 
 // Cores do layout de referência
 const AZUL = '#0b2461', VERDE = '#1fa65a', CINZA = '#dcdcdc', CINZA_T = '#d3d3d3'
-const ALT = 84   // altura de cada linha de produto
+const ALT = 76   // altura de cada linha de produto
 
 async function lerArquivo(f: File): Promise<string> {
   const buf = await f.arrayBuffer()
@@ -36,12 +36,15 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
   const [rascunho, setRascunho] = useState<Record<string, { h: string; a: string; d: string }>>({})
   const [form, setForm] = useState<{ id?: string; nome: string; logo: string | null } | null>(null)   // cadastro/edição de produto
   const [evol, setEvol] = useState<Produto | null>(null)
+  const [hist, setHist] = useState<Record<string, Snapshot[]>>({})   // instantâneos por produto (mini evolução ao lado de cada linha)
   const [imp, setImp] = useState<{ nome: string; r: LeituraMetas } | null>(null)
 
   const load = useCallback(async () => {
     const r = await supabase.from('metas_produtos').select('*').order('ordem').order('nome')
     if (r.error) { setErr('Não foi possível carregar: ' + r.error.message + ' (a migração 032 foi executada?)'); setLoading(false); return }
     setLista((r.data || []) as Produto[]); setErr(''); setLoading(false)
+    const h = await supabase.from('metas_historico').select('*').order('registrado_em').limit(5000)
+    const m: Record<string, Snapshot[]> = {}; ((h.data || []) as Snapshot[]).forEach((s) => { (m[s.produto_id] ||= []).push(s) }); setHist(m)
   }, [])
   useEffect(() => { load() }, [load])
 
@@ -94,15 +97,19 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
     setImp(null); setErr(''); setOk(`Base importada: ${d.atualizados} produto(s) atualizado(s) e ${d.criados} novo(s). Os novos ficaram sem logotipo: use “Editar” na linha para enviar a imagem.`); load()
   }
 
-  const nomeLogo = (p: Produto) => (p.logo ? <img src={p.logo} alt={p.nome} title={p.nome} style={{ maxHeight: 60, maxWidth: 140, objectFit: 'contain' }} /> : <span className="px-2 text-center text-sm font-semibold text-slate-600">{p.nome}</span>)
-  const celula = (extra: string, children: ReactNode, key: string) => <div key={key} className={'flex items-center justify-center ' + extra} style={{ height: ALT }}>{children}</div>
+  const nomeLogo = (p: Produto) => (
+    <div className="grid h-[56px] w-[116px] place-items-center rounded-xl bg-white px-2 shadow-[0_1px_2px_rgba(15,23,42,.08)] ring-1 ring-slate-200/80">
+      {p.logo ? <img src={p.logo} alt={p.nome} title={p.nome} style={{ maxHeight: 44, maxWidth: 100, objectFit: 'contain' }} /> : <span className="text-center text-[12px] font-semibold leading-tight text-slate-600">{p.nome}</span>}
+    </div>)
+  // cada linha tem um filete branco por cima (menos a primeira) para separar os produtos dentro da coluna contínua
+  const celula = (extra: string, children: ReactNode, key: string, i = 1, fio = 'border-white/70') => <div key={key} className={'flex items-center justify-center ' + (i > 0 ? 'border-t ' + fio + ' ' : '') + extra} style={{ height: ALT }}>{children}</div>
   const num = (p: Produto, campo: 'h' | 'a' | 'd', valor: number, cor: string, tam = 22) => editando && rascunho[p.id]
     ? <input type="number" min={0} inputMode="numeric" aria-label={`${p.nome}: ${campo === 'h' ? 'habilitados' : campo === 'a' ? 'com meta antes' : 'com meta depois'}`} className="w-20 rounded-md border border-slate-400 bg-white px-1 py-1 text-center text-lg font-bold text-slate-900"
         value={rascunho[p.id][campo]} onChange={(e) => setRascunho((r) => ({ ...r, [p.id]: { ...r[p.id], [campo]: e.target.value } }))} />
     : <span className="font-bold" style={{ color: cor, fontSize: tam }}>{valor}</span>
   const pctVivo = (p: Produto, quem: 'a' | 'd') => { const x = editando && rascunho[p.id] ? rascunho[p.id] : null; const h = x ? Number(x.h) : p.habilitados; const n = x ? Number(quem === 'a' ? x.a : x.d) : (quem === 'a' ? p.antes : p.depois); return Number.isFinite(h) && Number.isFinite(n) ? fmtPct(n, h) : '—' }
 
-  const colunas = useMemo(() => '150px 112px 28px 140px 140px 28px 140px 140px 120px', [])
+  const colunas = useMemo(() => '132px 104px 14px 112px 112px 14px 112px 112px 18px 236px 44px', [])
   const cab = (t: string, extra = '', pos: Record<string, string | number> = {}) => <div className={'flex items-center justify-center rounded-xl px-2 py-2 text-center text-xs font-bold leading-tight ' + extra} style={{ background: CINZA, color: AZUL, ...pos }}>{t}</div>
 
   return (
@@ -127,9 +134,9 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
         <Card>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <b className="text-ink">Atualizar por base</b>
-            <input type="file" accept=".csv,text/csv" aria-label="CSV de metas" key={imp ? imp.nome : 'x'} onChange={(e) => escolherCsv(e.target.files?.[0])} />
+            <label className={btnG + ' cursor-pointer'}>Escolher arquivo CSV<input type="file" hidden accept=".csv,text/csv" aria-label="CSV de metas" key={imp ? imp.nome : 'x'} onChange={(e) => escolherCsv(e.target.files?.[0])} /></label>
             <button className={btnG + ' ' + btnSm} onClick={() => download('modelo-validacao-metas.csv', modeloMetasCsv())}>Baixar modelo CSV</button>
-            <span className="text-xs text-slate-500">Colunas: Produto, Habilitados, Antes (opcional), Depois. Produto que já existe é atualizado pelo nome; o que não existe é criado.</span>
+            <span className="basis-full text-xs text-slate-500">Colunas: Produto, Habilitados, Antes (opcional) e Depois. Produto que já existe é atualizado pelo nome; o que não existe é criado.</span>
           </div>
           {imp && (
             <div className="mt-3 space-y-2 text-sm">
@@ -146,31 +153,33 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
       {loading ? <p className="py-10 text-center text-slate-500">Carregando…</p> : lista.length === 0 ? (
         <Card><Empty>{podeEditar ? 'Nenhum produto cadastrado. Use “Novo produto” (com o logotipo) ou importe uma base.' : 'Nenhum produto cadastrado ainda.'}</Empty></Card>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-linha bg-[#f1f1f1] p-4">
-          <div className="grid min-w-[1060px]" style={{ gridTemplateColumns: colunas, gap: '8px 0' }}>
-            {/* cabeçalhos e corpo posicionados na grade: 1 logo · 2 habilitados · 3 vão · 4–5 antes · 6 vão · 7–8 depois · 9 ações */}
-            <div className="flex items-center justify-center rounded-xl px-2 py-3 text-center text-xs font-bold leading-tight text-white" style={{ background: AZUL, gridColumn: 2, gridRow: '1 / span 2' }}>Indicadores<br />Habilitados</div>
-            {cab('Antes', '!rounded-md !py-1.5', { gridColumn: '4 / span 2', gridRow: 1 })}
-            {cab('Depois', '!rounded-md !py-1.5', { gridColumn: '7 / span 2', gridRow: 1 })}
+        <div className="overflow-x-auto rounded-2xl border border-linha bg-[#f3f4f6] p-5">
+          <div className="grid min-w-[1030px]" style={{ gridTemplateColumns: colunas, gap: '8px 0' }}>
+            {/* cabeçalhos e corpo posicionados na grade: 1 logo · 2 habilitados · 3 vão · 4–5 antes · 6 vão · 7–8 depois · 9 vão · 10 evolução · 11 ações */}
+            <div className="flex items-center justify-center rounded-2xl px-2 py-3 text-center text-xs font-bold leading-tight text-white shadow-sm" style={{ background: AZUL, gridColumn: 2, gridRow: '1 / span 2' }}>Indicadores<br />Habilitados</div>
+            {cab('Antes', '!rounded-lg !py-1.5', { gridColumn: '4 / span 2', gridRow: 1 })}
+            {cab('Depois', '!rounded-lg !py-1.5', { gridColumn: '7 / span 2', gridRow: 1 })}
             {cab('Indicadores com metas', '', { gridColumn: 4, gridRow: 2 })}{cab('% com meta', '', { gridColumn: 5, gridRow: 2 })}
             {cab('Indicadores com metas', '', { gridColumn: 7, gridRow: 2 })}{cab('% com meta', '', { gridColumn: 8, gridRow: 2 })}
+            {cab('Evolução (% com meta depois)', '!rounded-lg !py-1.5', { gridColumn: 10, gridRow: '1 / span 2' })}
             {/* corpo: cada coluna é uma peça contínua com cantos arredondados, como no layout de referência */}
-            <div className="mt-2 flex flex-col" style={{ gridColumn: 1, gridRow: 3 }}>{lista.map((p) => celula('', nomeLogo(p), p.id))}</div>
-            <div className="mt-2 flex flex-col rounded-3xl text-white" style={{ background: AZUL, gridColumn: 2, gridRow: 3 }}>{lista.map((p) => celula('', num(p, 'h', p.habilitados, '#fff', 22), p.id))}</div>
-            <div className="mt-2 flex flex-col rounded-3xl" style={{ background: CINZA_T, gridColumn: 4, gridRow: 3 }}>{lista.map((p) => celula('', num(p, 'a', p.antes, VERDE, 22), p.id))}</div>
-            <div className="mt-2 flex flex-col rounded-3xl" style={{ background: CINZA_T, gridColumn: 5, gridRow: 3 }}>{lista.map((p) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'a')}</span>, p.id))}</div>
-            <div className="mt-2 flex flex-col rounded-3xl" style={{ background: CINZA_T, gridColumn: 7, gridRow: 3 }}>{lista.map((p) => celula('', num(p, 'd', p.depois, VERDE, 22), p.id))}</div>
-            <div className="mt-2 flex flex-col rounded-3xl" style={{ background: CINZA_T, gridColumn: 8, gridRow: 3 }}>{lista.map((p) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'd')}</span>, p.id))}</div>
-            <div className="mt-2 flex flex-col pl-3" style={{ gridColumn: 9, gridRow: 3 }}>{lista.map((p, i) => celula('flex-col gap-1', (
-              <>
-                <button className={btnG + ' ' + btnSm} onClick={() => setEvol(p)}>Evolução</button>
-                {podeEditar && !editando && <span className="flex gap-1">
-                  <button className={btnG + ' ' + btnSm} onClick={() => setForm({ id: p.id, nome: p.nome, logo: p.logo })}>Editar</button>
-                  <button className={btnG + ' ' + btnSm} onClick={() => mover(p, -1)} disabled={i === 0} aria-label={`Subir ${p.nome}`}>↑</button>
-                  <button className={btnG + ' ' + btnSm} onClick={() => mover(p, 1)} disabled={i === lista.length - 1} aria-label={`Descer ${p.nome}`}>↓</button>
-                  <button className={btnG + ' ' + btnSm + ' !text-red-600'} onClick={() => excluir(p)} aria-label={`Excluir ${p.nome}`}>✕</button>
-                </span>}
-              </>), p.id))}</div>
+            <div className="mt-2 flex flex-col" style={{ gridColumn: 1, gridRow: 3 }}>{lista.map((p, i) => celula('', nomeLogo(p), p.id, 0))}</div>
+            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl text-white shadow-sm" style={{ background: AZUL, gridColumn: 2, gridRow: 3 }}>{lista.map((p, i) => celula('', num(p, 'h', p.habilitados, '#fff', 24), p.id, i, 'border-white/15'))}</div>
+            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 4, gridRow: 3 }}>{lista.map((p, i) => celula('', num(p, 'a', p.antes, VERDE, 24), p.id, i))}</div>
+            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 5, gridRow: 3 }}>{lista.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'a')}</span>, p.id, i))}</div>
+            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 7, gridRow: 3 }}>{lista.map((p, i) => celula('', num(p, 'd', p.depois, VERDE, 24), p.id, i))}</div>
+            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 8, gridRow: 3 }}>{lista.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'd')}</span>, p.id, i))}</div>
+            <div className="mt-2 flex flex-col" style={{ gridColumn: 10, gridRow: 3 }}>{lista.map((p, i) => celula('', <MiniEvolucao p={p} h={hist[p.id] || []} onAbrir={() => setEvol(p)} />, p.id, i, 'border-slate-200'))}</div>
+            <div className="mt-2 flex flex-col" style={{ gridColumn: 11, gridRow: 3 }}>{lista.map((p, i) => celula('', podeEditar && !editando ? (
+              <details className="relative">
+                <summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label={`Ações de ${p.nome}`}>⋯</summary>
+                <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border border-slate-200 bg-white p-1 text-sm shadow-lg" onClick={(e) => (e.currentTarget.parentElement as HTMLDetailsElement).removeAttribute('open')}>
+                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100" onClick={() => setForm({ id: p.id, nome: p.nome, logo: p.logo })}>Editar produto</button>
+                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === 0} onClick={() => mover(p, -1)}>Subir</button>
+                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === lista.length - 1} onClick={() => mover(p, 1)}>Descer</button>
+                  <button className="block w-full rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50" onClick={() => excluir(p)}>Excluir</button>
+                </div>
+              </details>) : null, p.id, i, 'border-slate-200'))}</div>
           </div>
           <p className="mt-3 text-xs text-slate-500">Última atualização: {fmtDateTime(lista.reduce((m, p) => (p.atualizado_em > m ? p.atualizado_em : m), ''))}. Percentual = indicadores com meta ÷ indicadores habilitados.</p>
         </div>
@@ -195,6 +204,32 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
         </Modal>)}
       {evol && <Evolucao produto={evol} onClose={() => setEvol(null)} />}
     </div>
+  )
+}
+
+/** Evolução ao lado da linha: mini gráfico do % com meta (depois), "de X% para Y%" e a variação em pontos percentuais. */
+function MiniEvolucao({ p, h, onAbrir }: { p: Produto; h: Snapshot[]; onAbrir: () => void }) {
+  const s = serieEvolucao(h)
+  const ini = s.length ? s[0].depois : pct(p.depois, p.habilitados), fim = pct(p.depois, p.habilitados)
+  const delta = Math.round((fim - ini) * 10) / 10
+  const W = 96, H = 34, pad = 4
+  const xs = (i: number) => (s.length <= 1 ? W / 2 : pad + (i * (W - 2 * pad)) / (s.length - 1)), ys = (v: number) => pad + (1 - v / 100) * (H - 2 * pad)
+  const cor = delta > 0 ? VERDE : delta < 0 ? '#c0392b' : '#64748b'
+  const fmt = (n: number) => String(n).replace('.', ',')
+  return (
+    <button type="button" onClick={onAbrir} title="Ver o histórico completo" aria-label={`Evolução de ${p.nome}: de ${fmt(ini)}% para ${fmt(fim)}%`}
+      className="flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left hover:bg-white/70">
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-hidden="true" className="flex-none">
+        <line x1={pad} x2={W - pad} y1={ys(100)} y2={ys(100)} stroke="#cbd5e1" strokeDasharray="2 3" />
+        {s.length > 1 && <path d={s.map((q, i) => `${i ? 'L' : 'M'}${xs(i).toFixed(1)},${ys(q.depois).toFixed(1)}`).join(' ')} fill="none" stroke={AZUL} strokeWidth="2" strokeLinejoin="round" />}
+        {s.map((q, i) => <circle key={i} cx={xs(i)} cy={ys(q.depois)} r={i === s.length - 1 ? 3.5 : 2} fill={i === s.length - 1 ? cor : AZUL} />)}
+      </svg>
+      <span className="min-w-0 whitespace-nowrap leading-tight">
+        <span className="block text-sm font-bold" style={{ color: cor }}>{delta > 0 ? '+' : ''}{fmt(delta)} p.p.</span>
+        <span className="block text-[11px] text-slate-500">de {fmt(ini)}% para {fmt(fim)}%</span>
+        <span className="block text-[11px] text-slate-400">{s.length} registro(s)</span>
+      </span>
+    </button>
   )
 }
 
