@@ -9,7 +9,7 @@ import { Bar, btnG, btnP, btnS, btnSm, Card, Chip, inp, Kpi, Msg } from '../comp
 import Resumo from '../components/Resumo'
 import EnviarProjetos from '../components/EnviarProjetos'
 
-interface Task { id: string; block_id: string; descricao: string; grupo: string | null; ordem: number; concluida: boolean; concluida_em: string | null; idea_id: string | null }
+interface Task { id: string; block_id: string; descricao: string; grupo: string | null; ordem: number; concluida: boolean; concluida_em: string | null; idea_id: string | null; fixa_id?: string | null }
 export interface Futura { id: string; bloco_numero: number; data_alvo: string; descricao: string }
 interface Block { id: string; numero: number; nome: string; duracao_planejada_min: number; observacoes: string | null; daily_tasks: Task[] }
 
@@ -36,6 +36,7 @@ export default function Painel({ onNavigate }: { onNavigate?: (p: string) => voi
       if (date === todayStr()) {
         const inc = await supabase.rpc('futuras_incorporar', { p_data: date })
         if (inc.error) throw new Error(inc.error.message)
+        await supabase.rpc('fixas_incorporar', { p_data: date })   // atividades fixas definidas pelo gestor (se a migração 030 faltar, o painel segue normal)
       }
       setRec(r); setPrep(r.preparacao_proximo_dia || '')
       const [b, i, s, fu] = await Promise.all([
@@ -222,9 +223,13 @@ function BlockCard({ b, act, toggle, prep, setPrep, recId, uid, futuras }: {
               {h}
               <div className="flex items-start gap-2 border-b border-dashed border-slate-200 py-1.5">
                 <input type="checkbox" className="mt-0.5 h-5 w-5 accent-green-600" checked={t.concluida} onChange={() => toggle(t)} />
-                <TarefaTexto valor={t.descricao} riscado={t.concluida} onSalvar={(v) => act(() => supabase.from('daily_tasks').update({ descricao: v }).eq('id', t.id))} />
+                {t.fixa_id
+                  ? <span className={'min-w-0 flex-1 break-words text-sm leading-snug ' + (t.concluida ? 'text-slate-400 line-through' : '')}>{t.descricao}</span>
+                  : <TarefaTexto valor={t.descricao} riscado={t.concluida} onSalvar={(v) => act(() => supabase.from('daily_tasks').update({ descricao: v }).eq('id', t.id))} />}
                 {t.concluida && t.concluida_em && <small className="text-green-700">✔ {hhmm(t.concluida_em)}</small>}
-                <button className="text-slate-400 hover:text-red-600" title="Excluir tarefa" onClick={() => act(() => supabase.from('daily_tasks').delete().eq('id', t.id))}>×</button>
+                {t.fixa_id
+                  ? <span className="flex-none rounded border border-slate-300 px-1.5 text-[10px] text-slate-500" title="Definida pelo gestor: você só marca como feita">fixa</span>
+                  : <button className="text-slate-400 hover:text-red-600" title="Excluir tarefa" onClick={() => act(() => supabase.from('daily_tasks').delete().eq('id', t.id))}>×</button>}
               </div>
             </div>
           )
@@ -323,7 +328,7 @@ function Agendadas({ b, futuras, act, uid, color }: { b: Block; futuras: Futura[
 function Adiar({ b, tasks, act, uid, color }: { b: Block; tasks: Task[]; act: (f: () => PromiseLike<any>) => void; uid: string; color: string }) {
   const [open, setOpen] = useState(false)
   const [sel, setSel] = useState<Set<string>>(new Set())
-  const pend = tasks.filter((t) => !t.concluida)
+  const pend = tasks.filter((t) => !t.concluida && !t.fixa_id)   // atividades fixas do gestor não podem ser adiadas
   const toggleSel = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   const close = () => { setOpen(false); setSel(new Set()) }
   const escolhidas = pend.filter((t) => sel.has(t.id))

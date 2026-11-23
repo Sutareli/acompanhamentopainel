@@ -23,7 +23,7 @@ Tudo abaixo está **neste único pacote** (código + `supabase/001_schema.sql` c
 | 004 | etapas, histórico e cálculo automático | uma vez (se ainda não rodou) |
 | 005 | base de chamados (Pareto) | uma vez (se ainda não rodou) |
 | 007 | responsável e fase nos chamados (detalhamento “Quem é responsável” do Pareto) | uma vez, **depois** de 006, e reimporte a base de chamados |
-| 008 → 027 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_029_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
+| 008 → 027 | chamados alimentam o Backlog · data de conclusão/filtros · segurança · excluir projetos e usuários · **Lixeira de 48 h** · **agente de segurança** · **desempenho do RLS** · **Atas importantes** · **aviso de capacidade e arquivamento das atas** · **criticidade Recorrente** | **`008_a_030_tudo_junto.sql`**, uma vez, depois da 007 (quem já rodou até a 018 roda só `019_criticidade_recorrente.sql`; quem parou na 017 roda a 018 e a 019; quem parou na 015 roda `017_atas_arquivo.sql` e depois a 018); depois reimporte a base de chamados |
 | 006 | Atividades futuras (por bloco) e Projetos macro/micro (“com quem está”) | uma vez (se ainda não rodou) |
 
 **Atalho:** quem rodou só a 002 pode executar **`supabase/003_a_006_tudo_junto.sql`** (003 + 004 + 005 + 006 em um arquivo, uma única vez) em vez de rodar um por um.
@@ -96,7 +96,7 @@ O antigo backlog foi dividido em dois menus (mesma tabela, coluna `tipo_backlog`
 
 **Importar a base de melhorias** (só Analista Sr): Importar bases → "3 · Base de melhorias" (CSV com ID;Módulo;Melhoria;Descrição;…;Prioridade;Status;10 PRIMEIRAS). Colunas **opcionais**: `RESPONSÁVEL` (nome igual ao de um usuário ativo da plataforma; sem correspondência, defina na tela), `DATA DE ABERTURA`, `Nº DO CHAMADO`, `DATA DA IDEIA`. Etapa inicial: Concluído → Produção · Em andamento → Desenvolvimento · A iniciar com chamado/data de abertura → Chamado aberto · A iniciar na lista "10 primeiras" → Priorização · demais → Ideia. Linhas "Cancelado" não entram; "VOLTAR À CAPA" é ignorada. **Reimportar** atualiza textos, prioridade e posição, mas **não desfaz** etapa, datas, prazo, % nem responsável definidos no sistema (a base só faz a melhoria avançar de status).
 
-**Migração:** quem já rodou até a 019 executa `020_melhorias_e_correcao.sql` e depois `021_melhorias_data_abertura.sql` (a 021 pode ser rodada de novo sem problema, mesmo que uma versão anterior já tenha sido aplicada (as etapas antigas "Aplicada" viram "Produção")). O arquivo `008_a_029_tudo_junto.sql` reúne tudo.
+**Migração:** quem já rodou até a 019 executa `020_melhorias_e_correcao.sql` e depois `021_melhorias_data_abertura.sql` (a 021 pode ser rodada de novo sem problema, mesmo que uma versão anterior já tenha sido aplicada (as etapas antigas "Aplicada" viram "Produção")). O arquivo `008_a_030_tudo_junto.sql` reúne tudo.
 
 **Sem etapas “COMO?” nas Melhorias (migração 023):** o andamento (%) agora acompanha a etapa do funil — Ideia 0% · Priorização 17% · Especificação 33% · Chamado aberto 50% · Desenvolvimento 67% · Homologação 83% · Produção 100% — e não é mais digitado. A tela de detalhe das melhorias não mostra mais as etapas “COMO?” (as já cadastradas ficam guardadas no banco, sem efeito no status/%). A **Correção/manutenção** continua com etapas e % calculado por elas. Quem já rodou até a 022 executa apenas `023_melhorias_andamento_pela_etapa.sql`.
 
@@ -397,7 +397,7 @@ A importação de Projetos lê o CSV da aba **Microprojetos** exatamente como a 
 - **Responsável** aceita e-mail, nome completo, **primeiro nome/sobrenome** (ex.: “Higor”) ou **iniciais** (ex.: “MA”), desde que resolva para uma única pessoa ativa.
 
 ## Novidades da migração 025 (feriados, metas, comentários, backup, avisos)
-Aplique `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_029_tudo_junto.sql`). É idempotente e **não apaga dados**.
+Aplique `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a_030_tudo_junto.sql`). É idempotente e **não apaga dados**.
 
 - **🔔 Atenção** (Diretor, Gerente, Analista Sr; é a tela inicial deles): cartões clicáveis com melhorias de prazo vencido, SLA vencido, sem responsável, correções vencidas e atividades com data target vencida, mais suas **menções**.
 - **Feriados no SLA:** *Configurações → Feriados*. Os nacionais já vêm até 2028; Analista Sr e Gerente incluem/removem. O SLA em dias úteis pula fim de semana **e** feriados (tela e banco usam a mesma regra).
@@ -424,7 +424,7 @@ A Análise de chamados ganhou o bloco **Resumo do mês**, com os mesmos quatro g
 
 **Para importar:** a base precisa ter as colunas `Status_Prazo` e `REINCIDENTE ?` (além das de sempre). Sem elas a importação avisa o que ficará incompleto.
 
-**Migração:** aplique `supabase/027_chamados_reincidente.sql` (ou o `008_a_029_tudo_junto.sql`). Cria a coluna `reincidente` e atualiza a função de importação; não apaga dados.
+**Migração:** aplique `supabase/027_chamados_reincidente.sql` (ou o `008_a_030_tudo_junto.sql`). Cria a coluna `reincidente` e atualiza a função de importação; não apaga dados.
 
 ## Instalar no celular (PWA)
 O painel é um aplicativo instalável, sem loja e sem custo: abra o endereço do site no celular e instale.
@@ -434,7 +434,7 @@ Arquivos: `public/manifest.webmanifest`, `public/sw.js` (service worker mínimo:
 
 ## Status Rocco — antiga Semanal Italo (migração 028; renomeada na 029)
 Menu **Status Rocco** (só Analista Sr; cada um vê apenas as suas semanais). Lista as reuniões por data, com **Nova semanal** e **Duplicar a última** (copia os textos, sem marcações e sem imagens).
-Dentro da semanal: os 5 blocos (Básico, Implantações, Melhorias e customizações, Atualização das atividades, Próximos passos), um de cada vez em tela grande (setas ← → do teclado). Em cada bloco: textos editáveis, **imagens** (botão ou Ctrl+V; reduzidas a 1400 px) com legenda, reordenar/remover, a **flag “já discutido”** em cada texto e a **flag “bloco visto”**. “Modo reunião” esconde os controles de edição; “Tela cheia” para projetar. Salva sozinho. Tabela `semanais` (RLS só do dono); rode `028_semanal.sql` (ou o `008_a_029_tudo_junto.sql`).
+Dentro da semanal: os 5 blocos (Básico, Implantações, Melhorias e customizações, Atualização das atividades, Próximos passos), um de cada vez em tela grande (setas ← → do teclado). Em cada bloco: textos editáveis, **imagens** (botão ou Ctrl+V; reduzidas a 1400 px) com legenda, reordenar/remover, a **flag “já discutido”** em cada texto e a **flag “bloco visto”**. “Modo reunião” esconde os controles de edição; “Tela cheia” para projetar. Salva sozinho. Tabela `semanais` (RLS só do dono); rode `028_semanal.sql` (ou o `008_a_030_tudo_junto.sql`).
 
 
 ### Filtro por responsável (Almawave / Almaviva)
@@ -449,3 +449,7 @@ Cada etapa da agenda tem o quadro **Pedidos desta etapa** (adicionar, editar, re
 Paleta neutra (fundo cinza-frio, texto `ink`, bordas `linha`) com um único índigo de marca (`turq`) em ações e seleção; os tons `violet` do Tailwind foram redefinidos em `tailwind.config.js` para um índigo acinzentado. Menu lateral claro, agrupado, sem ícones; cartões e botões com cantos de 6–8 px e sem sombra; sem emojis decorativos; sem texto em caixa alta; login liso. Etapas do funil de melhorias usam uma única rampa de cor (verde só em Produção).
 
 **Roteiro da reunião:** a primeira aba, **Reunião anterior**, traz os pedidos que ficaram em aberto da última (herdados ao duplicar): marque o que foi atendido e deixe aberto o resto. Depois siga pelos blocos da pauta, registrando os **Novos pedidos** de cada etapa. A aba final **Consolidado** separa: seguem em aberto (anteriores), novos pedidos e atendidos desde a reunião anterior, com **Copiar lista**.
+
+
+## Atividades fixas no To do diário (migração 030)
+Em **Gestão da equipe → Atividades fixas** (só Analista Sr) você define atividades para uma pessoa (ou para todos os analistas e guardiões): descrição, bloco do dia, dias da semana e vigência (início e fim opcional). No To do diário da pessoa a atividade aparece no topo do bloco, com a etiqueta **fixa**, e ela **só consegue marcar como feita**: não edita, não exclui e não adia para o dia seguinte (o banco também bloqueia). A tarefa é criada uma vez por dia, quando a pessoa abre o To do; "Limpar lista do dia → excluir tudo" não apaga as fixas. A tela mostra, por atividade, se foi feita hoje e quantas foram feitas nos últimos 14 dias (só conta os dias em que a pessoa abriu o To do). Pausar suspende a criação nos próximos dias; excluir remove a regra e libera as tarefas já criadas.

@@ -8,6 +8,7 @@ import Microentregas, { Seg } from './Microentregas'
 import { confirmar } from '../components/Confirm'
 import TendenciaAtividades from '../components/TendenciaAtividades'
 import Jornadas from './Jornadas'
+import AtividadesFixas from './AtividadesFixas'
 
 export default function Equipe() {
   const { profile } = useAuth()
@@ -34,6 +35,7 @@ export default function Equipe() {
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [fixasTela, setFixasTela] = useState(false)   // gatilho: atividades fixas por pessoa (só Analista Sr)
   const [jornadas, setJornadas] = useState(false)   // gatilho de análise: abre as Jornadas da equipe (somente consulta) dentro desta tela
 
   useEffect(() => {
@@ -104,6 +106,15 @@ export default function Equipe() {
 
   if (loading) return <p className="py-10 text-center text-slate-500">Carregando painel gerencial…</p>
   const titulo = isGestor ? 'Gestão da equipe' : 'Visão consolidada da equipe'
+  if (fixasTela) return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-xl font-semibold text-ink">Atividades fixas</h1>
+        <button className={btnG + ' !px-3 !py-1.5 !text-xs'} onClick={() => setFixasTela(false)}>← Voltar à gestão</button>
+      </div>
+      <AtividadesFixas />
+    </div>
+  )
   if (jornadas) return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -125,6 +136,7 @@ export default function Equipe() {
             </button>
           ))}
         </div>
+        {isGestor && <button className={btnG + ' !px-3 !py-2 !text-sm'} onClick={() => setFixasTela(true)} title="Definir atividades que aparecem travadas no To do diário de cada pessoa (ela só marca como feita)">Atividades fixas</button>}
         <button className={btnG + ' !px-3 !py-2 !text-sm'} onClick={() => setJornadas(true)} title="Análise: jornada de trabalho de cada pessoa da equipe (somente consulta)">Análise: Jornadas da equipe</button>
         <span className="text-xs text-slate-500">{tipo === 'macro' ? 'Projetos maiores: quem é o responsável e com quem cada um está agora.' : tipo === 'micro' ? 'Projetos menores, acompanhados por unidades.' : 'Projetos e Atividades somados, com o comparativo entre os dois.'}</span>
       </div>
