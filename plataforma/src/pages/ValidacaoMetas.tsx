@@ -14,8 +14,10 @@ async function lerArquivo(f: File): Promise<string> {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf) } catch { return new TextDecoder('windows-1252').decode(buf) }
 }
 
-/** Cor predominante do FUNDO do logotipo (ex.: Keeta amarelo, Banco PAN preto).
- *  Só devolve cor quando um bloco sólido ocupa boa parte da imagem; logotipo de letras/ícone sobre transparente ou branco devolve null (cartão branco). */
+/** Cor do FUNDO do logotipo (ex.: Keeta amarelo, Banco PAN preto).
+ *  1) Olha a borda da imagem: se a maior parte dela tem uma mesma cor sólida, essa é a cor do fundo (funciona mesmo com muito texto por cima).
+ *  2) Senão, usa a cor que mais aparece, mas só se ocupar boa parte da imagem.
+ *  Logotipo de letras/ícone sobre transparente ou branco devolve null (cartão branco, para o desenho não sumir). */
 async function corDoFundo(url: string): Promise<string | null> {
   try {
     const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('x')); i.src = url })
@@ -24,22 +26,33 @@ async function corDoFundo(url: string): Promise<string | null> {
     const c = document.createElement('canvas'); c.width = w; c.height = h
     const ctx = c.getContext('2d')!; ctx.drawImage(img, 0, 0, w, h)
     const d = ctx.getImageData(0, 0, w, h).data
-    const baldes = new Map<number, { n: number; r: number; g: number; b: number }>()
+    const branco = (i: number) => d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235
     let x0 = w, y0 = h, x1 = -1, y1 = -1
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4, a = d[i + 3]; if (a < 40) continue
-      const r = d[i], g = d[i + 1], b = d[i + 2]
-      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y
-      if (r > 235 && g > 235 && b > 235) continue
-      const kk = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4), o = baldes.get(kk) || { n: 0, r: 0, g: 0, b: 0 }
-      o.n++; o.r += r; o.g += g; o.b += b; baldes.set(kk, o)
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (d[i + 3] < 40 || branco(i)) continue; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y }
+    if (x1 < 0) return null
+    // 1) anel de 3 px junto à borda do desenho
+    const anel: number[][] = []; let totalAnel = 0
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if (x - x0 >= 3 && x1 - x >= 3 && y - y0 >= 3 && y1 - y >= 3) continue
+      totalAnel++; const i = (y * w + x) * 4
+      if (d[i + 3] >= 40 && !branco(i)) anel.push([d[i], d[i + 1], d[i + 2]])
     }
-    if (x1 < 0 || !baldes.size) return null
-    const area = (x1 - x0 + 1) * (y1 - y0 + 1)
+    if (anel.length / totalAnel >= 0.55) {
+      const med = [0, 1, 2].map((ch) => { const v = anel.map((p) => p[ch]).sort((a, b) => a - b); return v[Math.floor(v.length / 2)] })
+      const perto = anel.filter((p) => Math.hypot(p[0] - med[0], p[1] - med[1], p[2] - med[2]) < 70).length
+      if (perto / totalAnel >= 0.5) return `rgb(${med[0]}, ${med[1]}, ${med[2]})`
+    }
+    // 2) cor que mais aparece (agrupada em baldes), exigindo que ocupe boa parte da área do desenho
+    const baldes = new Map<number, { n: number; r: number; g: number; b: number }>()
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const i = (y * w + x) * 4; if (d[i + 3] < 40 || branco(i)) continue
+      const kk = ((d[i] >> 4) << 8) | ((d[i + 1] >> 4) << 4) | (d[i + 2] >> 4), o = baldes.get(kk) || { n: 0, r: 0, g: 0, b: 0 }
+      o.n++; o.r += d[i]; o.g += d[i + 1]; o.b += d[i + 2]; baldes.set(kk, o)
+    }
     let melhor: { n: number; r: number; g: number; b: number } | null = null
     baldes.forEach((o) => { if (!melhor || o.n > melhor.n) melhor = o })
     const m = melhor as { n: number; r: number; g: number; b: number } | null
-    if (!m || m.n / area < 0.45) return null
+    if (!m || m.n / ((x1 - x0 + 1) * (y1 - y0 + 1)) < 0.45) return null
     return `rgb(${Math.round(m.r / m.n)}, ${Math.round(m.g / m.n)}, ${Math.round(m.b / m.n)})`
   } catch { return null }
 }
