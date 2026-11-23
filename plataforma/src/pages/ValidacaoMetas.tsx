@@ -1,7 +1,7 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { download, fmtDate, fmtDateTime } from '../lib/rules'
-import { fmtPct, lerMetas, LeituraMetas, modeloMetasCsv, pct, Produto, serieEvolucao, Snapshot, validarNumeros } from '../lib/metas'
+import { fmtPct, lerMetas, LeituraMetas, modeloMetasCsv, pct, Produto, serieEvolucao, Site, SITES, Snapshot, validarNumeros } from '../lib/metas'
 import { btnG, btnP, btnSm, Card, Empty, Field, inp, Modal, Msg } from '../components/ui'
 import { confirmar } from '../components/Confirm'
 
@@ -34,7 +34,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
   const [err, setErr] = useState(''); const [ok, setOk] = useState('')
   const [editando, setEditando] = useState(false)                     // modo "editar números"
   const [rascunho, setRascunho] = useState<Record<string, { h: string; a: string; d: string }>>({})
-  const [form, setForm] = useState<{ id?: string; nome: string; logo: string | null } | null>(null)   // cadastro/edição de produto
+  const [form, setForm] = useState<{ id?: string; nome: string; logo: string | null; site: Site | null } | null>(null)   // cadastro/edição de produto
   const [evol, setEvol] = useState<Produto | null>(null)
   const [hist, setHist] = useState<Record<string, Snapshot[]>>({})   // instantâneos por produto (mini evolução ao lado de cada linha)
   const [imp, setImp] = useState<{ nome: string; r: LeituraMetas } | null>(null)
@@ -68,8 +68,8 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
     if (!form) return
     const nome = form.nome.trim(); if (!nome) { setErr('Informe o nome do produto.'); return }
     const r = form.id
-      ? await supabase.from('metas_produtos').update({ nome, logo: form.logo }).eq('id', form.id)
-      : await supabase.from('metas_produtos').insert({ nome, logo: form.logo, ordem: (lista.reduce((m, p) => Math.max(m, p.ordem), 0) || 0) + 1 })
+      ? await supabase.from('metas_produtos').update({ nome, logo: form.logo, site: form.site }).eq('id', form.id)
+      : await supabase.from('metas_produtos').insert({ nome, logo: form.logo, site: form.site, ordem: (lista.reduce((m, p) => Math.max(m, p.ordem), 0) || 0) + 1 })
     if (r.error) { setErr(r.error.code === '23505' ? 'Já existe um produto com esse nome.' : 'Não foi possível salvar: ' + r.error.message); return }
     setForm(null); setErr(''); setOk(form.id ? 'Produto atualizado.' : 'Produto cadastrado. Preencha os números em “Editar números” ou importe a base.'); load()
   }
@@ -98,8 +98,9 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
   }
 
   const nomeLogo = (p: Produto) => (
-    <div className="grid h-[56px] w-[116px] place-items-center rounded-xl bg-white px-2 shadow-[0_1px_2px_rgba(15,23,42,.08)] ring-1 ring-slate-200/80">
+    <div className="relative grid h-[56px] w-[116px] place-items-center rounded-xl bg-white px-2 shadow-[0_1px_2px_rgba(15,23,42,.08)] ring-1 ring-slate-200/80">
       {p.logo ? <img src={p.logo} alt={p.nome} title={p.nome} style={{ maxHeight: 44, maxWidth: 100, objectFit: 'contain' }} /> : <span className="text-center text-[12px] font-semibold leading-tight text-slate-600">{p.nome}</span>}
+    {p.site && <span title={`Site ${p.site}`} className="absolute -right-2 -top-2 rounded-full bg-[#0b2461] px-2 py-0.5 text-[10px] font-bold leading-none text-white ring-2 ring-[#f3f4f6]">{p.site}</span>}
     </div>)
   // cada linha tem um filete branco por cima (menos a primeira) para separar os produtos dentro da coluna contínua
   const celula = (extra: string, children: ReactNode, key: string, i = 1, fio = 'border-white/70') => <div key={key} className={'flex items-center justify-center ' + (i > 0 ? 'border-t ' + fio + ' ' : '') + extra} style={{ height: ALT }}>{children}</div>
@@ -120,7 +121,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
           <p className="text-sm text-slate-500">Por produto: quantos indicadores estão habilitados e quantos têm meta, antes e depois da validação. {podeEditar ? 'Atualize importando uma base ou editando os números; cada mudança fica no histórico.' : 'Somente consulta.'}</p>
         </div>
         {podeEditar && !editando && (<>
-          <button className={btnP} onClick={() => setForm({ nome: '', logo: null })}>+ Novo produto</button>
+          <button className={btnP} onClick={() => setForm({ nome: '', logo: null, site: null })}>+ Novo produto</button>
           <button className={btnG} onClick={iniciarEdicao} disabled={!lista.length}>Editar números</button>
         </>)}
         {podeEditar && editando && (<>
@@ -174,7 +175,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
               <details className="relative">
                 <summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label={`Ações de ${p.nome}`}>⋯</summary>
                 <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border border-slate-200 bg-white p-1 text-sm shadow-lg" onClick={(e) => (e.currentTarget.parentElement as HTMLDetailsElement).removeAttribute('open')}>
-                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100" onClick={() => setForm({ id: p.id, nome: p.nome, logo: p.logo })}>Editar produto</button>
+                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100" onClick={() => setForm({ id: p.id, nome: p.nome, logo: p.logo, site: p.site })}>Editar produto</button>
                   <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === 0} onClick={() => mover(p, -1)}>Subir</button>
                   <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === lista.length - 1} onClick={() => mover(p, 1)}>Descer</button>
                   <button className="block w-full rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50" onClick={() => excluir(p)}>Excluir</button>
@@ -189,6 +190,12 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
         <Modal title={form.id ? 'Editar produto' : 'Novo produto'} onClose={() => setForm(null)}>
           <div className="space-y-3">
             <Field label="Nome do produto / cliente"><input className={inp} maxLength={80} autoFocus value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); salvarProduto() } }} /></Field>
+            <Field label="Site">
+              <select className={inp} aria-label="Site do produto" value={form.site ?? ''} onChange={(e) => setForm({ ...form, site: (e.target.value || null) as Site | null })}>
+                <option value="">Sem site</option>
+                {SITES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </Field>
             <Field label="Logotipo (PNG, JPG ou SVG)">
               <div className="flex items-center gap-3">
                 <div className="grid h-20 w-40 place-items-center rounded-md border border-slate-300 bg-white">{form.logo ? <img src={form.logo} alt="Prévia do logotipo" style={{ maxHeight: 72, maxWidth: 150, objectFit: 'contain' }} /> : <span className="text-xs text-slate-400">sem logotipo</span>}</div>

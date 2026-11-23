@@ -1,8 +1,10 @@
 import { hnorm, parseCsv } from './chamados'
 
 /** Validação de metas: por produto/cliente, indicadores habilitados e quantos têm meta antes e depois da validação. */
+export const SITES = ['MCZ', 'THE', 'FOR', 'NSS'] as const
+export type Site = (typeof SITES)[number]
 export interface Produto {
-  id: string; nome: string; logo: string | null; ordem: number
+  id: string; nome: string; logo: string | null; site: Site | null; ordem: number
   habilitados: number; antes: number; depois: number; ativo: boolean; atualizado_em: string
 }
 export interface Snapshot { id: number; produto_id: string; registrado_em: string; habilitados: number; antes: number; depois: number; origem: 'manual' | 'importacao' | 'cadastro' }
