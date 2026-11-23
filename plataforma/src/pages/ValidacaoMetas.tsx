@@ -14,6 +14,36 @@ async function lerArquivo(f: File): Promise<string> {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf) } catch { return new TextDecoder('windows-1252').decode(buf) }
 }
 
+/** Cor predominante do FUNDO do logotipo (ex.: Keeta amarelo, Banco PAN preto).
+ *  Só devolve cor quando um bloco sólido ocupa boa parte da imagem; logotipo de letras/ícone sobre transparente ou branco devolve null (cartão branco). */
+async function corDoFundo(url: string): Promise<string | null> {
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('x')); i.src = url })
+    const nw = img.naturalWidth || 140, nh = img.naturalHeight || 60, k = Math.min(1, 96 / nw, 96 / nh)
+    const w = Math.max(1, Math.round(nw * k)), h = Math.max(1, Math.round(nh * k))
+    const c = document.createElement('canvas'); c.width = w; c.height = h
+    const ctx = c.getContext('2d')!; ctx.drawImage(img, 0, 0, w, h)
+    const d = ctx.getImageData(0, 0, w, h).data
+    const baldes = new Map<number, { n: number; r: number; g: number; b: number }>()
+    let x0 = w, y0 = h, x1 = -1, y1 = -1
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4, a = d[i + 3]; if (a < 40) continue
+      const r = d[i], g = d[i + 1], b = d[i + 2]
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y
+      if (r > 235 && g > 235 && b > 235) continue
+      const kk = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4), o = baldes.get(kk) || { n: 0, r: 0, g: 0, b: 0 }
+      o.n++; o.r += r; o.g += g; o.b += b; baldes.set(kk, o)
+    }
+    if (x1 < 0 || !baldes.size) return null
+    const area = (x1 - x0 + 1) * (y1 - y0 + 1)
+    let melhor: { n: number; r: number; g: number; b: number } | null = null
+    baldes.forEach((o) => { if (!melhor || o.n > melhor.n) melhor = o })
+    const m = melhor as { n: number; r: number; g: number; b: number } | null
+    if (!m || m.n / area < 0.45) return null
+    return `rgb(${Math.round(m.r / m.n)}, ${Math.round(m.g / m.n)}, ${Math.round(m.b / m.n)})`
+  } catch { return null }
+}
+
 /** Tira as margens transparentes ou brancas em volta do logotipo, para ele preencher o quadro e ficar centralizado. */
 function recortarMargens(c: HTMLCanvasElement): HTMLCanvasElement {
   try {
@@ -55,6 +85,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
   const [rascunho, setRascunho] = useState<Record<string, { h: string; a: string; d: string }>>({})
   const [form, setForm] = useState<{ id?: string; nome: string; logo: string | null; sites: Site[] } | null>(null)   // cadastro/edição de produto
   const [evol, setEvol] = useState<Produto | null>(null)
+  const [fundos, setFundos] = useState<Record<string, string | null>>({})   // cor de fundo do cartão de cada logotipo (chave = o próprio data URL)
   const [hist, setHist] = useState<Record<string, Snapshot[]>>({})   // instantâneos por produto (mini evolução ao lado de cada linha)
   const [imp, setImp] = useState<{ nome: string; r: LeituraMetas } | null>(null)
 
@@ -117,10 +148,15 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
     setImp(null); setErr(''); setOk(`Base importada: ${d.atualizados} produto(s) atualizado(s) e ${d.criados} novo(s). Os novos ficaram sem logotipo: use “Editar” na linha para enviar a imagem.`); load()
   }
 
+  useEffect(() => {
+    let vivo = true
+    lista.forEach((p) => { if (p.logo && !(p.logo in fundos)) corDoFundo(p.logo).then((c) => { if (vivo) setFundos((f) => (p.logo! in f ? f : { ...f, [p.logo!]: c })) }) })
+    return () => { vivo = false }
+  }, [lista, fundos])
   const visiveis = filtroSite ? lista.filter((p) => (filtroSite === 'SEM' ? !(p.sites || []).length : (p.sites || []).includes(filtroSite))) : lista
   const contar = (f: '' | Site | 'SEM') => (f ? lista.filter((p) => (f === 'SEM' ? !(p.sites || []).length : (p.sites || []).includes(f))).length : lista.length)
   const nomeLogo = (p: Produto) => (
-    <div className="relative grid h-[60px] w-[116px] place-items-stretch rounded-xl bg-white p-2 shadow-[0_1px_2px_rgba(15,23,42,.08)] ring-1 ring-slate-200/80">
+    <div className="relative grid h-[60px] w-[116px] place-items-stretch rounded-xl p-2 shadow-[0_1px_2px_rgba(15,23,42,.08)] ring-1 ring-slate-200/80" style={{ background: (p.logo && fundos[p.logo]) || '#fff' }}>
       {p.logo
         ? <span className="relative block h-full w-full"><img src={p.logo} alt={p.nome} title={p.nome} className="absolute inset-0 h-full w-full rounded-md object-contain object-center" /></span>
         : <span className="grid place-items-center text-center text-[12px] font-semibold leading-tight text-slate-600">{p.nome}</span>}
