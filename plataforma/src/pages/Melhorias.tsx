@@ -147,11 +147,11 @@ export default function Melhorias() {
     setEdit(null); await load()
     return ''
   }
-  async function remove(m: Melhoria) {
-    if (!(await confirmar({ titulo: 'Excluir melhoria?', mensagem: <>Excluir <b>“{m.melhoria}”</b> com suas etapas e histórico? Fica na <b>Lixeira por 48 horas</b> e pode ser restaurada; depois disso some de vez.</>, confirmar: 'Excluir', perigo: true }))) return
+  async function remove(m: Melhoria): Promise<boolean> {
+    if (!(await confirmar({ titulo: 'Excluir melhoria?', mensagem: <>Excluir <b>“{m.melhoria}”</b> com suas etapas e histórico? Fica na <b>Lixeira por 48 horas</b> e pode ser restaurada; depois disso some de vez.</>, confirmar: 'Excluir', perigo: true }))) return false
     const r = await supabase.from('backlog_melhorias').delete().eq('id', m.id).select('id')
-    if (r.error || !r.data?.length) setErr('Não foi possível excluir: ' + (r.error?.message || 'sem permissão.'))
-    else { setSelId(null); await load() }
+    if (r.error || !r.data?.length) { setErr('Não foi possível excluir: ' + (r.error?.message || 'sem permissão.')); return false }
+    setSelId(null); await load(); return true
   }
   const colAn: { k: string; l: string; v: (r: Melhoria) => string | number }[] = [
     { k: 'melhoria', l: 'Melhoria', v: (r) => r.melhoria.toLowerCase() }, { k: 'modulo', l: 'Módulo', v: (r) => r.modulo.toLowerCase() },
@@ -407,7 +407,7 @@ export default function Melhorias() {
       </>)}
 
       {edit && <MelhoriaForm funil usuarios={usuarios} init={edit} modulos={modulos} temEtapas={false} onClose={() => setEdit(null)} onSave={save} />}
-      {filaAberta && <OrganizarFila ideias={filaGlobal} nomeResp={nomeResp} onClose={() => setFilaAberta(false)} onSave={salvarFila} />}
+      {filaAberta && <OrganizarFila ideias={filaGlobal} nomeResp={nomeResp} onClose={() => setFilaAberta(false)} onSave={salvarFila} onExcluir={remove} />}
       {avancar && <AvancarFase m={avancar} onClose={() => setAvancar(null)} onConfirm={(p) => confirmarAvanco(avancar, p)} />}
     </div>
   )

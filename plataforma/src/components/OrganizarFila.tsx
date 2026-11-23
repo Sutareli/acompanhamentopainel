@@ -1,28 +1,30 @@
 import { useMemo, useState } from 'react'
-import { btnG, btnP, btnSm, inp, Modal, Msg } from './ui'
+import { btnD, btnG, btnP, btnSm, inp, Modal, Msg } from './ui'
 import { Melhoria } from '../lib/backlog'
 
 /** Janela para organizar a fila de ideias: arrastar, digitar a posição, ou mandar para o topo/fim. */
-export default function OrganizarFila({ ideias, nomeResp, onClose, onSave }: {
-  ideias: Melhoria[]; nomeResp: (m: Melhoria) => string | null; onClose: () => void; onSave: (ids: string[]) => Promise<string>
+export default function OrganizarFila({ ideias, nomeResp, onClose, onSave, onExcluir }: {
+  ideias: Melhoria[]; nomeResp: (m: Melhoria) => string | null; onClose: () => void; onSave: (ids: string[]) => Promise<string>; onExcluir: (m: Melhoria) => Promise<boolean>
 }) {
   const original = useMemo(() => ideias.map((m) => m.id), [ideias])
-  const [ids, setIds] = useState<string[]>(original)
+  const [idsBrutos, setIds] = useState<string[]>(original)
   const [q, setQ] = useState('')
   const [arrasta, setArrasta] = useState<string | null>(null)
   const [sobre, setSobre] = useState<string | null>(null)
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
   const porId = useMemo(() => new Map(ideias.map((m) => [m.id, m])), [ideias])
-  const mudou = ids.some((id, i) => id !== original[i])
+  const ids = idsBrutos.filter((id) => porId.has(id))   // ideias excluídas saem da lista
+  const mudou = ids.length === original.length && ids.some((id, i) => id !== original[i])
 
-  const mover = (id: string, para: number) => setIds((cur) => {
-    const i = cur.indexOf(id); const j = Math.min(Math.max(para, 0), cur.length - 1)
+  const mover = (id: string, para: number) => setIds((bruto) => {
+    const cur = bruto.filter((x) => porId.has(x)); const i = cur.indexOf(id); const j = Math.min(Math.max(para, 0), cur.length - 1)
     if (i < 0 || i === j) return cur
     const n = cur.slice(); n.splice(i, 1); n.splice(j, 0, id); return n
   })
   const t = q.trim().toLowerCase()
   const visivel = (id: string) => { const m = porId.get(id)!; return !t || [m.melhoria, m.modulo, nomeResp(m)].join(' ').toLowerCase().includes(t) }
 
+  async function excluir(m: Melhoria) { await onExcluir(m) }
   async function salvar() {
     setBusy(true); setErr('')
     const r = await onSave(ids)
@@ -53,6 +55,7 @@ export default function OrganizarFila({ ideias, nomeResp, onClose, onSave }: {
               <span className="hidden text-xs text-slate-500 sm:inline">{nomeResp(m) || 'sem responsável'}</span>
               <button type="button" className={btnG + ' ' + btnSm} onClick={() => mover(id, 0)} disabled={i === 0}>Topo</button>
               <button type="button" className={btnG + ' ' + btnSm} onClick={() => mover(id, ids.length - 1)} disabled={i === ids.length - 1}>Fim</button>
+              <button type="button" className={btnD + ' ' + btnSm} onClick={() => excluir(m)} aria-label={`Excluir ${m.melhoria}`} title="Excluir esta melhoria (vai para a Lixeira por 48 horas)">Excluir</button>
             </li>
           ) })}
       </ol>
