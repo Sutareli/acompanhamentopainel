@@ -1,4 +1,5 @@
 import Comentarios from '../components/Comentarios'
+import AnexosProjeto from '../components/AnexosProjeto'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
@@ -234,6 +235,7 @@ function Detail({ m, ativos, onClose, onChanged }: { m: Micro; ativos: any[]; on
         <button className={btnS}>Mover</button>
       </form>
 
+      <div className="mb-4"><AnexosProjeto id={m.id} /></div>
       <div className="mb-4"><Comentarios entidade="atividade" id={m.id} /></div>
 
       <h4 className="mb-2 font-bold text-navy">Histórico</h4>
