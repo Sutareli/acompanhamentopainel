@@ -410,7 +410,7 @@ Aplique `supabase/025_feriados_metas_comentarios_backup_avisos.sql` (ou o `008_a
 - **Testes automáticos:** `npm test` (regras) e `tests/sql/025_testes.sql` (banco), rodados a cada envio ao GitHub (`.github/workflows/ci.yml`). Para mudar com segurança: **AMBIENTE_DE_TESTE.md**.
 
 ## Ordem do menu lateral
-Atenção (só Diretor, Gerente e Analista Sr) · To do diário · Projetos · Ideias · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Melhorias · Correção/manutenção · Análise de chamados · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).
+Atenção (só Diretor, Gerente e Analista Sr) · To do diário · Projetos · Histórico · Atas importantes · Lixeira · Configurações · Gestão da equipe · Jornadas da equipe · Melhorias · Correção/manutenção · Análise de chamados · Importar bases · e, sozinho no rodapé, **🛡️ Segurança**. Gestão/Jornadas da equipe e Importar bases/Segurança só aparecem para quem tem permissão. **Imprevistos** abre pelo botão **⚡ Imprevistos** no topo do Painel. A ordem está em `src/App.tsx` (`ITEMS`, `BACKLOG_ITEMS`, `IMPORT_ITEM`).
 
 ## Resumo do mês e regras da planilha (migração 027)
 
@@ -457,3 +457,6 @@ Em **Gestão da equipe → Atividades fixas** (só Analista Sr) você define ati
 
 ## Perfil Gerente: todas as telas, só consulta (migração 031)
 O Gerente abre as mesmas telas do Analista Sr: **Gestão da equipe** (inclui a lista de usuários e **Atividades fixas**), **Status Rocco**, **Importar bases** e **Segurança**. Tudo em modo consulta: sem convidar/alterar/excluir usuários, sem criar/pausar/excluir atividades fixas, sem criar, editar ou marcar pedidos no Status Rocco, sem importar bases e sem rodar a verificação de segurança (o banco também recusa). Em Segurança ele vê as verificações e os achados; os cartões de capacidade, backup e avisos continuam só do Analista Sr.
+
+## Módulo Ideias removido
+A tela **Ideias** saiu do menu e do código. Os dados antigos continuam guardados no banco (tabela `ideas`, sem exclusão) e entram nos backups; o arquivo da tela está no histórico do Git caso precise voltar. As "ideias" de **Melhorias** (primeira etapa do funil) são outra coisa e continuam.

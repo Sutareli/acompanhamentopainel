@@ -10,7 +10,6 @@ import Painel from './pages/Painel'
 import Melhorias from './pages/Melhorias'
 import Atas from './pages/Atas'
 import Imprevistos from './pages/Imprevistos'
-import Ideias from './pages/Ideias'
 import Microentregas from './pages/Microentregas'
 import Historico from './pages/Historico'
 import Configuracoes from './pages/Configuracoes'
@@ -26,7 +25,7 @@ import { AvisoCapacidade } from './components/AvisoCapacidade'
 import { canAdmin, canSeeAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
 
 const ITEMS: [string, string, string][] = [
-  ['painel', '', 'To do diário'], ['micro', '', 'Projetos e atividades'], ['ideias', '', 'Ideias'], ['historico', '', 'Histórico'],
+  ['painel', '', 'To do diário'], ['micro', '', 'Projetos e atividades'], ['historico', '', 'Histórico'],
   ['atas', '', 'Atas importantes'], ['lixeira', '', 'Lixeira'], ['config', '', 'Configurações'],
 ]
 /** Ordem do menu: itens pessoais → equipe → backlog → Importar bases (só Analista Sr). O botão Segurança fica sozinho no rodapé. Imprevistos abre por um botão no Painel. */
@@ -109,7 +108,6 @@ export default function App() {
         {view === 'painel' && <Painel onNavigate={setPage} />}
         {view === 'atas' && <Atas />}
         {view === 'imprevistos' && <Imprevistos />}
-        {view === 'ideias' && <Ideias />}
         {view === 'micro' && <Microentregas />}
         {view === 'melhorias' && <Melhorias />}
         {view === 'backlog' && <Backlog onNavigate={setPage} />}
