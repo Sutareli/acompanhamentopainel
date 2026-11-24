@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { addDays, download, fmtDate, PERFIL_LABEL, todayStr, toCSV, TZ } from '../lib/rules'
 import { ehDiaUtil } from '../lib/sla'
@@ -21,17 +21,20 @@ export default function Acessos() {
   const [ordem, setOrdem] = useState<'nome' | 'aderencia'>('nome')
   const hoje = todayStr()
 
-  useEffect(() => {
-    (async () => {
-      const [p, a] = await Promise.all([
-        supabase.from('profiles').select('id,nome,perfil,ativo').order('nome'),
-        supabase.from('acessos').select('*').gte('dia', addDays(hoje, -62)),
-      ])
-      if (p.error || a.error) setErr('Não foi possível carregar os acessos: ' + (p.error || a.error)!.message + ' (a migração 037 foi executada?)')
-      setPessoas(((p.data || []) as (PessoaAc & { ativo: boolean })[]).filter((x) => x.ativo))
-      setAcessos((a.data || []) as Acesso[]); setLoading(false)
-    })()
+  const [atualizadoEm, setAtualizadoEm] = useState('')
+  const carregar = useCallback(async () => {
+    const [p, a] = await Promise.all([
+      supabase.from('profiles').select('id,nome,perfil,ativo').order('nome'),
+      supabase.from('acessos').select('*').gte('dia', addDays(hoje, -62)),
+    ])
+    if (p.error || a.error) setErr('Não foi possível carregar os acessos: ' + (p.error || a.error)!.message + ' (a migração 037 foi executada?)')
+    else setErr('')
+    setPessoas(((p.data || []) as (PessoaAc & { ativo: boolean })[]).filter((x) => x.ativo))
+    setAcessos((a.data || []) as Acesso[]); setLoading(false); setAtualizadoEm(new Date().toISOString())
   }, [hoje])
+  useEffect(() => {   // atualiza sozinho a cada 2 minutos para acompanhar o dia
+    carregar(); const t = setInterval(carregar, 120_000); return () => clearInterval(t)
+  }, [carregar])
 
   const dias = useMemo(() => janela(hoje, periodo === 'mes' ? Number(hoje.slice(8, 10)) : periodo), [hoje, periodo])
   const grupo = useMemo(() => pessoas.filter((p) => comGestao || p.perfil === 'analista' || p.perfil === 'guardiao'), [pessoas, comGestao])
@@ -72,6 +75,7 @@ export default function Acessos() {
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {([7, 14, 30, 'mes'] as const).map((p) => (
             <button key={p} className={periodo === p ? btnP : btnG} aria-pressed={periodo === p} onClick={() => setPeriodo(p)}>{p === 'mes' ? 'Mês atual' : `${p} dias`}</button>))}
+          <button className={btnG} onClick={carregar} title={atualizadoEm ? 'Atualizado às ' + hora(atualizadoEm) + ' (atualiza sozinho a cada 2 minutos)' : ''}>Atualizar{atualizadoEm ? ' · ' + hora(atualizadoEm) : ''}</button>
           <button className={btnG} onClick={exportar} disabled={!linhas.length}>Exportar CSV</button>
         </div>
       </div>
