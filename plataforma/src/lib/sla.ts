@@ -14,6 +14,9 @@ let FERIADOS = new Set<string>()
 export const setFeriados = (datas: string[]) => { FERIADOS = new Set(datas) }
 const util = (n: number) => { const w = new Date(n * 86400000).getUTCDay(); return w !== 0 && w !== 6 && !FERIADOS.has(str(n)) }
 
+/** Dia útil (segunda a sexta, fora dos feriados cadastrados). */
+export const ehDiaUtil = (d: string) => util(dn(d))
+
 /** Soma N dias úteis (segunda a sexta, sem os feriados cadastrados). A data inicial não conta. */
 export function somaDiasUteis(ini: string, n: number): string {
   let d = dn(ini), k = 0
