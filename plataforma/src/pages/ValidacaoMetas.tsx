@@ -100,6 +100,7 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
   const [evol, setEvol] = useState<Produto | null>(null)
   const [apres, setApres] = useState(false)   // modo apresentação (tela cheia, sem menus nem botões de edição)
   const [escala, setEscala] = useState(1)
+  const [duas, setDuas] = useState(false)   // apresentação com a lista dividida em 2 colunas
   const [fundos, setFundos] = useState<Record<string, string | null>>({})   // cor de fundo do cartão de cada logotipo (chave = o próprio data URL)
   const [hist, setHist] = useState<Record<string, Snapshot[]>>({})   // instantâneos por produto (mini evolução ao lado de cada linha)
   const [imp, setImp] = useState<{ nome: string; r: LeituraMetas } | null>(null)
@@ -179,8 +180,14 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
   const contar = (f: '' | Site | 'SEM') => (f ? lista.filter((p) => (f === 'SEM' ? !(p.sites || []).length : (p.sites || []).includes(f))).length : lista.length)
   // na apresentação o quadro é ampliado para ocupar a tela (largura e altura) e ← → passam de um site para o outro
   useEffect(() => {
-    if (!apres) { setEscala(1); return }
-    const ajustar = () => setEscala(Math.max(0.8, Math.min(2.2, (window.innerWidth - 64) / 1090, (window.innerHeight - 120) / (250 + visiveis.length * ALT))))
+    if (!apres) { setEscala(1); setDuas(false); return }
+    const ajustar = () => {
+      const n = visiveis.length, L = window.innerWidth - 64, A = window.innerHeight - 120
+      const s1 = Math.min(L / 1090, A / (250 + n * ALT))                                  // tudo numa coluna
+      const s2 = Math.min(L / (2 * 1090 + 16), A / (250 + Math.ceil(n / 2) * ALT))        // duas colunas lado a lado
+      const dividir = n >= 6 && s1 < 1 && s2 > s1
+      setDuas(dividir); setEscala(Math.max(0.5, Math.min(2.2, dividir ? s2 : s1)))
+    }
     ajustar(); window.addEventListener('resize', ajustar); return () => window.removeEventListener('resize', ajustar)
   }, [apres, visiveis.length])
   useEffect(() => {
@@ -212,6 +219,40 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
 
   const colunas = useMemo(() => '132px 104px 14px 112px 112px 14px 112px 112px 18px 236px 44px', [])
   const cab = (t: string, extra = '', pos: Record<string, string | number> = {}) => <div className={'flex items-center justify-center rounded-xl px-2 py-2 text-center text-xs font-bold leading-tight ' + extra} style={{ background: CINZA, color: AZUL, ...pos }}>{t}</div>
+
+  /** Quadro de produtos. Na apresentação, quando a lista não cabe na altura da tela, ela é dividida em duas colunas lado a lado. */
+  const tabela = (ps: Produto[], nota: boolean, chave = 't') => (
+    <div key={chave} className="overflow-x-auto rounded-2xl border border-linha bg-[#f3f4f6] p-5">
+      <div className="grid min-w-[1030px]" style={{ gridTemplateColumns: colunas, gap: '8px 0', justifyContent: apres ? 'center' : undefined }}>
+        {/* cabeçalhos e corpo posicionados na grade: 1 logo · 2 habilitados · 3 vão · 4–5 antes · 6 vão · 7–8 depois · 9 vão · 10 evolução · 11 ações */}
+        <div className="flex items-center justify-center rounded-2xl px-2 py-3 text-center text-xs font-bold leading-tight text-white shadow-sm" style={{ background: AZUL, gridColumn: 2, gridRow: '1 / span 2' }}>Indicadores<br />Habilitados</div>
+        {cab('Antes', '!rounded-lg !py-1.5', { gridColumn: '4 / span 2', gridRow: 1 })}
+        {cab('Depois', '!rounded-lg !py-1.5', { gridColumn: '7 / span 2', gridRow: 1 })}
+        {cab('Indicadores com metas', '', { gridColumn: 4, gridRow: 2 })}{cab('% com meta', '', { gridColumn: 5, gridRow: 2 })}
+        {cab('Indicadores com metas', '', { gridColumn: 7, gridRow: 2 })}{cab('% com meta', '', { gridColumn: 8, gridRow: 2 })}
+        {cab('Evolução (% com meta depois)', '!rounded-lg !py-1.5', { gridColumn: 10, gridRow: '1 / span 2' })}
+        {/* corpo: cada coluna é uma peça contínua com cantos arredondados, como no layout de referência */}
+        <div className="mt-2 flex flex-col" style={{ gridColumn: 1, gridRow: 3 }}>{ps.map((p, i) => celula('', nomeLogo(p), p.id, 0))}</div>
+        <div className="mt-2 flex flex-col overflow-hidden rounded-3xl text-white shadow-sm" style={{ background: AZUL, gridColumn: 2, gridRow: 3 }}>{ps.map((p, i) => celula('', num(p, 'h', p.habilitados, '#fff', 24), p.id, i, 'border-white/15'))}</div>
+        <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 4, gridRow: 3 }}>{ps.map((p, i) => celula('', num(p, 'a', p.antes, VERDE, 24), p.id, i))}</div>
+        <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 5, gridRow: 3 }}>{ps.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'a')}</span>, p.id, i))}</div>
+        <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 7, gridRow: 3 }}>{ps.map((p, i) => celula('', num(p, 'd', p.depois, VERDE, 24), p.id, i))}</div>
+        <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 8, gridRow: 3 }}>{ps.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'd')}</span>, p.id, i))}</div>
+        <div className="mt-2 flex flex-col" style={{ gridColumn: 10, gridRow: 3 }}>{ps.map((p, i) => celula('', <MiniEvolucao p={p} h={hist[p.id] || []} onAbrir={() => setEvol(p)} />, p.id, i, 'border-slate-200'))}</div>
+        <div className="mt-2 flex flex-col" style={{ gridColumn: 11, gridRow: 3 }}>{ps.map((p, i) => celula('', podeEditar && !editando && !apres ? (
+          <details className="relative">
+            <summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label={`Ações de ${p.nome}`}>⋯</summary>
+            <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border border-slate-200 bg-white p-1 text-sm shadow-lg" onClick={(e) => (e.currentTarget.parentElement as HTMLDetailsElement).removeAttribute('open')}>
+              <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100" onClick={() => setForm({ id: p.id, nome: p.nome, logo: p.logo, sites: p.sites || [] })}>Editar produto</button>
+              <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === 0} onClick={() => mover(p, -1)}>Subir</button>
+              <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === ps.length - 1} onClick={() => mover(p, 1)}>Descer</button>
+              <button className="block w-full rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50" onClick={() => excluir(p)}>Excluir</button>
+            </div>
+          </details>) : null, p.id, i, 'border-slate-200'))}</div>
+      </div>
+      {nota && <p className="mt-3 text-xs text-slate-500">Última atualização: {fmtDateTime(lista.reduce((m, p) => (p.atualizado_em > m ? p.atualizado_em : m), ''))}. Percentual = indicadores com meta ÷ indicadores habilitados.</p>}
+    </div>
+  )
 
   return (
     <div className="space-y-4">
@@ -265,36 +306,13 @@ export default function ValidacaoMetas({ podeEditar }: { podeEditar: boolean }) 
             </button>))}
         </div>
         {visiveis.length === 0 ? <Card><Empty>Nenhum produto neste site. {podeEditar ? 'Defina o site em “Editar produto” (menu ⋯ da linha).' : ''}</Empty></Card> : (
-        <div className="overflow-x-auto rounded-2xl border border-linha bg-[#f3f4f6] p-5">
-          <div className="grid min-w-[1030px]" style={{ gridTemplateColumns: colunas, gap: '8px 0', justifyContent: apres ? 'center' : undefined }}>
-            {/* cabeçalhos e corpo posicionados na grade: 1 logo · 2 habilitados · 3 vão · 4–5 antes · 6 vão · 7–8 depois · 9 vão · 10 evolução · 11 ações */}
-            <div className="flex items-center justify-center rounded-2xl px-2 py-3 text-center text-xs font-bold leading-tight text-white shadow-sm" style={{ background: AZUL, gridColumn: 2, gridRow: '1 / span 2' }}>Indicadores<br />Habilitados</div>
-            {cab('Antes', '!rounded-lg !py-1.5', { gridColumn: '4 / span 2', gridRow: 1 })}
-            {cab('Depois', '!rounded-lg !py-1.5', { gridColumn: '7 / span 2', gridRow: 1 })}
-            {cab('Indicadores com metas', '', { gridColumn: 4, gridRow: 2 })}{cab('% com meta', '', { gridColumn: 5, gridRow: 2 })}
-            {cab('Indicadores com metas', '', { gridColumn: 7, gridRow: 2 })}{cab('% com meta', '', { gridColumn: 8, gridRow: 2 })}
-            {cab('Evolução (% com meta depois)', '!rounded-lg !py-1.5', { gridColumn: 10, gridRow: '1 / span 2' })}
-            {/* corpo: cada coluna é uma peça contínua com cantos arredondados, como no layout de referência */}
-            <div className="mt-2 flex flex-col" style={{ gridColumn: 1, gridRow: 3 }}>{visiveis.map((p, i) => celula('', nomeLogo(p), p.id, 0))}</div>
-            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl text-white shadow-sm" style={{ background: AZUL, gridColumn: 2, gridRow: 3 }}>{visiveis.map((p, i) => celula('', num(p, 'h', p.habilitados, '#fff', 24), p.id, i, 'border-white/15'))}</div>
-            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 4, gridRow: 3 }}>{visiveis.map((p, i) => celula('', num(p, 'a', p.antes, VERDE, 24), p.id, i))}</div>
-            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 5, gridRow: 3 }}>{visiveis.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'a')}</span>, p.id, i))}</div>
-            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 7, gridRow: 3 }}>{visiveis.map((p, i) => celula('', num(p, 'd', p.depois, VERDE, 24), p.id, i))}</div>
-            <div className="mt-2 flex flex-col overflow-hidden rounded-3xl" style={{ background: CINZA_T, gridColumn: 8, gridRow: 3 }}>{visiveis.map((p, i) => celula('', <span className="text-xl font-bold" style={{ color: AZUL }}>{pctVivo(p, 'd')}</span>, p.id, i))}</div>
-            <div className="mt-2 flex flex-col" style={{ gridColumn: 10, gridRow: 3 }}>{visiveis.map((p, i) => celula('', <MiniEvolucao p={p} h={hist[p.id] || []} onAbrir={() => setEvol(p)} />, p.id, i, 'border-slate-200'))}</div>
-            <div className="mt-2 flex flex-col" style={{ gridColumn: 11, gridRow: 3 }}>{visiveis.map((p, i) => celula('', podeEditar && !editando && !apres ? (
-              <details className="relative">
-                <summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label={`Ações de ${p.nome}`}>⋯</summary>
-                <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border border-slate-200 bg-white p-1 text-sm shadow-lg" onClick={(e) => (e.currentTarget.parentElement as HTMLDetailsElement).removeAttribute('open')}>
-                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100" onClick={() => setForm({ id: p.id, nome: p.nome, logo: p.logo, sites: p.sites || [] })}>Editar produto</button>
-                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === 0} onClick={() => mover(p, -1)}>Subir</button>
-                  <button className="block w-full rounded px-2 py-1.5 text-left hover:bg-slate-100 disabled:opacity-40" disabled={i === visiveis.length - 1} onClick={() => mover(p, 1)}>Descer</button>
-                  <button className="block w-full rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50" onClick={() => excluir(p)}>Excluir</button>
-                </div>
-              </details>) : null, p.id, i, 'border-slate-200'))}</div>
+        apres && duas ? (
+          <div className="flex items-start justify-center gap-4">
+            {tabela(visiveis.slice(0, Math.ceil(visiveis.length / 2)), false, 'e')}
+            {tabela(visiveis.slice(Math.ceil(visiveis.length / 2)), true, 'd')}
           </div>
-          <p className="mt-3 text-xs text-slate-500">Última atualização: {fmtDateTime(lista.reduce((m, p) => (p.atualizado_em > m ? p.atualizado_em : m), ''))}. Percentual = indicadores com meta ÷ indicadores habilitados.</p>
-        </div>)}
+        ) : tabela(visiveis, true)
+        )}
         </div>
       )}
 

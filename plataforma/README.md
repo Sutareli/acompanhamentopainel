@@ -492,3 +492,6 @@ Na coluna **Ideia** de Melhorias cada cartão mostra sua posição (**#1** = pr�
 
 ## Senha temporária (função `definir-senha`)
 O link de redefinição por e-mail é gasto por programas de segurança do e-mail corporativo (Safe Links) antes do clique. Alternativa sem e-mail: em **Gestão da equipe → lista de usuários**, o Analista Sr clica em **Senha temporária** na linha do usuário, confirma, e a plataforma mostra uma senha de 12 caracteres (só aparece uma vez; há botão Copiar). No primeiro acesso o usuário é obrigado a criar a própria senha (`user_metadata.trocar_senha`). A função roda no Supabase (`supabase functions deploy definir-senha`), só aceita Analista Sr ativo e não permite gerar a própria senha.
+
+## Apresentação com muitos produtos
+No modo apresentação (tela cheia) de Validação de metas, se a lista não couber na altura do monitor, ela é dividida automaticamente em **duas listas lado a lado** (a segunda continua de onde a primeira parou) e o quadro é ajustado ao tamanho da tela. Com poucos produtos continua uma lista só. Fora da apresentação a tela rola normalmente.
