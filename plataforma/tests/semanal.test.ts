@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { BLOCOS_PADRAO, blocosNovos, consolidarPedidos, duplicarBlocos, pedidosTexto, lerBlocos, moverItem, resumoBlocos } from '../src/lib/semanal'
+import { BLOCOS_PADRAO, blocosNovos, consolidarPedidos, duplicarBlocos, herdarPedidos, pedidosTexto, lerBlocos, moverItem, resumoBlocos } from '../src/lib/semanal'
 
 test('Semanal: nasce com os 5 blocos na ordem combinada', () => {
   const b = blocosNovos()
@@ -32,4 +32,16 @@ test('Semanal: pedidos por etapa, consolidado, texto e duplicação (só os em a
   // texto: seções por origem (anteriores em aberto · novos · atendidos)
   const m = lerBlocos([{ pedidos: [{ v: 'Velho aberto', ok: false, ant: true }, { v: 'Velho feito', ok: true, ant: true }, { v: 'Novo', ok: false }] }])
   assert.equal(pedidosTexto(m), 'SEGUEM EM ABERTO (REUNIÕES ANTERIORES)\nBásico\n  [ ] Velho aberto\n\nNOVOS PEDIDOS\nBásico\n  [ ] Novo\n\nATENDIDOS DESDE A REUNIÃO ANTERIOR\nBásico\n  [x] Velho feito')
+})
+
+test('Semanal: nova reunião herda só os pedidos não atendidos da anterior, etapa por etapa, sem os textos', () => {
+  const ant = blocosNovos()
+  ant[0].items.push({ k: 't', v: 'texto antigo', d: true })
+  ant[0].pedidos = [{ v: 'A', ok: false, ant: false }, { v: 'B', ok: true, ant: false }, { v: 'C', ok: false, ant: true }]
+  ant[3].pedidos = [{ v: 'D', ok: true, ant: true }, { v: 'E', ok: false, ant: false }]
+  const n = herdarPedidos(ant)
+  assert.deepEqual(n[0].pedidos, [{ v: 'A', ok: false, ant: true }, { v: 'C', ok: false, ant: true }])
+  assert.deepEqual(n[3].pedidos, [{ v: 'E', ok: false, ant: true }])
+  assert.equal(n[1].pedidos.length, 0); assert.ok(n.every((b) => b.items.length === 0 && !b.done))
+  assert.deepEqual(n.map((b) => b.n), BLOCOS_PADRAO)
 })

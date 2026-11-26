@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { fmtDate, todayStr } from '../lib/rules'
 import { confirmar } from '../components/Confirm'
 import { btnG, btnP, btnSm, Card, Empty, inp, Msg } from '../components/ui'
-import { Bloco, blocosNovos, consolidarPedidos, duplicarBlocos, Item, lerBlocos, moverItem, pedidosTexto, resumoBlocos } from '../lib/semanal'
+import { Bloco, blocosNovos, consolidarPedidos, duplicarBlocos, herdarPedidos, Item, lerBlocos, moverItem, pedidosTexto, resumoBlocos } from '../lib/semanal'
 
 /** "Status Rocco": reunião semanal com o diretor. Lista das reuniões + modo condução (um bloco por vez, em tela grande).
  *  Cada texto tem a flag "já discutido"; cada bloco tem a flag "bloco visto". Salva sozinho. Só o dono (Analista Sr) vê. */
@@ -51,7 +51,7 @@ export default function Semanal({ somenteLeitura = false }: { somenteLeitura?: b
   useEffect(() => { load() }, [load])
 
   async function criar(base?: Sem) {
-    const r = await supabase.from('semanais').insert({ titulo: 'Status Rocco', data_reuniao: todayStr(), blocos: base ? duplicarBlocos(lerBlocos(base.blocos)) : blocosNovos() }).select('id').single()
+    const r = await supabase.from('semanais').insert({ titulo: 'Status Rocco', data_reuniao: todayStr(), blocos: base ? duplicarBlocos(lerBlocos(base.blocos)) : lista[0] ? herdarPedidos(lerBlocos(lista[0].blocos)) : blocosNovos() }).select('id').single()
     if (r.error) { setErr('Não foi possível criar: ' + r.error.message); return }
     await load(); setAberta(r.data.id)
   }
@@ -68,7 +68,7 @@ export default function Semanal({ somenteLeitura = false }: { somenteLeitura?: b
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-[220px] flex-1"><h1 className="text-xl font-semibold text-ink">Status Rocco</h1>
           <p className="text-sm text-slate-500">Acompanhamento semanal com o diretor: Básico, Implantações, Melhorias e customizações, Atualização das atividades e Próximos passos. {somenteLeitura ? 'Somente consulta.' : 'Só você e o gerente veem.'}</p></div>
-        {!somenteLeitura && <button className={btnP} onClick={() => criar()}>+ Nova semanal</button>}
+        {!somenteLeitura && <button className={btnP} onClick={() => criar()} title="Começa em branco, já com os pedidos em aberto da reunião anterior">+ Nova semanal</button>}
         {!somenteLeitura && lista[0] && <button className={btnG} onClick={() => criar(lista[0])} title="Copia os textos da última semanal (sem marcações e sem imagens)">Duplicar a última</button>}
       </div>
       {err && <Msg kind="erro">{err}</Msg>}

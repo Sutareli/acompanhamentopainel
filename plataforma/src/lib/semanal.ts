@@ -24,6 +24,10 @@ export function lerBlocos(raw: unknown): Bloco[] {
 export const duplicarBlocos = (bl: Bloco[]): Bloco[] =>
   bl.map((b) => ({ n: b.n, done: false, items: b.items.filter((i): i is ItemTxt => i.k === 't').map((i) => ({ k: 't', v: i.v, d: false })), pedidos: b.pedidos.filter((p) => !p.ok).map((p) => ({ v: p.v, ok: false, ant: true })) }))
 
+/** Nova reunião em branco que já traz, em cada etapa, os pedidos da reunião anterior que ainda não foram atendidos (marcados como "herdados"). */
+export const herdarPedidos = (anterior: Bloco[]): Bloco[] =>
+  blocosNovos().map((b, i) => ({ ...b, pedidos: (anterior[i]?.pedidos ?? []).filter((p) => !p.ok).map((p) => ({ v: p.v, ok: false, ant: true })) }))
+
 export const resumoBlocos = (bl: Bloco[]) => ({
   vistos: bl.filter((b) => b.done).length,
   textos: bl.reduce((a, b) => a + b.items.filter((i) => i.k === 't').length, 0),
