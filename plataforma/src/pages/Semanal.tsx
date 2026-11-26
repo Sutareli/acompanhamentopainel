@@ -8,9 +8,11 @@ import { Bloco, blocosNovos, consolidarPedidos, duplicarBlocos, herdarPedidos, I
 /** "Status Rocco": reunião semanal com o diretor. Lista das reuniões + modo condução (um bloco por vez, em tela grande).
  *  Cada texto tem a flag "já discutido"; cada bloco tem a flag "bloco visto". Salva sozinho. Só o dono (Analista Sr) vê. */
 interface Sem { id: string; titulo: string; data_reuniao: string; blocos: unknown; atualizado_em: string }
-const MAX_IMG = 1400
+const MAX_IMG = 2400            // maior lado, em pixels (prints em telas grandes ficam nítidos)
+const ALVO_IMG = 1_400_000      // tamanho máximo de cada imagem (caracteres do data URL) — o registro inteiro aceita 12 MB
+const LIMITE_REUNIAO = 11_000_000
 
-/** Reduz o print (máx. 1400 px, JPEG) para caber no registro sem pesar.
+/** Reduz o print só quando necessário: até 2400 px, em PNG (texto e tabelas nítidos) ou JPEG de alta qualidade, o que ficar menor.
  *  Não usa URL blob: (a política de segurança do site só admite imagens do próprio site e data:). */
 async function reduzir(f: File): Promise<string> {
   let fonte: CanvasImageSource, w: number, h: number
@@ -22,10 +24,17 @@ async function reduzir(f: File): Promise<string> {
     const img = await new Promise<HTMLImageElement>((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('imagem inválida')); i.src = du })
     fonte = img; w = img.width; h = img.height
   }
-  const k = Math.min(1, MAX_IMG / Math.max(w, h))
-  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k))
-  const g = c.getContext('2d')!; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(fonte, 0, 0, c.width, c.height)
-  return c.toDataURL('image/jpeg', 0.8)
+  const k0 = Math.min(1, MAX_IMG / Math.max(w, h))
+  let melhor = ''
+  for (let t = 0; t < 6; t++) {   // se ainda passar do alvo, reduz 15% por vez
+    const k = k0 * Math.pow(0.85, t)
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k))
+    const g = c.getContext('2d')!; g.imageSmoothingQuality = 'high'; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(fonte, 0, 0, c.width, c.height)
+    const png = c.toDataURL('image/png'), jpg = c.toDataURL('image/jpeg', 0.92)
+    melhor = png.length <= jpg.length * 1.3 ? png : jpg
+    if (melhor.length <= ALVO_IMG) break
+  }
+  return melhor
 }
 
 /** Texto editável sem perder o cursor: o DOM só é reescrito quando o valor mudou por fora. */
@@ -140,9 +149,12 @@ function Condutor({ id, onVoltar, ro = false }: { id: string; onVoltar: () => vo
   }, [cur, go])
 
   async function addFiles(fs: FileList | File[]) {
+    let usado = blocos.reduce((a, x) => a + x.items.reduce((n, i) => n + (i.k === 'i' ? i.src.length : 0), 0), 0)
     for (const f of Array.from(fs)) {
       if (!f.type.startsWith('image/')) continue
-      try { const src = await reduzir(f); doBloco((x) => ({ ...x, items: [...x.items, { k: 'i', src, cap: '' }] })) } catch (e) { setErr('Não foi possível ler a imagem' + (f.type ? ` (${f.type})` : '') + '. Tente um print em PNG ou JPG.') }
+      try { const src = await reduzir(f)
+        if (usado + src.length > LIMITE_REUNIAO) { setErr('Esta reunião já tem imagens demais para salvar. Exclua alguma imagem antes de colar outra.'); continue }
+        usado += src.length; doBloco((x) => ({ ...x, items: [...x.items, { k: 'i', src, cap: '' }] })) } catch (e) { setErr('Não foi possível ler a imagem' + (f.type ? ` (${f.type})` : '') + '. Tente um print em PNG ou JPG.') }
     }
   }
   useEffect(() => {

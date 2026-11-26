@@ -502,3 +502,6 @@ O acesso é gravado pela função `registrar_acesso()` (única forma de escrever
 
 ## Status Rocco: pedidos passam de uma reunião para a próxima
 Toda reunião nova (**+ Nova semanal**) já nasce com, em cada etapa, os pedidos da reunião anterior que **ainda não foram atendidos**, marcados como herdados; a reunião abre na tela "Pedidos da reunião anterior". Pedidos atendidos não são levados, e os textos e imagens começam em branco. **Duplicar a última** continua copiando também os textos. A reunião anterior fica como histórico, sem alteração.
+
+## Qualidade das imagens do Status Rocco
+Imagens coladas ou anexadas agora são mantidas até **2400 px** no maior lado (antes 1400 px em JPEG 80%, o que embaçava prints de telas grandes). A plataforma grava em **PNG** (texto e tabelas nítidos) ou **JPEG 92%**, o que ficar menor, e só reduz mais se a imagem passar de ~1,4 MB. Cada reunião aceita ~11 MB de imagens; passando disso, aparece um aviso em vez de falhar ao salvar. Imagens já coladas antes não ganham qualidade: é preciso colar de novo.
