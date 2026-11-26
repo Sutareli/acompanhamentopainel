@@ -98,7 +98,7 @@ export default function AtividadesFixas({ somenteLeitura = false }: { somenteLei
           <button className={btnP} onClick={adicionar}>Adicionar atividade</button>
         </div>
       </Card>}
-      {somenteLeitura && <Msg kind="aviso">Somente consulta: só o Analista Sr cria, pausa ou exclui atividades fixas.</Msg>}
+      {somenteLeitura && <Msg kind="aviso">Somente consulta: só o Analista Sr e o Gerente criam, pausam ou excluem atividades fixas.</Msg>}
 
       {porPessoa.length === 0 ? <Card><Empty>Nenhuma atividade fixa cadastrada.</Empty></Card> : porPessoa.map(({ p, itens }) => (
         <Card key={p.id} className="!p-0 overflow-x-auto">

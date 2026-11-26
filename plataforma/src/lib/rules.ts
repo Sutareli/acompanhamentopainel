@@ -38,7 +38,7 @@ export const PERFIS = Object.keys(PERFIL_LABEL) as Perfil[]
 /** Quem pode CONSULTAR as jornadas de todos (somente leitura). Espelha is_viewer_all() no banco. */
 export const canViewAll = (p?: Perfil) => p === 'diretor' || p === 'gerente' || p === 'analista_sr'
 /** Administração (usuários, perfis, configuração global, auditoria): só Analista Sr. Espelha is_manager() no banco. */
-export const canAdmin = (p?: Perfil) => p === 'analista_sr'
+export const canAdmin = (p?: Perfil) => p === 'analista_sr' || p === 'gerente'   // Analista Sr e Gerente têm as mesmas permissões administrativas
 /** Abre as telas administrativas (Status Rocco, Importar bases, Segurança, Atividades fixas): Analista Sr edita; Gerente só consulta. Espelha is_manager() + is_gerente() (leitura) no banco. */
 export const canSeeAdmin = (p?: Perfil) => p === 'analista_sr' || p === 'gerente'
 export const CRIT_LABEL: Record<Crit, string> = { alta: 'Alta', media: 'Média', baixa: 'Baixa', recorrente: 'Recorrente' }

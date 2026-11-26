@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       const { data: { user } } = await caller.auth.getUser()
       if (!user) return json(401, { error: 'Não autorizado.' })
       const { data: me } = await admin.from('profiles').select('perfil,ativo').eq('id', user.id).single()
-      if (!me?.ativo || me.perfil !== 'analista_sr') return json(403, { error: 'Apenas Analistas Sr podem enviar o aviso manualmente.' })
+      if (!me?.ativo || me.perfil !== 'analista_sr' && me.perfil !== 'gerente') return json(403, { error: 'Apenas Analista Sr e Gerente podem enviar o aviso manualmente.' })
       teste = true
     }
 

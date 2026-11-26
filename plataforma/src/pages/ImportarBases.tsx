@@ -18,13 +18,13 @@ const MAX_ARQ = 15 * 1024 * 1024   // limite de tamanho dos CSVs importados
 
 export default function ImportarBases({ onNavigate }: { onNavigate: (p: string) => void }) {
   const { profile } = useAuth()
-  if (!canSeeAdmin(profile?.perfil)) return <Msg kind="aviso">Esta janela é exclusiva do Analista Sr.</Msg>
+  if (!canSeeAdmin(profile?.perfil)) return <Msg kind="aviso">Esta janela é exclusiva do Analista Sr e do Gerente.</Msg>
   const ro = !canAdmin(profile?.perfil)   // Gerente: vê a tela, mas não importa nada (o banco também recusa)
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold text-ink">Importar bases</h1>
-        <p className="text-sm text-slate-500">{ro ? 'Somente consulta: só o Analista Sr importa bases.' : 'Exclusivo do Analista Sr.'} Envie arquivos CSV (no Excel: Salvar como → CSV UTF-8, separador ; ou ,).</p>
+        <p className="text-sm text-slate-500">{ro ? 'Somente consulta.' : 'Exclusivo do Analista Sr e do Gerente.'} Envie arquivos CSV (no Excel: Salvar como → CSV UTF-8, separador ; ou ,).</p>
       </div>
       <fieldset disabled={ro} className="min-w-0 space-y-4 border-0 p-0">
         <ChamadosCard onNavigate={onNavigate} />

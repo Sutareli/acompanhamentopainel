@@ -6,7 +6,7 @@ import { btnG, btnP, btnSm, Card, Empty, inp, Msg } from '../components/ui'
 import { Bloco, blocosNovos, consolidarPedidos, duplicarBlocos, herdarPedidos, Item, lerBlocos, moverItem, pedidosTexto, resumoBlocos } from '../lib/semanal'
 
 /** "Status Rocco": reunião semanal com o diretor. Lista das reuniões + modo condução (um bloco por vez, em tela grande).
- *  Cada texto tem a flag "já discutido"; cada bloco tem a flag "bloco visto". Salva sozinho. Só o dono (Analista Sr) vê. */
+ *  Cada texto tem a flag "já discutido"; cada bloco tem a flag "bloco visto". Salva sozinho. Analista Sr e Gerente veem e editam todas as reuniões. */
 interface Sem { id: string; titulo: string; data_reuniao: string; blocos: unknown; atualizado_em: string }
 const MAX_IMG = 2400            // maior lado, em pixels (prints em telas grandes ficam nítidos)
 const ALVO_IMG = 1_400_000      // tamanho máximo de cada imagem (caracteres do data URL) — o registro inteiro aceita 12 MB
