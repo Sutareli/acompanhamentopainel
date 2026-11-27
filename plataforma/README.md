@@ -508,3 +508,11 @@ Toda reunião nova (**+ Nova semanal**) já nasce com, em cada etapa, os pedidos
 
 ## Qualidade das imagens do Status Rocco
 Imagens coladas ou anexadas agora são mantidas até **2400 px** no maior lado (antes 1400 px em JPEG 80%, o que embaçava prints de telas grandes). A plataforma grava em **PNG** (texto e tabelas nítidos) ou **JPEG 92%**, o que ficar menor, e só reduz mais se a imagem passar de ~1,4 MB. Cada reunião aceita ~11 MB de imagens; passando disso, aparece um aviso em vez de falhar ao salvar. Imagens já coladas antes não ganham qualidade: é preciso colar de novo.
+
+## C-SAT Rocco (migração 040)
+- Menu **C-SAT Rocco** (Diretor, Gerente e Analista Sr; para o Diretor fica em “Demais itens”): dashboard da pesquisa de satisfação da ferramenta Rocco, com abas **Visão geral**, **Performance** (operadores) e **Executiva** (gestores).
+- Método: **C-SAT = (notas 4 + notas 5) ÷ total de respostas** (neutras entram no total). Filtros de mês, site, coordenador, supervisor e pergunta; KPIs com comparação ao mês anterior, distribuição das notas, evolução mensal, C-SAT por dia, por pergunta/site/coordenador/supervisor, usuários e comentários. Botão para baixar o recorte em CSV.
+- Atualização em **Importar bases** → cards 4 e 5. Aceitam **.xlsx** direto (ou CSV):
+  - **Respostas** (exportação de C-SAT do Rocco): base **acumulativa** — reenviar o mesmo arquivo ou arquivos que se sobrepõem não duplica. Colunas reconhecidas pelo nome e ajustáveis na tela (o mapeamento fica salvo). Visão escolhida na carga ou lida de uma coluna. Bases “largas” (uma coluna por pergunta) também funcionam. “Desfazer última carga” remove só o que entrou nela.
+  - **QUADRO**: hierarquia ligada por **ALMOPE = usuário**. Reenviar atualiza e acrescenta; ninguém é apagado.
+- Banco: rode **`supabase/040_csat_rocco.sql`** uma vez.

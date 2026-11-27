@@ -7,6 +7,7 @@ import { btnG, btnP, btnSm, Card, Msg } from '../components/ui'
 import { ChamadoImport, lerBase } from '../lib/chamados'
 import { LeituraMicro, lerMicro, modeloMicroCsv, PessoaRef } from '../lib/microImport'
 import { LeituraMelhorias, lerMelhorias } from '../lib/melhoriasImport'
+import { CsatQuadroCard, CsatRespostasCard } from '../components/CsatImport'
 
 /** Janela exclusiva do Analista Sr: importação das bases (chamados do backlog/Pareto e projetos). A trava real está no banco (RLS e função chamados_substituir). */
 async function lerArquivo(f: File): Promise<string> {
@@ -24,12 +25,14 @@ export default function ImportarBases({ onNavigate }: { onNavigate: (p: string) 
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold text-ink">Importar bases</h1>
-        <p className="text-sm text-slate-500">{ro ? 'Somente consulta.' : 'Exclusivo do Analista Sr, do Gerente e do Diretor.'} Envie arquivos CSV (no Excel: Salvar como → CSV UTF-8, separador ; ou ,).</p>
+        <p className="text-sm text-slate-500">{ro ? 'Somente consulta.' : 'Exclusivo do Analista Sr, do Gerente e do Diretor.'} Envie arquivos CSV (no Excel: Salvar como → CSV UTF-8, separador ; ou ,). As bases do C-SAT Rocco aceitam também o .xlsx direto.</p>
       </div>
       <fieldset disabled={ro} className="min-w-0 space-y-4 border-0 p-0">
         <ChamadosCard onNavigate={onNavigate} />
         <MicroCard onNavigate={onNavigate} />
         <MelhoriasCard onNavigate={onNavigate} />
+        <CsatRespostasCard onNavigate={onNavigate} />
+        <CsatQuadroCard />
       </fieldset>
     </div>
   )

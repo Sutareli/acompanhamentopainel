@@ -23,6 +23,7 @@ import Atencao from './pages/Atencao'
 import Semanal from './pages/Semanal'
 import ValidacaoMetas from './pages/ValidacaoMetas'
 import Acessos from './pages/Acessos'
+import CsatRocco from './pages/CsatRocco'
 import { useRegistrarAcesso } from './lib/registrarAcesso'
 import { AvisoCapacidade } from './components/AvisoCapacidade'
 import { canAdmin, canSeeAdmin, canViewAll, PERFIL_LABEL } from './lib/rules'
@@ -36,7 +37,7 @@ const IMPORT_ITEM: [string, string, string][] = [['importar', '', 'Importar base
 const BACKLOG_ITEMS: [string, string, string][] = [['melhorias', '', 'Melhorias'], ['backlog', '', 'Correção/manutenção'], ['pareto', '', 'Análise de chamados']]
 
 /** Agrupa o menu: uma folga entre grupos (rotina pessoal · equipe · chamados e melhorias · administração). */
-const grupoMenu = (k: string) => (['atencao'].includes(k) ? 0 : ['equipe', 'acessos', 'semanal', 'metas'].includes(k) ? 2 : ['melhorias', 'backlog', 'pareto'].includes(k) ? 3 : k === 'importar' ? 4 : 1)
+const grupoMenu = (k: string) => (['atencao'].includes(k) ? 0 : ['equipe', 'acessos', 'semanal', 'metas', 'csat'].includes(k) ? 2 : ['melhorias', 'backlog', 'pareto'].includes(k) ? 3 : k === 'importar' ? 4 : 1)
 
 export default function App() {
   const { session, profile, loading, authError, needsPassword, pendingLink, signOut } = useAuth()
@@ -75,7 +76,7 @@ export default function App() {
   const diretor = profile.perfil === 'diretor'   // visão gerencial: só 4 itens à vista; o resto fica em "Demais itens"
   const page = pg ?? (diretor ? 'micro' : viewer ? 'atencao' : 'painel')
   const todos: [string, string, string][] = viewer
-    ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canSeeAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canSeeAdmin(profile.perfil) ? [['acessos', '', 'Acesso da equipe'] as [string, string, string]] : []), ...(canSeeAdmin(profile.perfil) ? [['semanal', '', 'Status Rocco'] as [string, string, string]] : []), ...(canViewAll(profile.perfil) ? [['metas', '', 'Validação de metas'] as [string, string, string]] : []), ...BACKLOG_ITEMS, ...(canSeeAdmin(profile.perfil) ? IMPORT_ITEM : [])]
+    ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canSeeAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canSeeAdmin(profile.perfil) ? [['acessos', '', 'Acesso da equipe'] as [string, string, string]] : []), ...(canSeeAdmin(profile.perfil) ? [['semanal', '', 'Status Rocco'] as [string, string, string]] : []), ...(canViewAll(profile.perfil) ? [['metas', '', 'Validação de metas'] as [string, string, string]] : []), ['csat', '', 'C-SAT Rocco'], ...BACKLOG_ITEMS, ...(canSeeAdmin(profile.perfil) ? IMPORT_ITEM : [])]
     : [...ITEMS.filter(([k]) => k !== 'config'), ...BACKLOG_ITEMS]   // Analistas e Guardiões não veem Configurações
   const PRINCIPAIS_DIRETOR = ['micro', 'melhorias', 'backlog', 'pareto']
   const principais = diretor ? PRINCIPAIS_DIRETOR.map((k) => todos.find(([x]) => x === k)!).filter(Boolean) : todos
@@ -83,7 +84,7 @@ export default function App() {
   const demaisAberto = diretor && (abreDemais || demais.some(([k]) => k === pg))
   const items: [string, string, string][] = diretor ? [...principais, ...demais] : todos   // (celular: lista única)
   const pag = page === 'jornadas' ? 'equipe' : page   // 'Jornadas da equipe' agora é um gatilho de análise dentro de Equipe
-  const view = ((pag === 'equipe' || pag === 'metas' || pag === 'config' || pag === 'imprevistos') && !viewer) || ((pag === 'importar' || pag === 'seguranca' || pag === 'semanal' || pag === 'acessos') && !canAdmin(profile.perfil)) ? 'painel' : pag
+  const view = ((pag === 'equipe' || pag === 'metas' || pag === 'csat' || pag === 'config' || pag === 'imprevistos') && !viewer) || ((pag === 'importar' || pag === 'seguranca' || pag === 'semanal' || pag === 'acessos') && !canAdmin(profile.perfil)) ? 'painel' : pag
 
   return (
     <div className="min-h-screen">
@@ -145,13 +146,14 @@ export default function App() {
         {view === 'equipe' && viewer && <Equipe />}
         {view === 'acessos' && canSeeAdmin(profile.perfil) && <Acessos />}
         {view === 'metas' && viewer && <ValidacaoMetas podeEditar={canAdmin(profile.perfil)} />}
+        {view === 'csat' && viewer && <CsatRocco onNavigate={setPage} />}
         {view === 'semanal' && canSeeAdmin(profile.perfil) && <Semanal somenteLeitura={!canAdmin(profile.perfil)} />}
       </main>
 
       <nav className="app-menu fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
         {items.map(([k, , l]) => (
           <button key={k} onClick={() => setPage(k)} className={'flex min-w-[76px] flex-1 flex-col items-center justify-center border-t-2 py-3 text-[11px] ' + (view === k ? 'border-turq font-semibold text-ink' : 'border-transparent text-slate-500')}>
-            {l.replace('Acesso da equipe', 'Acessos').replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Correção/manutenção', 'Correção').replace('Análise de chamados', 'Análise').replace('Importar bases', 'Importar').replace('Status Rocco', 'Semanal')}
+            {l.replace('Acesso da equipe', 'Acessos').replace('Gestão da equipe', 'Equipe').replace('Visão consolidada', 'Equipe').replace('Correção/manutenção', 'Correção').replace('Análise de chamados', 'Análise').replace('Importar bases', 'Importar').replace('Status Rocco', 'Semanal').replace('C-SAT Rocco', 'C-SAT')}
           </button>
         ))}
       </nav>
