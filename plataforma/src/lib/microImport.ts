@@ -48,7 +48,7 @@ export function lerMicro(text: string, pessoas: PessoaRef[], existentes: Set<str
     if (/^[A-Za-zÀ-ú]{2,3}$/.test(t)) { const ini = ativos.filter((p) => tokens(p).map((x) => x[0]).join('') === h); if (ini.length) return ini.length === 1 ? ini[0] : 'ambiguo' }
     return undefined
   }
-  const rows: MicroNova[] = []; const erros: { linha: number; msg: string }[] = []; const vistas = new Set<string>(); const recorr = new Map<string, MicroNova>(); let duplicadas = 0, agrupadas = 0, vazias = 0
+  const rows: MicroNova[] = []; const erros: { linha: number; msg: string }[] = []; const vistas = new Set<string>(); const recorr = new Map<string, MicroNova>(); const unicas = new Map<string, { m: MicroNova; sigs: Set<string> }>(); let duplicadas = 0, agrupadas = 0, vazias = 0
   t.slice(1).forEach((r, i) => {
     const linha = i + 2
     const err = (msg: string) => erros.push({ linha, msg })
@@ -73,8 +73,7 @@ export function lerMicro(text: string, pessoas: PessoaRef[], existentes: Set<str
     if (!tipo) return err('Tipo inválido (use macro ou micro; vazio = micro).')
     const cq = (g(r, 'comquemesta') || '').trim()
     let comQuem: string | null = null
-    if (cq) {
-      if (tipo !== 'macro') return err('"Com quem está" só se aplica a Projetos.')
+    if (cq && tipo === 'macro') {   // em atividades (micro) a coluna é simplesmente ignorada: planilhas costumam repetir o responsável nela
       const pc = achar(cq)
       if (!pc || pc === 'ambiguo') return err(`"Com quem está" "${cq}" não encontrado entre os usuários ativos (use o e-mail ou o nome exato).`)
       comQuem = pc.id
@@ -97,8 +96,16 @@ export function lerMicro(text: string, pessoas: PessoaRef[], existentes: Set<str
       const ant = recorr.get(key)
       if (ant) { ant.quantidade += m.quantidade; ant.a_iniciar += m.a_iniciar; ant.em_andamento += m.em_andamento; ant.concluido += m.concluido; ant.cancelado += m.cancelado; agrupadas++; return }
       recorr.set(key, m)
-    } else if (vistas.has(key)) { duplicadas++; return }
+    } else if (vistas.has(key)) {
+      // mesma demanda + responsável + data target no mesmo arquivo: se a linha é idêntica à anterior, é cópia (pulada);
+      // se tem outro resumo/status, é outra ocorrência do trabalho e as unidades somam na mesma linha (nada se perde).
+      const ant = unicas.get(key); if (!ant) { duplicadas++; return }; const sig = [m.resumo, m.observacoes, m.criticidade, m.a_iniciar, m.em_andamento, m.concluido, m.cancelado].join('|').toLowerCase()
+      if (ant.sigs.has(sig)) { duplicadas++; return }
+      ant.sigs.add(sig); const a = ant.m
+      a.quantidade += m.quantidade; a.a_iniciar += m.a_iniciar; a.em_andamento += m.em_andamento; a.concluido += m.concluido; a.cancelado += m.cancelado; agrupadas++; return
+    }
     vistas.add(key); rows.push(m)
+    unicas.set(key, { m, sigs: new Set([[m.resumo, m.observacoes, m.criticidade, m.a_iniciar, m.em_andamento, m.concluido, m.cancelado].join('|').toLowerCase()]) })
   })
   return { rows, nomes: [...new Set(rows.map((m) => pessoas.find((p) => p.id === m.responsavel_id)!.nome))], erros, duplicadas, agrupadas, vazias, erroGeral: null }
 }

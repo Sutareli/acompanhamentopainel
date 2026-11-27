@@ -142,14 +142,14 @@ function MicroCard({ onNavigate }: { onNavigate: (p: string) => void }) {
           <button className={btnG + ' ' + btnSm} onClick={() => onNavigate('micro')}>Abrir Projetos →</button>
         </div>
       </div>
-      <p className="mt-2 text-xs text-slate-500">Colunas: DEMANDA, RESPONSÁVEL (e-mail ou nome exato de um usuário ativo), CRITICIDADE (alta/média/baixa/recorrente), DATA TARGET (dd/mm/aaaa; “Recorrente” usa o último dia do mês da coluna MÊS_REF), QUANTIDADE, A INICIAR, EM ANDAMENTO, CONCLUÍDO, CANCELADO, RESUMO, OBSERVAÇÕES, TIPO (macro ou micro; vazio = micro) e COM QUEM ESTÁ (só para macro; opcional). Sem distribuição informada, tudo entra como “a iniciar”. Planilha de Projetos (sem as colunas CRITICIDADE e QUANTIDADE): entra como Projeto, criticidade média, 1 unidade no status da coluna STATUS; RESPONSÁVEL pode ser nome completo, primeiro nome ou iniciais (se for único). A soma dos status deve igualar a quantidade.</p>
+      <p className="mt-2 text-xs text-slate-500">Colunas: DEMANDA, RESPONSÁVEL (e-mail ou nome exato de um usuário ativo), CRITICIDADE (alta/média/baixa/recorrente), DATA TARGET (dd/mm/aaaa; “Recorrente” usa o último dia do mês da coluna MÊS_REF), QUANTIDADE, A INICIAR, EM ANDAMENTO, CONCLUÍDO, CANCELADO, RESUMO, OBSERVAÇÕES, TIPO (macro ou micro; vazio = micro) e COM QUEM ESTÁ (só vale para macro; nas atividades é ignorada). Sem distribuição informada, tudo entra como “a iniciar”. Planilha de Projetos (sem as colunas CRITICIDADE e QUANTIDADE): entra como Projeto, criticidade média, 1 unidade no status da coluna STATUS; RESPONSÁVEL pode ser nome completo, primeiro nome ou iniciais (se for único). A soma dos status deve igualar a quantidade.</p>
       <div className="mt-3 space-y-3 text-sm">
         <input key={key} type="file" accept=".csv,text/csv" aria-label="CSV de projetos" onChange={(e) => escolher(e.target.files?.[0])} />
         {err && <Msg kind="erro">{err}</Msg>}{ok && <Msg kind="ok">{ok}</Msg>}
         {lei?.erroGeral && <Msg kind="erro">{lei.erroGeral}</Msg>}
         {lei && !lei.erroGeral && (
           <div className="rounded-xl bg-violet-50 p-3">
-            <b>{nome}</b>: {lei.rows.length} para importar · {lei.duplicadas} já existente(s)/repetida(s) puladas{lei.agrupadas ? ` · ${lei.agrupadas} ocorrência(s) recorrente(s) somada(s) ao mês` : ''}{lei.vazias ? ` · ${lei.vazias} linha(s) em branco ignorada(s)` : ''} · {lei.erros.length} com erro (não serão importadas){lei.nomes.length ? ` · responsáveis: ${lei.nomes.join(', ')}` : ''}.
+            <b>{nome}</b>: {lei.rows.length} para importar · {lei.duplicadas} já existente(s)/repetida(s) puladas{lei.agrupadas ? ` · ${lei.agrupadas} ocorrência(s) repetida(s)/recorrente(s) somada(s) na mesma linha` : ''}{lei.vazias ? ` · ${lei.vazias} linha(s) em branco ignorada(s)` : ''} · {lei.erros.length} com erro (não serão importadas){lei.nomes.length ? ` · responsáveis: ${lei.nomes.join(', ')}` : ''}.
           </div>
         )}
         {lei && lei.erros.length > 0 && (
