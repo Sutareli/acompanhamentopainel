@@ -106,8 +106,8 @@ export default function CsatRocco({ onNavigate }: { onNavigate: (p: string) => v
     <div className="flex flex-col" style={{ height: 'calc(100vh - 3.5rem)' }}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-ink">C-SAT Rocco</h1>
-          <p className="text-xs text-slate-500">Pesquisa de satisfação da ferramenta Rocco{dados?.carga ? ` · base atualizada em ${fmtDateTime(dados.carga.em)}` : ''}</p>
+          <h1 className="sr-only">C-SAT Rocco</h1>
+          <p className="text-sm text-slate-600">Pesquisa de satisfação da ferramenta Rocco{dados?.carga ? ` · base atualizada em ${fmtDateTime(dados.carga.em)}` : ''}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex items-center overflow-hidden rounded-lg border border-violet-200 bg-white text-xs font-semibold text-[#3A1C71] shadow-sm" role="group" aria-label="Zoom">
