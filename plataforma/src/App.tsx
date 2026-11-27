@@ -78,7 +78,7 @@ export default function App() {
   const todos: [string, string, string][] = viewer
     ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canSeeAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canSeeAdmin(profile.perfil) ? [['acessos', '', 'Acesso da equipe'] as [string, string, string]] : []), ...(canSeeAdmin(profile.perfil) ? [['semanal', '', 'Status Rocco'] as [string, string, string]] : []), ...(canViewAll(profile.perfil) ? [['metas', '', 'Validação de metas'] as [string, string, string]] : []), ['csat', '', 'C-SAT Rocco'], ...BACKLOG_ITEMS, ...(canSeeAdmin(profile.perfil) ? IMPORT_ITEM : [])]
     : [...ITEMS.filter(([k]) => k !== 'config'), ...BACKLOG_ITEMS]   // Analistas e Guardiões não veem Configurações
-  const PRINCIPAIS_DIRETOR = ['micro', 'melhorias', 'backlog', 'pareto']
+  const PRINCIPAIS_DIRETOR = ['micro', 'melhorias', 'backlog', 'pareto', 'csat']
   const principais = diretor ? PRINCIPAIS_DIRETOR.map((k) => todos.find(([x]) => x === k)!).filter(Boolean) : todos
   const demais: [string, string, string][] = diretor ? [...todos.filter(([k]) => !PRINCIPAIS_DIRETOR.includes(k)), ['seguranca', '', 'Segurança']] : []
   const demaisAberto = diretor && (abreDemais || demais.some(([k]) => k === pg))
