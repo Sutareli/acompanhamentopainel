@@ -344,7 +344,7 @@ export default function Melhorias() {
             </div>
           </Card>
         )}
-        {!canAdmin(profile!.perfil) && <p className="text-xs text-slate-500">Só o Analista Sr e o Gerente podem excluir melhorias.</p>}
+        {!canAdmin(profile!.perfil) && <p className="text-xs text-slate-500">Só o Analista Sr, o Gerente e o Diretor podem excluir melhorias.</p>}
       </>
       ) : (<>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">{FASES.map((k) => kp(k))}</div>

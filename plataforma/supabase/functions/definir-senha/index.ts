@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
     const admin = createClient(url, service)
     const { data: me } = await admin.from('profiles').select('perfil,ativo').eq('id', user.id).single()
-    if (!me || !me.ativo || me.perfil !== 'analista_sr' && me.perfil !== 'gerente') return json(403, { error: 'Apenas Analista Sr e Gerente podem definir senha temporária.' })
+    if (!me || !me.ativo || !['analista_sr', 'gerente', 'diretor'].includes(me.perfil)) return json(403, { error: 'Apenas Analista Sr, Gerente e Diretor podem definir senha temporária.' })
 
     const { user_id } = await req.json()
     if (typeof user_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(user_id)) return json(400, { error: 'Usuário inválido.' })

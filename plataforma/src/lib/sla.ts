@@ -5,7 +5,7 @@ export interface SlaCfg { chamado_dias_uteis: number; dev_dias_corridos: number 
 export const SLA_PADRAO: SlaCfg = { chamado_dias_uteis: 3, dev_dias_corridos: 15 }
 /** SLA da melhoria (padrão 3 dias úteis / 15 corridos quando não definido). */
 export const cfgDe = (m: Pick<Melhoria, 'sla_chamado_dias_uteis' | 'sla_dev_dias_corridos'>): SlaCfg => ({ chamado_dias_uteis: m.sla_chamado_dias_uteis ?? SLA_PADRAO.chamado_dias_uteis, dev_dias_corridos: m.sla_dev_dias_corridos ?? SLA_PADRAO.dev_dias_corridos })
-export const podeAjustarSla = (p?: string) => p === 'analista_sr' || p === 'gerente'
+export const podeAjustarSla = (p?: string) => p === 'analista_sr' || p === 'gerente' || p === 'diretor'
 
 const dn = (d: string) => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / 86400000
 const str = (n: number) => new Date(n * 86400000).toISOString().slice(0, 10)
