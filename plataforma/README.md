@@ -470,6 +470,8 @@ Em **Gestão da equipe → Atividades fixas** (só Analista Sr) você define ati
 ## Gerente e Diretor: mesmos poderes do Analista Sr (migrações 038 e 039)
 A partir da migração 038 o **Gerente tem 100% das funções do Analista Sr**: todas as telas e módulos, convidar/alterar/excluir usuários, **Senha temporária**, Atividades fixas, Status Rocco (criar, editar e marcar pedidos), Importar bases, Segurança, Configurações, Lixeira, SLA, Validação de metas e Acesso da equipe. No banco, `is_manager()` passou a valer para `analista_sr` **e** `gerente`; as funções do servidor `invite-user`, `definir-senha` e `aviso-semanal` também aceitam os dois perfis. A migração 039 estende o mesmo a **Diretor** (`is_manager()` e `is_sla_admin()` valem para os três perfis, e as três funções do servidor também). Rode `038_gerente_como_admin.sql` e `039_diretor_como_admin.sql` (ou o `008_a_039_tudo_junto.sql`).
 
+**Menu do Diretor (visão gerencial):** à vista ficam só *Projetos e atividades*, *Melhorias*, *Correção/manutenção* e *Análise de chamados* (abre em Projetos e atividades). Todo o resto (Atenção, To do diário, Histórico, Atas, Lixeira, Configurações, Gestão da equipe, Acesso da equipe, Status Rocco, Validação de metas, Importar bases e Segurança) fica na pasta recolhível **Demais itens**, no fim do menu. É só organização do menu: as permissões continuam administrativas totais. Código em `src/App.tsx`.
+
 
 ## Módulo Ideias removido
 A tela **Ideias** saiu do menu e do código. Os dados antigos continuam guardados no banco (tabela `ideas`, sem exclusão) e entram nos backups; o arquivo da tela está no histórico do Git caso precise voltar. As "ideias" de **Melhorias** (primeira etapa do funil) são outra coisa e continuam.

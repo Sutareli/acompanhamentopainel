@@ -41,6 +41,7 @@ const grupoMenu = (k: string) => (['atencao'].includes(k) ? 0 : ['equipe', 'aces
 export default function App() {
   const { session, profile, loading, authError, needsPassword, pendingLink, signOut } = useAuth()
   const [pg, setPage] = useState<string | null>(null)   // null = tela inicial do perfil (viewers: Atenção · demais: To do diário)
+  const [abreDemais, setAbreDemais] = useState(false)   // Diretor: pasta "Demais itens" do menu
   useRegistrarAcesso(!!profile)   // marca o dia como "acessou" (visão Acesso da equipe)
   useFeriados(!!profile)   // carrega os feriados do SLA e re-renderiza quando chegam
 
@@ -71,10 +72,16 @@ export default function App() {
 
   // Perfis com visão de equipe (somente consulta das jornadas + consolidado). A trava real está nas políticas RLS do banco.
   const viewer = canViewAll(profile.perfil)
-  const page = pg ?? (viewer ? 'atencao' : 'painel')
-  const items: [string, string, string][] = viewer
+  const diretor = profile.perfil === 'diretor'   // visão gerencial: só 4 itens à vista; o resto fica em "Demais itens"
+  const page = pg ?? (diretor ? 'micro' : viewer ? 'atencao' : 'painel')
+  const todos: [string, string, string][] = viewer
     ? [['atencao', '', 'Atenção'], ...ITEMS, ['equipe', '', canSeeAdmin(profile.perfil) ? 'Gestão da equipe' : 'Visão consolidada'], ...(canSeeAdmin(profile.perfil) ? [['acessos', '', 'Acesso da equipe'] as [string, string, string]] : []), ...(canSeeAdmin(profile.perfil) ? [['semanal', '', 'Status Rocco'] as [string, string, string]] : []), ...(canViewAll(profile.perfil) ? [['metas', '', 'Validação de metas'] as [string, string, string]] : []), ...BACKLOG_ITEMS, ...(canSeeAdmin(profile.perfil) ? IMPORT_ITEM : [])]
     : [...ITEMS.filter(([k]) => k !== 'config'), ...BACKLOG_ITEMS]   // Analistas e Guardiões não veem Configurações
+  const PRINCIPAIS_DIRETOR = ['micro', 'melhorias', 'backlog', 'pareto']
+  const principais = diretor ? PRINCIPAIS_DIRETOR.map((k) => todos.find(([x]) => x === k)!).filter(Boolean) : todos
+  const demais: [string, string, string][] = diretor ? [...todos.filter(([k]) => !PRINCIPAIS_DIRETOR.includes(k)), ['seguranca', '', 'Segurança']] : []
+  const demaisAberto = diretor && (abreDemais || demais.some(([k]) => k === pg))
+  const items: [string, string, string][] = diretor ? [...principais, ...demais] : todos   // (celular: lista única)
   const pag = page === 'jornadas' ? 'equipe' : page   // 'Jornadas da equipe' agora é um gatilho de análise dentro de Equipe
   const view = ((pag === 'equipe' || pag === 'metas' || pag === 'config' || pag === 'imprevistos') && !viewer) || ((pag === 'importar' || pag === 'seguranca' || pag === 'semanal' || pag === 'acessos') && !canAdmin(profile.perfil)) ? 'painel' : pag
 
@@ -84,14 +91,27 @@ export default function App() {
       <aside className="app-menu fixed inset-y-0 left-0 hidden w-56 flex-col border-r border-linha bg-white p-3 md:flex">
         <div className="px-2 py-4"><LogoHorizontal /></div>
         <nav className="flex-1 overflow-y-auto" aria-label="Menu principal">
-          {items.map(([k, , l], n) => (
+          {(diretor ? principais : items).map(([k, , l], n, arr) => (
             <button key={k} onClick={() => setPage(k)} aria-current={view === k ? 'page' : undefined}
-              className={'flex w-full items-center rounded-md border-l-[3px] px-3 py-2 text-left text-sm ' + (n > 0 && grupoMenu(items[n - 1][0]) !== grupoMenu(k) ? 'mt-3 ' : 'mt-0.5 ') + (view === k ? 'border-turq bg-slate-100 font-semibold text-ink' : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-ink')}>
+              className={'flex w-full items-center rounded-md border-l-[3px] px-3 py-2 text-left text-sm ' + (n > 0 && grupoMenu(arr[n - 1][0]) !== grupoMenu(k) ? 'mt-3 ' : 'mt-0.5 ') + (view === k ? 'border-turq bg-slate-100 font-semibold text-ink' : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-ink')}>
               {l}
             </button>
           ))}
+          {diretor && (
+            <div className="mt-4 border-t border-linha pt-2">
+              <button onClick={() => setAbreDemais((v) => !v)} aria-expanded={demaisAberto} className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-ink">
+                <span>Demais itens</span><span aria-hidden className="text-xs">{demaisAberto ? '▾' : '▸'}</span>
+              </button>
+              {demaisAberto && demais.map(([k, , l]) => (
+                <button key={k} onClick={() => setPage(k)} aria-current={view === k ? 'page' : undefined}
+                  className={'mt-0.5 flex w-full items-center rounded-md border-l-[3px] py-2 pl-5 pr-3 text-left text-sm ' + (view === k ? 'border-turq bg-slate-100 font-semibold text-ink' : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-ink')}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
         </nav>
-        {canSeeAdmin(profile.perfil) && (
+        {canSeeAdmin(profile.perfil) && !diretor && (
           <button onClick={() => setPage('seguranca')} className={'mb-3 mt-4 w-full rounded-md border px-3 py-2 text-left text-sm ' + (view === 'seguranca' ? 'border-turq bg-slate-100 font-semibold text-ink' : 'border-slate-300 text-slate-600 hover:bg-slate-50')}>Segurança</button>
         )}
         <div className="border-t border-linha px-2 pt-3 text-xs text-slate-500">
@@ -104,7 +124,7 @@ export default function App() {
 
       <header className="app-menu flex items-center justify-between border-b border-linha bg-white px-4 py-2 md:hidden">
         <span className="flex items-center gap-2 text-sm font-semibold text-ink"><LogoIcone size={26} />Gestão de atividades</span>
-        <span className="flex items-center gap-3 text-xs">{canSeeAdmin(profile.perfil) && <button onClick={() => setPage('seguranca')} className="underline">Segurança</button>}<button onClick={signOut} className="underline">Sair ({profile.nome.split(' ')[0]})</button></span>
+        <span className="flex items-center gap-3 text-xs">{canSeeAdmin(profile.perfil) && !diretor && <button onClick={() => setPage('seguranca')} className="underline">Segurança</button>}<button onClick={signOut} className="underline">Sair ({profile.nome.split(' ')[0]})</button></span>
       </header>
 
       <main className="app-main px-3 pb-24 pt-4 md:ml-56 md:px-8 md:pb-10 md:pt-6">
