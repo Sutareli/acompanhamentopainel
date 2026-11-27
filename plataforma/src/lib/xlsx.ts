@@ -31,14 +31,20 @@ async function lerEntrada(b: Uint8Array, e: Entrada): Promise<string> {
   return await new Response(ds).text()
 }
 
-const desc = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16))).replace(/&amp;/g, '&')
+const desc = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16))).replace(/&amp;/g, '&').replace(/\r\n?/g, '\n').replace(/_x([0-9A-Fa-f]{4})_/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
 const textoDe = (xml: string) => { let t = ''; const re = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g; let m; while ((m = re.exec(xml))) t += m[1]; return desc(t) }
 const colIdx = (ref: string) => { let n = 0; for (const c of ref.replace(/\d+/g, '')) n = n * 26 + (c.charCodeAt(0) - 64); return n - 1 }
 
 export interface AbaXlsx { nome: string; linhas: string[][] }
+export type CelX = string | number | boolean | null
+export interface AbaTipada { nome: string; linhas: CelX[][] }
 
-/** Lê todas as abas do .xlsx. */
+/** Lê todas as abas do .xlsx como texto. */
 export async function lerXlsx(buf: ArrayBuffer): Promise<AbaXlsx[]> {
+  return (await lerXlsxTipado(buf)).map((a) => ({ nome: a.nome, linhas: a.linhas.map((l) => l.map((v) => (v === null ? '' : String(v)))) }))
+}
+/** Lê todas as abas mantendo o tipo de cada célula (número, texto, lógico), como o Excel guarda. Opcional: só as abas pedidas. */
+export async function lerXlsxTipado(buf: ArrayBuffer, filtro?: (nome: string) => boolean): Promise<AbaTipada[]> {
   const b = new Uint8Array(buf)
   const ents = entradasZip(b)
   const get = async (nome: string) => { const e = ents.find((x) => x.nome === nome); return e ? lerEntrada(b, e) : '' }
@@ -51,25 +57,32 @@ export async function lerXlsx(buf: ArrayBuffer): Promise<AbaXlsx[]> {
   const abas: { nome: string; arq: string }[] = []
   { const re = /<sheet\b[^>]*>/g; let m; while ((m = re.exec(wb))) { const nome = desc(/name="([^"]*)"/.exec(m[0])?.[1] || ''); const rid = /r:id="([^"]+)"/.exec(m[0])?.[1] || ''; if (alvo[rid]) abas.push({ nome, arq: 'xl/' + alvo[rid] }) } }
   if (!abas.length) ents.filter((e) => /^xl\/worksheets\/sheet\d+\.xml$/.test(e.nome)).forEach((e, i) => abas.push({ nome: 'Planilha' + (i + 1), arq: e.nome }))
-  const out: AbaXlsx[] = []
+  const out: AbaTipada[] = []
   for (const a of abas) {
-    const xml = await get(a.arq); const linhas: string[][] = []
-    const reR = /<row\b[^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g; let r
+    if (filtro && !filtro(a.nome)) continue
+    const xml = await get(a.arq); const linhas: CelX[][] = []
+    const reR = /<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g; let r
     while ((r = reR.exec(xml))) {
-      const lin: string[] = []; const reC = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g; let c, pos = 0
-      while ((c = reC.exec(r[1] || ''))) {
+      const rn = +(/\br="(\d+)"/.exec(r[1])?.[1] ?? linhas.length + 1)
+      while (linhas.length < rn - 1) linhas.push([])
+      const lin: CelX[] = []; const reC = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g; let c, pos = 0
+      while ((c = reC.exec(r[2] || ''))) {
         const at = c[1], corpo = c[2] || ''
         const ref = /r="([A-Z]+\d+)"/.exec(at)?.[1]; const i = ref ? colIdx(ref) : pos; pos = i + 1
         const t = /t="([^"]+)"/.exec(at)?.[1]; const v = /<v>([\s\S]*?)<\/v>/.exec(corpo)?.[1]
-        let val = ''
+        let val: CelX = null
         if (t === 's') val = ss[+(v ?? -1)] ?? ''
         else if (t === 'inlineStr') val = textoDe(corpo)
-        else if (v !== undefined) val = desc(v)
-        while (lin.length < i) lin.push('')
+        else if (t === 'str') val = v !== undefined ? desc(v) : ''
+        else if (t === 'b') val = v === '1'
+        else if (t === 'e') val = v !== undefined ? desc(v) : null
+        else if (v !== undefined) { const n = Number(v); val = isNaN(n) ? desc(v) : n }
+        while (lin.length < i) lin.push(null)
         lin[i] = val
       }
-      if (lin.some((x) => x.trim() !== '')) linhas.push(lin)
+      linhas.push(lin)
     }
+    while (linhas.length && !linhas[linhas.length - 1].some((x) => x !== null && x !== '')) linhas.pop()
     out.push({ nome: a.nome, linhas })
   }
   return out

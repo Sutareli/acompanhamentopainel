@@ -7,7 +7,7 @@ import { btnG, btnP, btnSm, Card, Msg } from '../components/ui'
 import { ChamadoImport, lerBase } from '../lib/chamados'
 import { LeituraMicro, lerMicro, modeloMicroCsv, PessoaRef } from '../lib/microImport'
 import { LeituraMelhorias, lerMelhorias } from '../lib/melhoriasImport'
-import { CsatQuadroCard, CsatRespostasCard } from '../components/CsatImport'
+import { CsatCard } from '../components/CsatImport'
 
 /** Janela exclusiva do Analista Sr: importação das bases (chamados do backlog/Pareto e projetos). A trava real está no banco (RLS e função chamados_substituir). */
 async function lerArquivo(f: File): Promise<string> {
@@ -31,8 +31,7 @@ export default function ImportarBases({ onNavigate }: { onNavigate: (p: string) 
         <ChamadosCard onNavigate={onNavigate} />
         <MicroCard onNavigate={onNavigate} />
         <MelhoriasCard onNavigate={onNavigate} />
-        <CsatRespostasCard onNavigate={onNavigate} />
-        <CsatQuadroCard />
+        <CsatCard onNavigate={onNavigate} />
       </fieldset>
     </div>
   )

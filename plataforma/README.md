@@ -509,10 +509,12 @@ Toda reunião nova (**+ Nova semanal**) já nasce com, em cada etapa, os pedidos
 ## Qualidade das imagens do Status Rocco
 Imagens coladas ou anexadas agora são mantidas até **2400 px** no maior lado (antes 1400 px em JPEG 80%, o que embaçava prints de telas grandes). A plataforma grava em **PNG** (texto e tabelas nítidos) ou **JPEG 92%**, o que ficar menor, e só reduz mais se a imagem passar de ~1,4 MB. Cada reunião aceita ~11 MB de imagens; passando disso, aparece um aviso em vez de falhar ao salvar. Imagens já coladas antes não ganham qualidade: é preciso colar de novo.
 
-## C-SAT Rocco (migração 040)
-- Menu **C-SAT Rocco** (Diretor, Gerente e Analista Sr; para o Diretor fica em “Demais itens”): dashboard da pesquisa de satisfação da ferramenta Rocco, com abas **Visão geral**, **Performance** (operadores) e **Executiva** (gestores).
-- Método: **C-SAT = (notas 4 + notas 5) ÷ total de respostas** (neutras entram no total). Filtros de mês, site, coordenador, supervisor e pergunta; KPIs com comparação ao mês anterior, distribuição das notas, evolução mensal, C-SAT por dia, por pergunta/site/coordenador/supervisor, usuários e comentários. Botão para baixar o recorte em CSV.
-- Atualização em **Importar bases** → cards 4 e 5. Aceitam **.xlsx** direto (ou CSV):
-  - **Respostas** (exportação de C-SAT do Rocco): base **acumulativa** — reenviar o mesmo arquivo ou arquivos que se sobrepõem não duplica. Colunas reconhecidas pelo nome e ajustáveis na tela (o mapeamento fica salvo). Visão escolhida na carga ou lida de uma coluna. Bases “largas” (uma coluna por pergunta) também funcionam. “Desfazer última carga” remove só o que entrou nela.
-  - **QUADRO**: hierarquia ligada por **ALMOPE = usuário**. Reenviar atualiza e acrescenta; ninguém é apagado.
-- Banco: rode **`supabase/040_csat_rocco.sql`** uma vez.
+## C-SAT Rocco (migrações 040 e 041)
+- Menu **C-SAT Rocco** (Diretor, Gerente e Analista Sr): é a planilha **Rocco_CSAT_Dashboard.xlsx** dentro do painel — as mesmas abas (Painel, Análise detalhada, Evolução, Comentários, Base de dados, Hierarquia, Regras, Dicionário), o mesmo layout (células, cartões, gráficos, cores e menu lateral) e **as mesmas fórmulas**: o motor em `src/csat/motor` executa as fórmulas originais do arquivo (conferido célula a célula com os valores salvos pelo Excel: 66 mil fórmulas, nenhuma diferença).
+- Os filtros do Painel e da aba Comentários são listas suspensas como no Excel e valem só para quem está olhando. Edições em **Regras**, **Hierarquia** (nomes das colunas do QUADRO) e a revisão manual da **Base de dados** (Categoria_Manual, Obs_Revisao) são gravadas para todos (Analista Sr, Gerente e Diretor).
+- Atualização em **Importar bases → 4 · C-SAT Rocco** (aceita .xlsx direto):
+  - **Exportação de C-SAT do Rocco**: o mesmo que colar a exportação no fim da Base de Dados; Código já existente é pulado.
+  - **QUADRO** (abas Colaboradores e STAFF): substitui os dois quadros.
+  - **Planilha completa** (primeira carga): traz a base, os quadros e o que foi editado em Regras/Hierarquia; substitui tudo.
+- Layout/fórmulas ficam em `src/csat/modelo.json`, gerado da planilha por `ferramentas/csat/gerar_modelo.py` (veja o LEIAME de lá).
+- Banco: rode **`supabase/041_csat_rocco_planilha.sql`** uma vez (tabelas `csat_base`, `csat_quadros`, `csat_ajustes`). As tabelas `csat_respostas`/`csat_quadro` da versão anterior (040) não são mais usadas.
