@@ -50,9 +50,11 @@ export interface FolhaProps {
   congelar?: [number, number]   // [linhas, colunas] — substitui o congelamento do arquivo
   linhasDados?: number
   tema?: 'painel' | 'excel'
+  ocultarColunas?: number   // colunas da esquerda que não aparecem (menu lateral da planilha)
 }
 const NAV: Record<string, string> = { 'painel': 'Dashboard', 'análise detalhada': 'Análise Detalhada', 'evolução': 'Evolução', 'comentários': 'Comentários', 'base de dados': 'Base de Dados', 'hierarquia': 'Hierarquia', 'regras': 'Regras', 'dicionário': 'Dicionário' }
-export function destinoNav(t: string): string | null { const k = t.replace(/^[^A-Za-zÀ-ÿ]+/, '').trim().toLowerCase(); return NAV[k] ?? null }
+export function destinoNav(t: string): string | null { if (/^[A-Za-zÀ-ÿ]/.test(t.trim())) return null   // os botões da planilha começam com ícone; títulos não
+  const k = t.replace(/^[^A-Za-zÀ-ÿ]+/, '').trim().toLowerCase(); return NAV[k] ?? null }
 
 export default function Folha(p: FolhaProps) {
   const { modelo, nome, pasta } = p
@@ -87,14 +89,17 @@ export default function Folha(p: FolhaProps) {
     const ro = new ResizeObserver(() => { setLargCont(el.clientWidth); setVista((v) => ({ ...v, h: el.clientHeight, w: el.clientWidth })) })
     ro.observe(el); return () => ro.disconnect()
   }, [])
-  const z = p.zoom === 'ajustar' ? Math.min(1.25, Math.max(0.3, (largCont - 4) / (p.larguraAjuste ?? extW))) : p.zoom
+  const oc = p.ocultarColunas ?? 0
+  const offX = colX[oc + 1] ?? 0
+  const z = p.zoom === 'ajustar' ? Math.min(1.25, Math.max(0.3, (largCont - 4) / ((p.larguraAjuste ?? extW) - offX))) : p.zoom
 
   // ---------- congelamento ----------
-  const [frR, frC] = useMemo<[number, number]>(() => {
+  const [frR, frC0] = useMemo<[number, number]>(() => {
     if (p.congelar) return p.congelar
     if (!fm.freeze) return [0, 0]
     const [r, c] = faixa(fm.freeze); return [r - 1, c - 1]
   }, [fm.freeze, p.congelar])
+  const frC = frC0 > oc ? frC0 : 0
   const frW = colX[frC + 1] ?? 0, frH = rowY[frR + 1] ?? 0
   const onScroll = () => {
     const el = scrollRef.current!; const sl = el.scrollLeft / z, stp = el.scrollTop / z
@@ -200,7 +205,10 @@ export default function Folha(p: FolhaProps) {
         else { let a = c - 1, b2 = c + 1; while (tw < need && (a >= 1 || b2 <= maxCol)) { const okA = a >= 1 && !temConteudo(r, a), okB = b2 <= maxCol && !temConteudo(r, b2); if (!okA && !okB) break; if (okA) { tw += cw[a]; tx -= cw[a]; a-- } if (okB) { tw += cw[b2]; b2++ } } }
       }
     }
-    const nav = typeof v === 'string' && c <= 15 && r <= 30 ? destinoNav(v) : null
+    const navPlan = typeof v === 'string' && c <= 15 && r <= 30 ? destinoNav(v) : null
+    // no visual de painel a navegação é o menu superior: os botões de navegação da planilha não aparecem
+    const nav = p.tema === 'excel' ? navPlan : null
+    const txtVis = navPlan && p.tema !== 'excel' ? '' : txt
     const dv = dvDe(r, c)
     const painel = p.tema !== 'excel'
     const corpoTabela = painel && !bg && !!(st.bb || st.bt || st.bl || st.br || stR.br || stB.bb)
@@ -228,9 +236,9 @@ export default function Folha(p: FolhaProps) {
         {cf.barra && <div style={{ position: 'absolute', left: 3, ...(painel ? { bottom: 2, height: 4 } : { top: 2, bottom: 2 }), width: `calc(${cf.barra.pct * 100}% - 6px)`, borderRadius: painel ? 99 : 0, background: painel ? `#${cf.barra.cor}` : `linear-gradient(90deg, #${cf.barra.cor}, #${cf.barra.cor}22)`, opacity: painel ? 0.75 : 1 }} />}
       </div>
     )
-    const texto = txt !== '' || dv ? (
+    const texto = txtVis !== '' || dv ? (
       <div key={key + 't'} className={painel && nav ? 'csat-navt' : undefined} style={{ position: 'absolute', left: x, top: y, width: w, height: h, pointerEvents: nav || dv || podeEditar ? 'auto' : 'none', cursor: nav || dv || podeEditar ? 'pointer' : undefined }} onClick={nav ? () => p.onNav(nav) : undefined} onDoubleClick={podeEditar ? () => setEdit({ r, c, v: v === null ? '' : String(v) }) : undefined}>
-        {txt !== '' && <div style={tcss}>{st.w ? <span style={{ width: '100%' }}>{txt}</span> : txt}</div>}
+        {txtVis !== '' && <div style={tcss}>{st.w ? <span style={{ width: '100%' }}>{txtVis}</span> : txtVis}</div>}
         {painel && dv && <span aria-hidden style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: '#7C6BB0', pointerEvents: 'none' }}>▾</span>}
         {painel && dv && txt === '' && <span aria-hidden style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#A59BC7', fontFamily: fonteCss(), pointerEvents: 'none' }}>{dv.type === 'date' ? 'dd/mm/aaaa' : 'Selecionar'}</span>}
         {dv && <Entrada dv={dv} v={v} opcoes={dv.type === 'list' ? opcoes(dv.f1) : []} onChange={(nv) => p.onEntrada(nome, r, c, nv)} />}
@@ -253,7 +261,7 @@ export default function Folha(p: FolhaProps) {
   const camadas = { corpo: [[], []], topo: [[], []], esq: [[], []], canto: [[], []] } as Record<string, [ReactNode[], ReactNode[]]>
   const rowsTop = Array.from({ length: frR }, (_, i) => i + 1)
   for (const r of [...rowsTop, ...linhas.filter((x) => x > frR)]) for (const c of celsDaLinha(r)) {
-    if (c > maxCol) continue
+    if (c > maxCol || c <= oc) continue
     const el = celula(r, c, r + ',' + c); if (!el) continue
     const alvo = r <= frR && c <= frC ? 'canto' : r <= frR ? 'topo' : c <= frC ? 'esq' : 'corpo'
     camadas[alvo][0].push(el[0]); if (el[1]) camadas[alvo][1].push(el[1])
@@ -267,6 +275,7 @@ export default function Folha(p: FolhaProps) {
     if (x === undefined && d.from) { x = colX[d.from[0] + 1] + d.from[1]; y = rowY[d.from[2] + 1] + d.from[3] }
     let w = d.w, h = d.h
     if ((w === undefined || h === undefined) && d.to) { w = colX[d.to[0] + 1] + d.to[1] - x; h = rowY[d.to[2] + 1] + d.to[3] - y }
+    if (x + (w ?? 0) <= offX + 1) return   // desenho dentro das colunas ocultas (mascote do menu)
     const alvo = d.from && d.from[0] < frC ? desenhosEsq : desenhos
     if (d.kind === 'pic') alvo.push(<img key={'d' + i} src={p.imagem(d.image)} alt="" style={{ position: 'absolute', left: x, top: y, width: w, height: h, maxWidth: 'none', pointerEvents: 'none' }} />)
     else if (d.kind === 'graphicFrame' && d.chartSpec) desenhos.push(<div key={'d' + i} style={{ position: 'absolute', left: x, top: y, width: w, height: h }}><Grafico spec={d.chartSpec as ChartSpec} w={w} h={h} fonte={fonteGraf} /></div>)
@@ -282,8 +291,8 @@ export default function Folha(p: FolhaProps) {
   return (
     <div ref={scrollRef} onScroll={onScroll} lang="pt-BR" className="relative h-full w-full overflow-auto" style={{ contain: 'strict', background: p.tema === 'excel' ? '#fff' : '#FBFAFE' }}>
       <style>{'.csat-navt{transition:background .15s}.csat-navt::before{content:"";position:absolute;inset:2px 6px;border-radius:8px;pointer-events:none;transition:background .15s}.csat-navt:hover::before{background:rgba(255,255,255,.12)}'}</style>
-      <div style={{ width: extW * z, height: extH * z, position: 'relative' }}>
-        <div style={{ position: 'absolute', left: 0, top: 0, width: extW, height: extH, transform: `scale(${z})`, transformOrigin: '0 0' }}>
+      <div style={{ width: (extW - offX) * z, height: extH * z, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', left: -offX * z, top: 0, width: extW, height: extH, transform: `scale(${z})`, transformOrigin: '0 0' }}>
           {corpo}
           {desenhos}
           {frC > 0 && <div ref={leftRef} style={{ position: 'absolute', left: 0, top: 0, width: frW, height: extH, background: p.tema === 'excel' ? '#fff' : '#FBFAFE', zIndex: 2, boxShadow: p.tema === 'excel' ? '1px 0 0 #d4d4d8' : '1px 0 0 #EEEAF7' }}>{esq}</div>}

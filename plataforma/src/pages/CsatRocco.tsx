@@ -12,6 +12,8 @@ import { carregarDados, Dados, gravarAjuste, gravarRevisao, montarPasta, podeEdi
  *  Os filtros valem só para quem está olhando; a base é atualizada em Importar bases. */
 const ABAS = ['Dashboard', 'Análise Detalhada', 'Evolução', 'Comentários', 'Base de Dados', 'Hierarquia', 'Regras', 'Dicionário']
 const ROTULO: Record<string, string> = { Dashboard: 'Painel', 'Análise Detalhada': 'Análise detalhada', 'Base de Dados': 'Base de dados' }
+/** Colunas do menu lateral da planilha (substituído pelas abas no topo). */
+const MENU_LATERAL: Record<string, number> = { Dashboard: 3, 'Análise Detalhada': 1, 'Evolução': 1, 'Comentários': 1, Hierarquia: 1, Regras: 1, 'Dicionário': 1 }
 const COL_CAT_MANUAL = 45, COL_OBS = 49, LINHA0 = 5
 
 export default function CsatRocco({ onNavigate }: { onNavigate: (p: string) => void }) {
@@ -90,7 +92,8 @@ export default function CsatRocco({ onNavigate }: { onNavigate: (p: string) => v
       zoom={emApresentacao ? 'ajustar' : zoom === 'ajustar' ? (aba === 'Dashboard' ? 'ajustar' : 1) : zoom} larguraAjuste={aba === 'Dashboard' ? 2240 : undefined}
       onNav={(a) => setAba(a)} onEntrada={onEntrada} editavel={emApresentacao ? undefined : editavel} onEditar={onEditar}
       imagem={(n) => `/csat/${n}`}
-      linhasDados={aba === 'Base de Dados' ? dados?.base.length ?? 0 : undefined} congelar={aba === 'Base de Dados' ? [4, 5] : undefined} />
+      linhasDados={aba === 'Base de Dados' ? dados?.base.length ?? 0 : undefined} congelar={aba === 'Base de Dados' ? [4, 5] : undefined}
+      ocultarColunas={MENU_LATERAL[aba] ?? 0} />
   )
   const ZOOMS = [0.5, 0.75, 0.85, 1, 1.15, 1.25, 1.5]
   const zAtual = zoom === 'ajustar' ? null : zoom
