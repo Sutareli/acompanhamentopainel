@@ -49,6 +49,7 @@ export interface FolhaProps {
   imagem: (nome: string) => string
   congelar?: [number, number]   // [linhas, colunas] — substitui o congelamento do arquivo
   linhasDados?: number
+  tema?: 'painel' | 'excel'
 }
 const NAV: Record<string, string> = { 'painel': 'Dashboard', 'análise detalhada': 'Análise Detalhada', 'evolução': 'Evolução', 'comentários': 'Comentários', 'base de dados': 'Base de Dados', 'hierarquia': 'Hierarquia', 'regras': 'Regras', 'dicionário': 'Dicionário' }
 export function destinoNav(t: string): string | null { const k = t.replace(/^[^A-Za-zÀ-ÿ]+/, '').trim().toLowerCase(); return NAV[k] ?? null }
@@ -201,19 +202,37 @@ export default function Folha(p: FolhaProps) {
     }
     const nav = typeof v === 'string' && c <= 15 && r <= 30 ? destinoNav(v) : null
     const dv = dvDe(r, c)
-    const sobra = bg && !stR.br && !stB.bb ? 0.6 : 0   // evita frestas entre células de fundo quando há zoom
-    const css: CSSProperties = { position: 'absolute', left: x, top: y, width: w + sobra, height: h + sobra, background: bg ? '#' + bg : undefined, borderLeft: bd(st.bl), borderTop: bd(st.bt), borderRight: bd(stR.br), borderBottom: bd(stB.bb), boxSizing: 'border-box' }
-    const tcss: CSSProperties = { position: 'absolute', left: tx, top: 0, width: tw, height: '100%', display: 'flex', alignItems: vAlign, justifyContent: hAlign === 'center' ? 'center' : hAlign === 'right' ? 'flex-end' : 'flex-start', padding: `0 ${3 + (hAlign === 'right' ? (st.ind ?? 0) * 9 : 0)}px 1px ${3 + (hAlign === 'left' ? (st.ind ?? 0) * 9 : 0)}px`, boxSizing: 'border-box', overflow: 'hidden',
-      fontFamily: fonteCss(st.fn ?? 'Calibri'), fontSize: fs, fontWeight: cf.b || st.b ? 700 : 400, fontStyle: st.i ? 'italic' : undefined, textDecoration: st.u ? 'underline' : undefined, color: cf.fc ? '#' + cf.fc : st.fc ? '#' + st.fc : '#000', whiteSpace: st.w ? 'pre-wrap' : 'pre', lineHeight: 1.15, textAlign: hAlign as any, wordBreak: st.w ? 'break-word' : undefined }
+    const painel = p.tema !== 'excel'
+    const corpoTabela = painel && !bg && !!(st.bb || st.bt || st.bl || st.br || stR.br || stB.bb)
+    const cab = painel && !!bg && lum(bg) < 0.42
+    const bgFinal = painel && dv ? 'FFFFFF' : bg ?? (corpoTabela ? (r % 2 === 0 ? 'F8F6FD' : 'FFFFFF') : undefined)
+    const sobra = bgFinal && !dv && !nav && !stR.br && !stB.bb ? 0.6 : 0   // evita frestas entre células de fundo quando há zoom
+    const bordaP = (b: [string, string] | undefined, lado: 'l' | 'r' | 't' | 'b') => {
+      if (!painel) return bd(b)
+      if (!b || cab || dv) return undefined
+      if (/medium|thick|double/.test(b[0])) return lado === 'b' || lado === 't' ? `2px solid #${b[1]}` : undefined
+      return lado === 'b' ? '1px solid #ECE8F6' : undefined
+    }
+    const caixa = painel && dv ? { left: x + 3, top: y + 3, width: w - 6, height: h - 6 } : { left: x, top: y, width: w + sobra, height: h + sobra }
+    const css: CSSProperties = { position: 'absolute', ...caixa, background: bgFinal ? '#' + bgFinal : undefined, borderLeft: bordaP(st.bl, 'l'), borderTop: bordaP(st.bt, 't'), borderRight: bordaP(stR.br, 'r'), borderBottom: bordaP(stB.bb, 'b'), boxSizing: 'border-box',
+      ...(painel && dv ? { border: '1px solid #D9D0F2', borderRadius: 8, boxShadow: '0 1px 2px rgba(58,28,113,0.08)' } : {}),
+      ...(painel && nav ? { background: '#' + (estiloDe(r + 1, c).bg ?? estiloDe(r - 1, c).bg ?? '2B1260') } : {}) }
+    const pad = painel ? (st.w || cab ? 4 : 6) : 3
+    const tcss: CSSProperties = { position: 'absolute', left: tx, top: 0, width: tw, height: '100%', display: 'flex', alignItems: vAlign, justifyContent: hAlign === 'center' ? 'center' : hAlign === 'right' ? 'flex-end' : 'flex-start', padding: `0 ${pad + (hAlign === 'right' ? (st.ind ?? 0) * 9 : 0) + (painel && dv ? 14 : 0)}px 1px ${pad + (hAlign === 'left' ? (st.ind ?? 0) * 9 : 0)}px`, boxSizing: 'border-box', overflow: 'hidden',
+      fontFamily: painel ? fonteCss() : fonteCss(st.fn ?? 'Calibri'), fontSize: fs, fontWeight: cf.b || st.b ? (painel ? 600 : 700) : 400, fontStyle: st.i ? 'italic' : undefined, textDecoration: st.u && !(painel && nav) ? 'underline' : undefined, color: painel && dv ? '#4C1D95' : cf.fc ? '#' + cf.fc : st.fc ? '#' + st.fc : painel ? '#1E1B3A' : '#000', whiteSpace: st.w ? 'pre-wrap' : 'pre', lineHeight: 1.2, textAlign: hAlign as any, wordBreak: st.w && !painel ? 'break-word' : undefined, overflowWrap: painel ? 'normal' : undefined, hyphens: painel ? 'auto' : undefined,
+      ...(cab ? { letterSpacing: '0.01em' } : {}) }
     const podeEditar = !dv && p.editavel?.(r, c)
     const fundo = (
       <div key={key} style={{ ...css, cursor: nav || dv || podeEditar ? 'pointer' : undefined }} onClick={nav ? () => p.onNav(nav) : undefined} onDoubleClick={podeEditar ? () => setEdit({ r, c, v: v === null ? '' : String(v) }) : undefined} title={podeEditar ? 'Clique duas vezes para editar' : undefined}>
-        {cf.barra && <div style={{ position: 'absolute', left: 2, top: 2, bottom: 2, width: `calc(${cf.barra.pct * 100}% - 4px)`, background: `linear-gradient(90deg, #${cf.barra.cor}, #${cf.barra.cor}22)` }} />}
+        {painel && nav && bg && <div className="csat-nav" style={{ position: 'absolute', left: 6, right: 6, top: 2, bottom: 2, borderRadius: 8, background: '#' + bg }} />}
+        {cf.barra && <div style={{ position: 'absolute', left: 3, ...(painel ? { bottom: 2, height: 4 } : { top: 2, bottom: 2 }), width: `calc(${cf.barra.pct * 100}% - 6px)`, borderRadius: painel ? 99 : 0, background: painel ? `#${cf.barra.cor}` : `linear-gradient(90deg, #${cf.barra.cor}, #${cf.barra.cor}22)`, opacity: painel ? 0.75 : 1 }} />}
       </div>
     )
     const texto = txt !== '' || dv ? (
-      <div key={key + 't'} style={{ position: 'absolute', left: x, top: y, width: w, height: h, pointerEvents: nav || dv || podeEditar ? 'auto' : 'none', cursor: nav || dv || podeEditar ? 'pointer' : undefined }} onClick={nav ? () => p.onNav(nav) : undefined} onDoubleClick={podeEditar ? () => setEdit({ r, c, v: v === null ? '' : String(v) }) : undefined}>
+      <div key={key + 't'} className={painel && nav ? 'csat-navt' : undefined} style={{ position: 'absolute', left: x, top: y, width: w, height: h, pointerEvents: nav || dv || podeEditar ? 'auto' : 'none', cursor: nav || dv || podeEditar ? 'pointer' : undefined }} onClick={nav ? () => p.onNav(nav) : undefined} onDoubleClick={podeEditar ? () => setEdit({ r, c, v: v === null ? '' : String(v) }) : undefined}>
         {txt !== '' && <div style={tcss}>{st.w ? <span style={{ width: '100%' }}>{txt}</span> : txt}</div>}
+        {painel && dv && <span aria-hidden style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: '#7C6BB0', pointerEvents: 'none' }}>▾</span>}
+        {painel && dv && txt === '' && <span aria-hidden style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#A59BC7', fontFamily: fonteCss(), pointerEvents: 'none' }}>{dv.type === 'date' ? 'dd/mm/aaaa' : 'Selecionar'}</span>}
         {dv && <Entrada dv={dv} v={v} opcoes={dv.type === 'list' ? opcoes(dv.f1) : []} onChange={(nv) => p.onEntrada(nome, r, c, nv)} />}
       </div>
     ) : null
@@ -249,7 +268,7 @@ export default function Folha(p: FolhaProps) {
     let w = d.w, h = d.h
     if ((w === undefined || h === undefined) && d.to) { w = colX[d.to[0] + 1] + d.to[1] - x; h = rowY[d.to[2] + 1] + d.to[3] - y }
     const alvo = d.from && d.from[0] < frC ? desenhosEsq : desenhos
-    if (d.kind === 'pic') alvo.push(<img key={'d' + i} src={p.imagem(d.image)} alt="" style={{ position: 'absolute', left: x, top: y, width: w, height: h, pointerEvents: 'none' }} />)
+    if (d.kind === 'pic') alvo.push(<img key={'d' + i} src={p.imagem(d.image)} alt="" style={{ position: 'absolute', left: x, top: y, width: w, height: h, maxWidth: 'none', pointerEvents: 'none' }} />)
     else if (d.kind === 'graphicFrame' && d.chartSpec) desenhos.push(<div key={'d' + i} style={{ position: 'absolute', left: x, top: y, width: w, height: h }}><Grafico spec={d.chartSpec as ChartSpec} w={w} h={h} fonte={fonteGraf} /></div>)
     else if (d.kind === 'sp') {
       let texto: string | undefined
@@ -261,15 +280,16 @@ export default function Folha(p: FolhaProps) {
   const fundoGrade = (c: number) => (c <= frC ? '#fff' : undefined)
   void fundoGrade
   return (
-    <div ref={scrollRef} onScroll={onScroll} className="relative h-full w-full overflow-auto bg-white" style={{ contain: 'strict' }}>
+    <div ref={scrollRef} onScroll={onScroll} lang="pt-BR" className="relative h-full w-full overflow-auto" style={{ contain: 'strict', background: p.tema === 'excel' ? '#fff' : '#FBFAFE' }}>
+      <style>{'.csat-navt{transition:background .15s}.csat-navt::before{content:"";position:absolute;inset:2px 6px;border-radius:8px;pointer-events:none;transition:background .15s}.csat-navt:hover::before{background:rgba(255,255,255,.12)}'}</style>
       <div style={{ width: extW * z, height: extH * z, position: 'relative' }}>
         <div style={{ position: 'absolute', left: 0, top: 0, width: extW, height: extH, transform: `scale(${z})`, transformOrigin: '0 0' }}>
           {corpo}
           {desenhos}
-          {frC > 0 && <div ref={leftRef} style={{ position: 'absolute', left: 0, top: 0, width: frW, height: extH, background: '#fff', zIndex: 2, boxShadow: '1px 0 0 #d4d4d8' }}>{esq}</div>}
+          {frC > 0 && <div ref={leftRef} style={{ position: 'absolute', left: 0, top: 0, width: frW, height: extH, background: p.tema === 'excel' ? '#fff' : '#FBFAFE', zIndex: 2, boxShadow: p.tema === 'excel' ? '1px 0 0 #d4d4d8' : '1px 0 0 #EEEAF7' }}>{esq}</div>}
           {frC > 0 && <div ref={picRef} style={{ position: 'absolute', left: 0, top: 0, width: 0, height: 0, zIndex: 5 }}>{desenhosEsq}</div>}
-          {frR > 0 && <div ref={topRef} style={{ position: 'absolute', left: 0, top: 0, width: extW, height: frH, background: '#fff', zIndex: 3, boxShadow: '0 1px 0 #d4d4d8' }}>{topo}</div>}
-          {frR > 0 && frC > 0 && <div ref={cornerRef} style={{ position: 'absolute', left: 0, top: 0, width: frW, height: frH, background: '#fff', zIndex: 4 }}>{canto}</div>}
+          {frR > 0 && <div ref={topRef} style={{ position: 'absolute', left: 0, top: 0, width: extW, height: frH, background: p.tema === 'excel' ? '#fff' : '#FBFAFE', zIndex: 3, boxShadow: p.tema === 'excel' ? '0 1px 0 #d4d4d8' : '0 2px 6px rgba(58,28,113,0.06)' }}>{topo}</div>}
+          {frR > 0 && frC > 0 && <div ref={cornerRef} style={{ position: 'absolute', left: 0, top: 0, width: frW, height: frH, background: p.tema === 'excel' ? '#fff' : '#FBFAFE', zIndex: 4 }}>{canto}</div>}
           {frC === 0 && desenhosEsq}
           {edit && (
             <input autoFocus defaultValue={edit.v} style={{ position: 'absolute', left: colX[edit.c], top: rowY[edit.r], width: Math.max(160, cw[edit.c]), height: rh[edit.r], zIndex: 10, font: '14px system-ui', border: '2px solid #217346', padding: '0 3px' }}
@@ -296,6 +316,7 @@ function Entrada({ dv, v, opcoes, onChange }: { dv: { type: string }; v: Esc; op
     </select>
   )
 }
+function lum(h: string) { const v = (i: number) => parseInt(h.slice(i, i + 2), 16) / 255; return 0.2126 * v(0) + 0.7152 * v(2) + 0.0722 * v(4) }
 function pctl(ns: number[], p: number) { if (!ns.length) return 0; const k = (ns.length - 1) * p / 100; const f = Math.floor(k), c = Math.ceil(k); return ns[f] + (ns[c] - ns[f]) * (k - f) }
 function mistura(a: string, b: string, t: number) { const h = (s: string, i: number) => parseInt(s.slice(i, i + 2), 16); const m = (i: number) => Math.round(h(a, i) + (h(b, i) - h(a, i)) * t).toString(16).padStart(2, '0'); return (m(0) + m(2) + m(4)).toUpperCase() }
 function lbRow(rowY: number[], y: number) { let l = 1, h = rowY.length - 1; while (l < h) { const m = (l + h) >> 1; if (rowY[m + 1] <= y) l = m + 1; else h = m } return l }
